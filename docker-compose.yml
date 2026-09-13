@@ -13,7 +13,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"          # only expose on VPS if needed; remove in full-prod
+      - "${DB_PORT:-5433}:5432"          # default 5433 to prevent conflict with local host postgres
     networks:
       - lms_network
     healthcheck:
@@ -37,7 +37,7 @@ services:
       PORT: 5000
       DATABASE_URL: postgresql://${POSTGRES_USER:-lmsuser}:${POSTGRES_PASSWORD:-changeme}@db:5432/${POSTGRES_DB:-lmsdb}
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost}
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://lms2.maskumambang.ac.id}
     networks:
       - lms_network
     healthcheck:
@@ -56,8 +56,7 @@ services:
     depends_on:
       - backend
     ports:
-      - "80:80"
-      - "443:443"            # expose HTTPS port (configure SSL with certbot or traefik)
+      - "${FRONTEND_PORT:-3080}:80"
     networks:
       - lms_network
 
