@@ -79,27 +79,36 @@ const Login: React.FC = () => {
       hcaptchaRef.current?.resetCaptcha();
       setCaptchaToken(null);
 
+      // Prioritaskan pesan spesifik dari backend
       let rawMessage = '';
-      if (typeof err === 'string') {
+      if (err?.response?.data?.message && typeof err.response.data.message === 'string') {
+        rawMessage = err.response.data.message;
+      } else if (err?.response?.data?.error_description && typeof err.response.data.error_description === 'string') {
+        rawMessage = err.response.data.error_description;
+      } else if (err?.error_description && typeof err.error_description === 'string') {
+        rawMessage = err.error_description;
+      } else if (typeof err === 'string') {
         rawMessage = err;
       } else if (err?.message && typeof err.message === 'string') {
         rawMessage = err.message;
-      } else if (err?.error_description && typeof err.error_description === 'string') {
-        rawMessage = err.error_description;
-      } else if (err?.response?.data?.error_description && typeof err.response.data.error_description === 'string') {
-        rawMessage = err.response.data.error_description;
-      } else if (err?.response?.data?.message && typeof err.response.data.message === 'string') {
-        rawMessage = err.response.data.message;
       }
 
       rawMessage = rawMessage.trim();
 
       let errorMessage = 'NIG atau kata sandi yang Anda masukkan salah. Silakan periksa kembali.';
 
-      if (
+      // Cek status code 401 atau pesan error kredensial tidak valid
+      if (err?.response?.status === 401) {
+        if (rawMessage && !rawMessage.toLowerCase().includes('status code 401')) {
+          errorMessage = rawMessage;
+        } else {
+          errorMessage = 'NIG atau kata sandi yang Anda masukkan salah. Silakan periksa kembali.';
+        }
+      } else if (
         !rawMessage ||
         rawMessage === '{}' ||
         rawMessage === '[object Object]' ||
+        rawMessage.toLowerCase().includes('request failed with status code') ||
         rawMessage.toLowerCase().includes('invalid login credentials') ||
         rawMessage.toLowerCase().includes('invalid credentials') ||
         rawMessage.toLowerCase().includes('invalid_grant')
@@ -107,8 +116,8 @@ const Login: React.FC = () => {
         errorMessage = 'NIG atau kata sandi yang Anda masukkan salah. Silakan periksa kembali.';
       } else if (rawMessage.toLowerCase().includes('email not confirmed')) {
         errorMessage = 'Akun Anda belum dikonfirmasi. Silakan hubungi administrator.';
-      } else if (rawMessage.toLowerCase().includes('user not found')) {
-        errorMessage = 'Pengguna dengan NIG tersebut tidak ditemukan.';
+      } else if (rawMessage.toLowerCase().includes('user not found') || rawMessage.toLowerCase().includes('tidak ditemukan')) {
+        errorMessage = 'Pengguna atau akun tidak ditemukan. Silakan periksa kembali NIG/Username Anda.';
       } else if (rawMessage.toLowerCase().includes('too many requests') || rawMessage.toLowerCase().includes('rate limit')) {
         errorMessage = 'Terlalu banyak percobaan login. Silakan tunggu beberapa saat.';
       } else {
