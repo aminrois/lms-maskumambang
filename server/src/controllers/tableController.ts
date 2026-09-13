@@ -253,7 +253,28 @@ const TABLE_CONFIGS: Record<string, ModelConfig> = {
   },
 };
 
+const MANY_RELATIONS = new Set([
+  'pegawai_lembaga',
+  'user_roles',
+  'siswa',
+  'kelas_mapel',
+  'details',
+  'absensi_pelajaran',
+  'absensi_harian',
+  'jadwal_pelajaran',
+]);
+
+const RELATION_ALIASES: Record<string, string> = {
+  jadwal_pelajaran: 'jadwal',
+  mata_pelajaran: 'mapel',
+};
+
+function normalizeRelationKey(rel: string): string {
+  return RELATION_ALIASES[rel] || rel;
+}
+
 function parseFilterValue(val: string): any {
+  val = decodeURIComponent(val.replace(/\+/g, ' ')).trim();
   if (val === 'true') return true;
   if (val === 'false') return false;
   if (val === 'null') return null;
@@ -262,53 +283,188 @@ function parseFilterValue(val: string): any {
   return val;
 }
 
-function parseWhere(query: Record<string, any>, idField: string, idParam?: string): any {
-  const where: any = {};
+function parseOpAndValue(opWithVal: string): any {
+  if (opWithVal.startsWith('eq.')) {
+    return parseFilterValue(opWithVal.substring(3));
+  }
+  if (opWithVal.startsWith('neq.')) {
+    return { not: parseFilterValue(opWithVal.substring(4)) };
+  }
+  if (opWithVal.startsWith('gte.')) {
+    return { gte: parseFilterValue(opWithVal.substring(4)) };
+  }
+  if (opWithVal.startsWith('gt.')) {
+    return { gt: parseFilterValue(opWithVal.substring(3)) };
+  }
+  if (opWithVal.startsWith('lte.')) {
+    return { lte: parseFilterValue(opWithVal.substring(4)) };
+  }
+  if (opWithVal.startsWith('lt.')) {
+    return { lt: parseFilterValue(opWithVal.substring(3)) };
+  }
+  if (opWithVal.startsWith('is.null')) {
+    return null;
+  }
+  if (opWithVal.startsWith('not.is.null')) {
+    return { not: null };
+  }
+  if (opWithVal.startsWith('in.(') && opWithVal.endsWith(')')) {
+    const items = opWithVal
+      .substring(4, opWithVal.length - 1)
+      .split(',')
+      .map((s) => parseFilterValue(s.trim()));
+    return { in: items };
+  }
+  if (opWithVal.startsWith('like.') || opWithVal.startsWith('ilike.')) {
+    const prefix = opWithVal.startsWith('like.') ? 'like.' : 'ilike.';
+    let cleanVal = opWithVal.substring(prefix.length);
+    cleanVal = cleanVal.replace(/^\*|\*$/g, '').replace(/^%|%$/g, '');
+    cleanVal = decodeURIComponent(cleanVal.replace(/\+/g, ' '));
+    return { contains: cleanVal, mode: 'insensitive' };
+  }
+  return parseFilterValue(opWithVal);
+}
 
-  if (idParam !== undefined) {
-    where[idField] = parseFilterValue(idParam);
+function buildNestedCondition(pathParts: string[], filterObj: any): any {
+  if (pathParts.length === 0) return filterObj;
+  if (pathParts.length === 1) {
+    const fieldName = normalizeRelationKey(pathParts[0]);
+    return { [fieldName]: filterObj };
   }
 
-  for (const [key, rawVal] of Object.entries(query)) {
-    if (['select', 'order', 'limit', 'offset', 'page', 'count'].includes(key)) continue;
+  const [head, ...tail] = pathParts;
+  const relName = normalizeRelationKey(head);
+  const isMany = MANY_RELATIONS.has(relName);
+
+  const inner = buildNestedCondition(tail, filterObj);
+  if (isMany) {
+    return { [relName]: { some: inner } };
+  } else {
+    return { [relName]: inner };
+  }
+}
+
+function parseConditionExpression(expr: string): any {
+  expr = expr.trim();
+  if (!expr) return null;
+
+  const opRegex = /\.(eq|neq|gte|gt|lte|lt|is|not\.is|in|like|ilike)\./;
+  const match = expr.match(opRegex);
+
+  if (match && match.index !== undefined) {
+    const fieldPath = expr.substring(0, match.index).split('.');
+    const opAndVal = expr.substring(match.index + 1);
+    const condition = parseOpAndValue(opAndVal);
+    return buildNestedCondition(fieldPath, condition);
+  }
+
+  const parts = expr.split('.');
+  if (parts.length >= 2) {
+    const field = parts[0];
+    const opAndVal = parts.slice(1).join('.');
+    return { [field]: parseOpAndValue(opAndVal) };
+  }
+
+  return null;
+}
+
+function splitParenthesesList(content: string): string[] {
+  if (content.startsWith('(') && content.endsWith(')')) {
+    content = content.substring(1, content.length - 1);
+  }
+
+  const results: string[] = [];
+  let current = '';
+  let depth = 0;
+
+  for (let i = 0; i < content.length; i++) {
+    const char = content[i];
+    if (char === '(') depth++;
+    else if (char === ')') depth--;
+
+    if (char === ',' && depth === 0) {
+      if (current.trim()) results.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  if (current.trim()) results.push(current.trim());
+  return results;
+}
+
+function parseWhere(query: Record<string, any>, idField: string, idParam?: string): any {
+  const andList: any[] = [];
+
+  if (idParam !== undefined) {
+    andList.push({ [idField]: parseFilterValue(idParam) });
+  }
+
+  for (const [rawKey, rawVal] of Object.entries(query)) {
+    if (['select', 'order', 'limit', 'offset', 'page', 'count'].includes(rawKey)) continue;
     if (typeof rawVal !== 'string') {
-      where[key] = rawVal;
+      andList.push({ [rawKey]: rawVal });
       continue;
     }
 
+    const key = rawKey.trim();
     const val = rawVal.trim();
-    if (val.startsWith('eq.')) {
-      where[key] = parseFilterValue(val.substring(3));
-    } else if (val.startsWith('neq.')) {
-      where[key] = { not: parseFilterValue(val.substring(4)) };
-    } else if (val.startsWith('gte.')) {
-      where[key] = { gte: parseFilterValue(val.substring(4)) };
-    } else if (val.startsWith('gt.')) {
-      where[key] = { gt: parseFilterValue(val.substring(3)) };
-    } else if (val.startsWith('lte.')) {
-      where[key] = { lte: parseFilterValue(val.substring(4)) };
-    } else if (val.startsWith('lt.')) {
-      where[key] = { lt: parseFilterValue(val.substring(3)) };
-    } else if (val.startsWith('is.null')) {
-      where[key] = null;
-    } else if (val.startsWith('not.is.null')) {
-      where[key] = { not: null };
-    } else if (val.startsWith('in.(') && val.endsWith(')')) {
-      const items = val
-        .substring(4, val.length - 1)
-        .split(',')
-        .map((s) => parseFilterValue(s.trim()));
-      where[key] = { in: items };
-    } else if (val.startsWith('like.') || val.startsWith('ilike.')) {
-      const prefix = val.startsWith('like.') ? 'like.' : 'ilike.';
-      const cleanVal = val.substring(prefix.length).replace(/%/g, '').replace(/\*/g, '');
-      where[key] = { contains: cleanVal, mode: 'insensitive' };
-    } else {
-      where[key] = parseFilterValue(val);
+
+    // 1. Handle global `or=(cond1,cond2,...)`
+    if (key === 'or') {
+      const subExprs = splitParenthesesList(val);
+      const orConditions = subExprs
+        .map(parseConditionExpression)
+        .filter(Boolean);
+      if (orConditions.length > 0) {
+        andList.push({ OR: orConditions });
+      }
+      continue;
     }
+
+    // 2. Handle global `and=(cond1,cond2,...)`
+    if (key === 'and') {
+      const subExprs = splitParenthesesList(val);
+      const andConditions = subExprs
+        .map(parseConditionExpression)
+        .filter(Boolean);
+      if (andConditions.length > 0) {
+        andList.push({ AND: andConditions });
+      }
+      continue;
+    }
+
+    // 3. Handle relation `or` like `jadwal_pelajaran.or=(kelas.nama_kelas.ilike.*X*,...)`
+    if (key.endsWith('.or')) {
+      const relPath = key.substring(0, key.length - 3).split('.');
+      const subExprs = splitParenthesesList(val);
+      const orConditions = subExprs
+        .map(parseConditionExpression)
+        .filter(Boolean);
+      if (orConditions.length > 0) {
+        const nestedOr = buildNestedCondition(relPath, { OR: orConditions });
+        andList.push(nestedOr);
+      }
+      continue;
+    }
+
+    // 4. Handle nested dot notation keys: `kelas.lembaga_id=eq.4` or `pegawai_lembaga.lembaga_id=eq.4`
+    if (key.includes('.')) {
+      const pathParts = key.split('.');
+      const condition = parseOpAndValue(val);
+      const nested = buildNestedCondition(pathParts, condition);
+      andList.push(nested);
+      continue;
+    }
+
+    // 5. Standard single field filter: `nama=ilike.*budi*` or `status=eq.Aktif`
+    const condition = parseOpAndValue(val);
+    andList.push({ [key]: condition });
   }
 
-  return where;
+  if (andList.length === 0) return {};
+  if (andList.length === 1) return andList[0];
+  return { AND: andList };
 }
 
 function parseOrderBy(orderQuery?: string): any {
@@ -316,9 +472,12 @@ function parseOrderBy(orderQuery?: string): any {
   const parts = orderQuery.split(',');
   const orderBy: any[] = [];
   for (const part of parts) {
-    const [field, dir] = part.trim().split('.');
-    if (field) {
-      orderBy.push({ [field]: dir === 'desc' ? 'desc' : 'asc' });
+    const raw = part.trim();
+    const segments = raw.split('.');
+    if (segments.length >= 1) {
+      const field = segments[0];
+      const dir = segments[1]?.toLowerCase() === 'desc' ? 'desc' : 'asc';
+      orderBy.push({ [field]: dir });
     }
   }
   return orderBy.length === 1 ? orderBy[0] : orderBy;
