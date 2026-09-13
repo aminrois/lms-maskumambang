@@ -121,8 +121,8 @@ const Login: React.FC = () => {
     }
   };
 
-  // Tombol submit aktif hanya jika CAPTCHA sudah diverifikasi
-  const isSubmitReady = !!captchaToken && !loading;
+  // Tombol submit aktif jika tidak loading (dan jika CAPTCHA diaktifkan, CAPTCHA sudah diverifikasi)
+  const isSubmitReady = (!hasSiteKey || !!captchaToken) && !loading;
 
   return (
     <div className="min-h-dvh flex flex-col relative overflow-hidden font-sans bg-[#090F26]">
@@ -229,7 +229,7 @@ const Login: React.FC = () => {
                   : 'bg-gray-300 text-gray-500 shadow-none cursor-not-allowed'
                 }`}
             >
-              {loading ? 'Memproses...' : !captchaToken ? 'Selesaikan CAPTCHA dahulu' : 'Masuk ke Sistem'}
+              {loading ? 'Memproses...' : (hasSiteKey && !captchaToken) ? 'Selesaikan CAPTCHA dahulu' : 'Masuk ke Sistem'}
             </button>
           </form>
 
