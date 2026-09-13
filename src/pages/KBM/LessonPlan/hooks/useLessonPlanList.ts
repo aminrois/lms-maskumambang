@@ -1,0 +1,749 @@
+import { useState, useMemo, useEffect, useRef } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import * as XLSX from "xlsx";
+import {
+  getLessonPlans,
+  getLessonPlanDetails,
+  createLessonPlanDetail,
+  updateLessonPlanDetail,
+  deleteLessonPlan,
+  verifyLessonPlanKepsek,
+  verifyLessonPlanDirektur,
+  deleteJurnalMengajarByDetailIds
+} from "@/lib/api/services/kbmService";
+import { restClient } from "@/lib/api/axios";
+import { getPegawais } from "@/lib/api/services/masterService";
+import { getMataPelajarans, getAllJadwalPelajarans } from "@/lib/api/services/akademikService";
+import type { LESSON_PLAN, PEGAWAI } from "@/types/database";
+import { usePermissions } from "@/hooks/usePermissions";
+import { useAuthStore } from "@/store/useAuthStore";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
+
+export type LessonPlanSummary = LESSON_PLAN & {
+  nama_guru?: string;
+  nama_mapel?: string;
+  detail_count: number;
+  details: any[];
+  status_ringkas: "Menunggu Verifikasi" | "Menunggu Verifikasi Kepsek" | "Menunggu Verifikasi Direktur" | "Disetujui" | "Revisi Kepsek" | "Revisi Direktur";
+};
+
+export const resolveStatus = (plan: LESSON_PLAN): LessonPlanSummary["status_ringkas"] => {
+  if (
+    plan.status_verifikasi_kepsek === "Disetujui" &&
+    plan.status_verifikasi_direktur === "Disetujui"
+  ) {
+    return "Disetujui";
+  }
+
+  if (plan.status_verifikasi_kepsek === "Revisi") {
+    return "Revisi Kepsek";
+  }
+
+  if (plan.status_verifikasi_direktur === "Revisi") {
+    return "Revisi Direktur";
+  }
+
+  // Alur Verifikasi: Kepala Sekolah -> Direktur
+  if (plan.status_verifikasi_kepsek !== "Disetujui") {
+    return "Menunggu Verifikasi Kepsek";
+  }
+
+  if (plan.status_verifikasi_direktur !== "Disetujui") {
+    return "Menunggu Verifikasi Direktur";
+  }
+
+  return "Menunggu Verifikasi Kepsek";
+};
+
+const QUERY_KEY = ["kbm", "lesson-plans"] as const;
+
+export function useLessonPlanList() {
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState("Semua");
+  const tabs = ["Semua", "Disetujui", "Menunggu Verifikasi", "Revisi"];
+
+  const { canCreate, canUpdate, canDelete, canVerify } = usePermissions("lesson_plan");
+  const role = useAuthStore(state => state.role);
+  const pegawai_id = useAuthStore(state => state.user?.pegawai_id);
+  const lembaga_id = useAuthStore(state => state.lembaga_id);
+  const isReadOnlyRole = role === 'Kepala Sekolah' || role === 'WaKa Kurikulum' || role === 'Direktur';
+  const finalCanCreate = canCreate && !isReadOnlyRole;
+  const finalCanUpdate = canUpdate && !isReadOnlyRole;
+  const finalCanDelete = canDelete && !isReadOnlyRole;
+
+  // Realtime: invalidate query saat ada perubahan di tabel lesson_plan, lesson_plan_detail, atau jadwal_pelajaran
+  useRealtimeSync([
+    { table: "lesson_plan", queryKeys: [Array.from(QUERY_KEY)] },
+    { table: "lesson_plan_detail", queryKeys: [Array.from(QUERY_KEY)] },
+    { table: "jadwal_pelajaran", queryKeys: [Array.from(QUERY_KEY)] },
+  ]);
+
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [expandedPlans, setExpandedPlans] = useState<number[]>([]);
+
+  const toggleExpand = (id: number) => {
+    setExpandedPlans(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+  const [selectedPlan, setSelectedPlan] = useState<LessonPlanSummary | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const [isRevisiModalOpen, setIsRevisiModalOpen] = useState(false);
+  const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
+  const [isApproveAllModalOpen, setIsApproveAllModalOpen] = useState(false);
+  const [isApprovingAll, setIsApprovingAll] = useState(false);
+  const [revisiNote, setRevisiNote] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
+
+  // Fetch dengan React Query supaya bisa di-invalidate oleh useRealtimeSync
+  const { data: lessonPlans = [], isLoading } = useQuery({
+    queryKey: Array.from(QUERY_KEY),
+    queryFn: async () => {
+      const planParams: Record<string, any> = { order: "lesson_plan_id.desc" };
+      if ((role === 'Guru' || role === 'Wali Kelas') && pegawai_id) {
+        planParams.pegawai_id = `eq.${pegawai_id}`;
+      }
+
+      // Step 1: Ambil plans + data referensi secara paralel (tanpa details dulu)
+      const [plans, pegawais, mapels, jadwals, kelasAll] = await Promise.all([
+        getLessonPlans(planParams),
+        getPegawais({ select: "pegawai_id,nama" }),
+        getMataPelajarans({ select: "mapel_id,nama_mapel,lembaga_id" }),
+        getAllJadwalPelajarans({ select: "jadwal_id,kelas_id" }),
+        restClient.get('/kelas', { params: { select: 'kelas_id,lembaga_id' } }).then((r: any) => r.data || []),
+      ]);
+
+      // Step 2: Fetch details HANYA untuk plan_ids yang ditemukan (bukan seluruh tabel)
+      let allDetails: any[] = [];
+      if (plans.length > 0) {
+        const planIds = plans.map((p: LESSON_PLAN) => p.lesson_plan_id).join(',');
+        allDetails = await getLessonPlanDetails({
+          lesson_plan_id: `in.(${planIds})`,
+          order: "pertemuan_ke.asc",
+        });
+      }
+
+      const detailsByPlanId = allDetails.reduce<Record<number, any[]>>((acc, detail) => {
+        if (!acc[detail.lesson_plan_id]) acc[detail.lesson_plan_id] = [];
+        acc[detail.lesson_plan_id].push(detail);
+        return acc;
+      }, {});
+
+      const guruMap = new Map(pegawais.map((item: PEGAWAI) => [item.pegawai_id, item.nama]));
+      const mapelLembagaMap = new Map(mapels.map((item: any) => [item.mapel_id, item.lembaga_id]));
+
+      // Build jadwal_id → lembaga_id via kelas (jalur yang sama dengan Satuan Pendidikan di edit page)
+      const kelasToLembagaMap = new Map<number, number>();
+      kelasAll.forEach((k: any) => kelasToLembagaMap.set(k.kelas_id, k.lembaga_id));
+      const jadwalToLembagaMap = new Map<number, number>();
+      jadwals.forEach((j: any) => {
+        const lmb = kelasToLembagaMap.get(j.kelas_id);
+        if (lmb !== undefined) jadwalToLembagaMap.set(j.jadwal_id, lmb);
+      });
+
+      const extractMapelFromJudul = (judul?: string, fallback?: string) => {
+        if (!judul) return fallback || "";
+        const parts = judul.split(/\s+[-–]\s+/);
+        return parts[0] || fallback || "";
+      };
+
+      let nextRows: LessonPlanSummary[] = plans.map((plan: LESSON_PLAN) => {
+        const planDetails = detailsByPlanId[plan.lesson_plan_id] || [];
+
+        return {
+          ...plan,
+          nama_guru: guruMap.get(plan.pegawai_id),
+          nama_mapel: extractMapelFromJudul(plan.judul_rpp, "Mata Pelajaran"),
+          detail_count: planDetails.length,
+          details: planDetails,
+          status_ringkas: resolveStatus(plan),
+        };
+      });
+
+      // Filter berdasarkan lembaga: gunakan jalur jadwal_id → kelas → lembaga_id
+      // agar konsisten dengan Satuan Pendidikan yang ditampilkan di halaman edit pertemuan.
+      // Berlaku untuk semua role yang memiliki lembaga_id (kecuali Direktur & Super Admin).
+      const rolesFilterByLembaga = ['Kepala Sekolah', 'WaKa Kurikulum', 'Guru', 'Wali Kelas'];
+      if (lembaga_id && rolesFilterByLembaga.includes(role ?? '')) {
+        nextRows = nextRows.filter((plan) => {
+          const jadwalId = (plan as any).jadwal_id;
+          if (!jadwalId) {
+            // Fallback: gunakan lembaga dari mapel_id jika tidak ada jadwal_id
+            const mapelId = (plan as any).mapel_id;
+            return mapelId ? mapelLembagaMap.get(mapelId) === lembaga_id : false;
+          }
+          return jadwalToLembagaMap.get(jadwalId) === lembaga_id;
+        });
+      }
+
+      // Direktur hanya melihat RPP yang sudah disetujui Kepala Sekolah
+      if (role === 'Direktur') {
+        nextRows = nextRows.filter((plan) =>
+          plan.status_verifikasi_kepsek === 'Disetujui'
+        );
+      }
+
+      return nextRows;
+    }
+  });
+
+  const handleVerifyAction = (plan: LessonPlanSummary, action: "Disetujui" | "Revisi") => {
+    setSelectedPlan(plan);
+    if (action === "Revisi") {
+      setRevisiNote("");
+      setIsRevisiModalOpen(true);
+    } else {
+      setIsApproveModalOpen(true);
+    }
+  };
+
+  const executeVerify = async (action: "Disetujui" | "Revisi") => {
+    if (!selectedPlan) return;
+    setIsVerifying(true);
+    try {
+      if (role === "Kepala Sekolah") {
+        await verifyLessonPlanKepsek({
+          p_lesson_plan_id: selectedPlan.lesson_plan_id,
+          p_action: action,
+          p_catatan_revisi: action === "Revisi" ? revisiNote : "",
+        });
+      } else if (role === "Direktur") {
+        await verifyLessonPlanDirektur({
+          p_lesson_plan_id: selectedPlan.lesson_plan_id,
+          p_action: action,
+          p_catatan_revisi: action === "Revisi" ? revisiNote : "",
+        });
+      }
+
+      if (action === "Disetujui") {
+        toast.success("RPP telah disetujui.");
+        setIsApproveModalOpen(false);
+      } else {
+        toast.info("RPP dikembalikan untuk direvisi.");
+        setIsRevisiModalOpen(false);
+      }
+
+      // Invalidate agar data ter-refresh via React Query
+      queryClient.invalidateQueries({ queryKey: Array.from(QUERY_KEY) });
+    } catch (error) {
+      console.error(error);
+      toast.error("Gagal memproses verifikasi. Silakan coba lagi.");
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const eligiblePlansToApprove = useMemo(() => {
+    if (!canVerify) return [];
+    return lessonPlans.filter((plan) => {
+      if (role === "Kepala Sekolah") {
+        return plan.status_verifikasi_kepsek !== "Disetujui" && plan.status_verifikasi_kepsek !== "Revisi";
+      }
+      if (role === "Direktur") {
+        // Direktur hanya bisa memverifikasi RPP yang sudah disetujui Kepala Sekolah
+        return plan.status_verifikasi_kepsek === "Disetujui" && plan.status_verifikasi_direktur !== "Disetujui" && plan.status_verifikasi_direktur !== "Revisi";
+      }
+      if (role === "Super Admin") {
+        return plan.status_verifikasi_direktur !== "Disetujui" || plan.status_verifikasi_kepsek !== "Disetujui";
+      }
+      return false;
+    });
+  }, [canVerify, role, lessonPlans]);
+
+  const handleOpenSetujuiSemua = () => {
+    if (eligiblePlansToApprove.length === 0) {
+      toast.info("Tidak ada Lesson Plan (RPP) yang memerlukan persetujuan saat ini.");
+      return;
+    }
+    setIsApproveAllModalOpen(true);
+  };
+
+  const executeVerifyAll = async () => {
+    if (eligiblePlansToApprove.length === 0) return;
+    setIsApprovingAll(true);
+    try {
+      const promises = eligiblePlansToApprove.map((plan) => {
+        if (role === "Kepala Sekolah") {
+          return verifyLessonPlanKepsek({
+            p_lesson_plan_id: plan.lesson_plan_id,
+            p_action: "Disetujui",
+            p_catatan_revisi: "",
+          });
+        } else if (role === "Direktur" || role === "Super Admin") {
+          return verifyLessonPlanDirektur({
+            p_lesson_plan_id: plan.lesson_plan_id,
+            p_action: "Disetujui",
+            p_catatan_revisi: "",
+          });
+        }
+        return Promise.resolve();
+      });
+
+      await Promise.all(promises);
+      toast.success(`Berhasil menyetujui ${eligiblePlansToApprove.length} Lesson Plan!`);
+      queryClient.invalidateQueries({ queryKey: Array.from(QUERY_KEY) });
+      setIsApproveAllModalOpen(false);
+    } catch (error: any) {
+      console.error("Gagal menyetujui semua RPP:", error);
+      toast.error("Gagal memproses persetujuan massal. Silakan coba lagi.");
+    } finally {
+      setIsApprovingAll(false);
+    }
+  };
+
+  const confirmDelete = (plan: LessonPlanSummary) => {
+    setSelectedPlan(plan);
+    setIsDeleteOpen(true);
+  };
+
+  const executeDelete = async () => {
+    if (!selectedPlan) return;
+    setIsDeleting(true);
+    try {
+      const detailIds = (selectedPlan.details || []).map((d: any) => d.detail_id).filter(Boolean);
+
+      if (detailIds.length > 0) {
+        await deleteJurnalMengajarByDetailIds(detailIds);
+      }
+
+      await deleteLessonPlan(selectedPlan.lesson_plan_id);
+      toast.success("Lesson Plan dan Jurnal terkait berhasil dihapus!");
+
+      // Invalidate agar data ter-refresh via React Query
+      queryClient.invalidateQueries({ queryKey: Array.from(QUERY_KEY) });
+      setIsDeleteOpen(false);
+      setSelectedPlan(null);
+    } catch (err: any) {
+      console.error(err);
+      toast.error("RPP gagal dihapus. Silakan coba lagi.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleExport = (plan: LessonPlanSummary) => {
+    const exportData = plan.details && plan.details.length > 0 ? plan.details.map(d => ({
+      "Pertemuan Ke": d.pertemuan_ke,
+      "Materi": d.materi || "",
+      "Sub-Topik": d.topik_materi || "",
+      "Rencana Pelaksanaan KBM": d.rencana_pelaksanaan_kbm || "",
+      "Dokumen RPP (Isi)": d.isi || "",
+    })) : [{
+      "Pertemuan Ke": 1,
+      "Materi": "",
+      "Sub-Topik": "",
+      "Rencana Pelaksanaan KBM": "",
+      "Dokumen RPP (Isi)": "",
+    }];
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Data Lesson Plan");
+    XLSX.writeFile(wb, `RPP_${plan.judul_rpp.replace(/\s+/g, "_")}.xlsx`);
+  };
+
+  const [isImporting, setIsImporting] = useState(false);
+  const [planToImport, setPlanToImport] = useState<LessonPlanSummary | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportClick = (plan: LessonPlanSummary) => {
+    setPlanToImport(plan);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+      fileInputRef.current.click();
+    }
+  };
+
+  const processImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !planToImport) return;
+
+    setIsImporting(true);
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const arrayBuffer = evt.target?.result as ArrayBuffer;
+        const wb = XLSX.read(arrayBuffer, { type: "array" });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json<any>(ws);
+
+        if (data.length === 0) {
+          toast.error("File Excel kosong.");
+          setIsImporting(false);
+          return;
+        }
+
+        const existingDetails = await getLessonPlanDetails({ "lesson_plan_id": `eq.${planToImport.lesson_plan_id}` });
+
+        for (const row of data) {
+          const pertemuanKe = parseInt(row["Pertemuan Ke"]);
+          if (isNaN(pertemuanKe) || pertemuanKe <= 0) continue;
+
+          const materi = row["Materi"] ? String(row["Materi"]).trim() : "";
+          const topikMateri = row["Sub-Topik"] ? String(row["Sub-Topik"]).trim() : "";
+          const rencana = row["Rencana Pelaksanaan KBM"] ? String(row["Rencana Pelaksanaan KBM"]).trim() : "";
+          const isi = row["Dokumen RPP (Isi)"] ? String(row["Dokumen RPP (Isi)"]).trim() : "";
+
+          const detail = existingDetails.find(d => d.pertemuan_ke === pertemuanKe);
+          
+          if (detail) {
+            await updateLessonPlanDetail(detail.detail_id, {
+              materi: materi,
+              topik_materi: topikMateri,
+              rencana_pelaksanaan_kbm: rencana || null,
+              isi: isi || null,
+            });
+          } else {
+            await createLessonPlanDetail({
+              lesson_plan_id: planToImport.lesson_plan_id,
+              pertemuan_ke: pertemuanKe,
+              materi: materi,
+              topik_materi: topikMateri,
+              rencana_pelaksanaan_kbm: rencana || null,
+              isi: isi || null,
+            });
+          }
+        }
+        
+        toast.success(`Berhasil mengimpor detail pertemuan RPP!`);
+        queryClient.invalidateQueries({ queryKey: Array.from(QUERY_KEY) });
+      } catch (error: any) {
+        toast.error("Gagal mengimpor data. Pastikan format file Excel valid.");
+        console.error(error);
+      } finally {
+        setIsImporting(false);
+        setPlanToImport(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+
+  // Pagination state
+  const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50] as const;
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(10);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+  const [kelasFilter, setKelasFilter] = useState("Semua Kelas");
+  const [mapelFilter, setMapelFilter] = useState("Semua Mapel");
+  const [isSendingVerification, setIsSendingVerification] = useState(false);
+
+  // Opsi unik untuk filter Kelas & Mapel
+  const kelasOptions = useMemo(() => {
+    const set = new Set<string>();
+    lessonPlans.forEach((plan) => {
+      const namaKelas = plan.judul_rpp?.split(/\s+[-–]\s+/)?.[1];
+      if (namaKelas) set.add(namaKelas.trim());
+    });
+    return Array.from(set).sort();
+  }, [lessonPlans]);
+
+  const mapelOptions = useMemo(() => {
+    const set = new Set<string>();
+    lessonPlans.forEach((plan) => {
+      const namaMapel = plan.nama_mapel || plan.judul_rpp?.split(/\s+[-–]\s+/)?.[0];
+      if (namaMapel) set.add(namaMapel.trim());
+    });
+    return Array.from(set).sort();
+  }, [lessonPlans]);
+
+  const executeKirimVerifikasi = async (plan: LessonPlanSummary) => {
+    setIsSendingVerification(true);
+    try {
+      // Alur sekuensial: kirim/kirim-ulang selalu mulai dari Kepala Sekolah terlebih dahulu.
+      // Status Direktur dikembalikan ke "Menunggu Verifikasi" agar tidak dianggap sudah selesai,
+      // namun RPP tidak akan tampil di Direktur sampai Kepala Sekolah menyetujuinya.
+      await restClient.patch(`/lesson_plan?lesson_plan_id=eq.${plan.lesson_plan_id}`, {
+        status_verifikasi_kepsek: "Menunggu Verifikasi",
+        status_verifikasi_direktur: "Menunggu Verifikasi",
+        catatan_revisi_kepsek: "",
+        catatan_revisi_direktur: "",
+      });
+      toast.success(`RPP "${plan.judul_rpp}" berhasil dikirim untuk verifikasi ke Kepala Sekolah!`);
+      queryClient.invalidateQueries({ queryKey: Array.from(QUERY_KEY) });
+    } catch (error: any) {
+      console.error("Gagal mengirim verifikasi:", error);
+      toast.error("Gagal mengirim RPP untuk verifikasi. Silakan coba lagi.");
+    } finally {
+      setIsSendingVerification(false);
+    }
+  };
+
+  const filteredLessonPlans = useMemo(() => {
+    return lessonPlans.filter((plan) => {
+      // Filter Status Tab
+      if (activeTab === "Menunggu Verifikasi" && !plan.status_ringkas?.startsWith("Menunggu")) {
+        return false;
+      }
+      if (activeTab === "Revisi" && !plan.status_ringkas?.startsWith("Revisi")) {
+        return false;
+      }
+      if (activeTab !== "Semua" && activeTab !== "Menunggu Verifikasi" && activeTab !== "Revisi" && plan.status_ringkas !== activeTab) {
+        return false;
+      }
+
+      // Filter Kelas
+      const namaKelas = plan.judul_rpp?.split(/\s+[-–]\s+/)?.[1] || "";
+      if (kelasFilter !== "Semua Kelas" && !namaKelas.includes(kelasFilter)) {
+        return false;
+      }
+
+      // Filter Mapel
+      const namaMapel = plan.nama_mapel || plan.judul_rpp?.split(/\s+[-–]\s+/)?.[0] || "";
+      if (mapelFilter !== "Semua Mapel" && namaMapel !== mapelFilter) {
+        return false;
+      }
+
+      // Filter Search Query
+      if (debouncedSearchQuery.trim()) {
+        const query = debouncedSearchQuery.toLowerCase().trim();
+        const matchTitle = plan.judul_rpp?.toLowerCase().includes(query);
+        const matchGuru = plan.nama_guru?.toLowerCase().includes(query);
+        const matchMapel = namaMapel.toLowerCase().includes(query);
+        const matchKelas = namaKelas.toLowerCase().includes(query);
+        if (!matchTitle && !matchGuru && !matchMapel && !matchKelas) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [activeTab, kelasFilter, mapelFilter, debouncedSearchQuery, lessonPlans]);
+
+  // Reset ke halaman 1 setiap kali filter / search berubah
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, kelasFilter, mapelFilter, debouncedSearchQuery]);
+
+  // Slice untuk halaman saat ini
+  const totalPages = Math.max(1, Math.ceil(filteredLessonPlans.length / pageSize));
+  const paginatedLessonPlans = filteredLessonPlans.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
+
+  const [isPertemuanModalOpen, setIsPertemuanModalOpen] = useState(false);
+  const [selectedPertemuan, setSelectedPertemuan] = useState<any | null>(null);
+  const [selectedPlanForPertemuan, setSelectedPlanForPertemuan] = useState<LessonPlanSummary | null>(null);
+  const [isSavingPertemuan, setIsSavingPertemuan] = useState(false);
+
+  // Query info tambahan untuk Lembaga & Tahun Ajaran
+  const { data: activeTahunAjaran } = useQuery({
+    queryKey: ['master-data', 'tahun-ajaran-active'],
+    staleTime: 10 * 60 * 1000,
+    queryFn: async () => {
+      const res = await restClient.get('/tahun_ajaran', {
+        params: { is_active: 'eq.true', limit: 1 }
+      });
+      return res.data?.[0] || null;
+    }
+  });
+
+  const { data: lembagaMap = new Map() } = useQuery({
+    queryKey: ['master-data', 'lembaga-map'],
+    staleTime: 10 * 60 * 1000,
+    queryFn: async () => {
+      const res = await restClient.get('/lembaga', {
+        params: { select: 'lembaga_id,nama_lembaga' }
+      });
+      const map = new Map<number, string>();
+      (res.data || []).forEach((item: any) => map.set(item.lembaga_id, item.nama_lembaga));
+      return map;
+    }
+  });
+
+  const { data: kelasMap = new Map() } = useQuery({
+    queryKey: ['master-data', 'kelas-map'],
+    staleTime: 10 * 60 * 1000,
+    queryFn: async () => {
+      const res = await restClient.get('/kelas', {
+        params: { select: 'kelas_id,nama_kelas,lembaga_id' }
+      });
+      const map = new Map<number, { nama_kelas: string; lembaga_id: number }>();
+      (res.data || []).forEach((item: any) => map.set(item.kelas_id, { nama_kelas: item.nama_kelas, lembaga_id: item.lembaga_id }));
+      return map;
+    }
+  });
+
+  const { data: jadwalPelajarans = [] } = useQuery({
+    queryKey: ['akademik', 'jadwal-pelajaran'],
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const rows = await getAllJadwalPelajarans({
+        select:
+          "jadwal_id,hari,ruangan,kelas_id,mapel_id,pegawai_id,kelas(nama_kelas),mapel:mata_pelajaran(nama_mapel),jam_mulai:jam_akademik!jam_mulai_id(jam_mulai,urutan_jam,tipe),jam_selesai:jam_akademik!jam_selesai_id(jam_selesai)",
+        order: "hari.asc,jam_mulai_id.asc",
+      });
+      return rows as any[];
+    }
+  });
+
+  const getAlokasiWaktuForPlan = (plan?: LessonPlanSummary) => {
+    if (!plan || !plan.jadwal_id) return "";
+
+    const anchorJadwal = jadwalPelajarans.find((j: any) => j.jadwal_id === plan.jadwal_id);
+    if (!anchorJadwal) return "";
+    
+    // Cari semua jam pada hari yang sama, mapel sama, kelas sama
+    const matching = jadwalPelajarans.filter((j: any) => {
+      return j.kelas_id === anchorJadwal.kelas_id && 
+             j.mapel_id === anchorJadwal.mapel_id &&
+             j.hari === anchorJadwal.hari;
+    });
+
+    if (matching.length === 0) return "";
+
+    const timeSlots = matching.map((s: any) => {
+      const start = (s.jam_mulai?.jam_mulai || "").substring(0, 5).replace(":", ".");
+      const end = (s.jam_selesai?.jam_selesai || "").substring(0, 5).replace(":", ".");
+      return start && end ? `${start} - ${end}` : "";
+    }).filter(Boolean);
+
+    return Array.from(new Set(timeSlots)).join(", ");
+  };
+
+  const getLembagaNamaForPlan = (plan?: LessonPlanSummary) => {
+    if (plan?.jadwal_id) {
+      const anchorJadwal = jadwalPelajarans.find((j: any) => j.jadwal_id === plan.jadwal_id);
+      if (anchorJadwal?.kelas_id) {
+        const kls = kelasMap.get(anchorJadwal.kelas_id);
+        if (kls?.lembaga_id) {
+          const lbg = lembagaMap.get(kls.lembaga_id);
+          if (lbg) return lbg;
+        }
+      }
+    }
+    // Fallback: If no jadwal_id or not found, try to use userLembagaId
+    if (lembaga_id) {
+      const lbg = lembagaMap.get(lembaga_id);
+      if (lbg) return lbg;
+    }
+    return "Pondok Pesantren Maskumambang";
+  };
+
+  const handleOpenPertemuan = (plan: LessonPlanSummary, detail: any) => {
+    setSelectedPlanForPertemuan(plan);
+    setSelectedPertemuan(detail);
+    setIsPertemuanModalOpen(true);
+  };
+
+  const handleSavePertemuan = async (updatedDetail: any) => {
+    if (!selectedPlanForPertemuan) return;
+    setIsSavingPertemuan(true);
+    try {
+      if (updatedDetail.detail_id && updatedDetail.detail_id > 0) {
+        await updateLessonPlanDetail(updatedDetail.detail_id, {
+          materi: updatedDetail.materi,
+          topik_materi: updatedDetail.topik_materi,
+          rencana_pelaksanaan_kbm: updatedDetail.rencana_pelaksanaan_kbm,
+          isi: updatedDetail.isi,
+        });
+      } else {
+        await createLessonPlanDetail({
+          lesson_plan_id: selectedPlanForPertemuan.lesson_plan_id,
+          pertemuan_ke: updatedDetail.pertemuan_ke,
+          materi: updatedDetail.materi,
+          topik_materi: updatedDetail.topik_materi,
+          rencana_pelaksanaan_kbm: updatedDetail.rencana_pelaksanaan_kbm,
+          isi: updatedDetail.isi,
+        });
+      }
+
+      toast.success(`Pertemuan Ke-${updatedDetail.pertemuan_ke} berhasil disimpan!`);
+      queryClient.invalidateQueries({ queryKey: Array.from(QUERY_KEY) });
+      setIsPertemuanModalOpen(false);
+      setSelectedPertemuan(null);
+      setSelectedPlanForPertemuan(null);
+    } catch (error: any) {
+      console.error("Gagal menyimpan detail pertemuan:", error);
+      toast.error("Gagal menyimpan detail pertemuan. Silakan coba lagi.");
+    } finally {
+      setIsSavingPertemuan(false);
+    }
+  };
+
+  return {
+    activeTab,
+    setActiveTab,
+    tabs,
+    lessonPlans,
+    isLoading,
+    role,
+    finalCanCreate,
+    finalCanUpdate,
+    finalCanDelete,
+    canVerify,
+    isDeleteOpen,
+    setIsDeleteOpen,
+    expandedPlans,
+    toggleExpand,
+    selectedPlan,
+    setSelectedPlan,
+    isDeleting,
+    isRevisiModalOpen,
+    setIsRevisiModalOpen,
+    isApproveModalOpen,
+    setIsApproveModalOpen,
+    isApproveAllModalOpen,
+    setIsApproveAllModalOpen,
+    isApprovingAll,
+    eligiblePlansToApprove,
+    handleOpenSetujuiSemua,
+    executeVerifyAll,
+    revisiNote,
+    setRevisiNote,
+    isVerifying,
+    handleVerifyAction,
+    executeVerify,
+    confirmDelete,
+    executeDelete,
+    handleExport,
+    handleImportClick,
+    processImport,
+    isImporting,
+    fileInputRef,
+    filteredLessonPlans,
+    isPertemuanModalOpen,
+    setIsPertemuanModalOpen,
+    selectedPertemuan,
+    setSelectedPertemuan,
+    selectedPlanForPertemuan,
+    setSelectedPlanForPertemuan,
+    isSavingPertemuan,
+    handleOpenPertemuan,
+    handleSavePertemuan,
+    activeTahunAjaran,
+    lembagaMap,
+    kelasMap,
+    searchQuery,
+    setSearchQuery,
+    kelasFilter,
+    setKelasFilter,
+    mapelFilter,
+    setMapelFilter,
+    kelasOptions,
+    mapelOptions,
+    executeKirimVerifikasi,
+    isSendingVerification,
+    getAlokasiWaktuForPlan,
+    getLembagaNamaForPlan,
+    // Pagination
+    currentPage,
+    setCurrentPage,
+    pageSize,
+    setPageSize,
+    totalPages,
+    paginatedLessonPlans,
+    PAGE_SIZE_OPTIONS,
+  };
+}

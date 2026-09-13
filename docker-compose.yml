@@ -1,0 +1,70 @@
+version: '3.9'
+
+services:
+  # ─── PostgreSQL Database ───────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: lms_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-lmsdb}
+      POSTGRES_USER: ${POSTGRES_USER:-lmsuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"          # only expose on VPS if needed; remove in full-prod
+    networks:
+      - lms_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lmsuser} -d ${POSTGRES_DB:-lmsdb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Express Backend ───────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: lms_backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-lmsuser}:${POSTGRES_PASSWORD:-changeme}@db:5432/${POSTGRES_DB:-lmsdb}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost}
+    networks:
+      - lms_network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ─── React Frontend (Nginx) ────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: lms_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+      - "443:443"            # expose HTTPS port (configure SSL with certbot or traefik)
+    networks:
+      - lms_network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  lms_network:
+    driver: bridge

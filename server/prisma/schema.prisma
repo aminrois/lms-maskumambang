@@ -1,0 +1,398 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  user_id          String      @id @default(uuid()) @db.Uuid
+  username         String      @unique
+  email            String?     @unique
+  password_hash    String
+  fcm_device_token String?
+  created_at       DateTime    @default(now())
+
+  user_roles       UserRole[]
+  pegawai          Pegawai[]
+  wali_murid       WaliMurid[]
+
+  @@map("users")
+}
+
+model Role {
+  role_id    Int        @id @default(autoincrement())
+  nama_role  String     @unique // 'Super Admin' | 'Direktur' | 'Kepala Sekolah' | 'Admin Lembaga' | 'WaKa Kurikulum' | 'Wali Kelas' | 'Guru' | 'Wali Murid'
+  user_roles UserRole[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  user_role_id Int      @id @default(autoincrement())
+  user_id      String   @db.Uuid
+  role_id      Int
+  lembaga_id   Int?
+
+  user         User     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  role         Role     @relation(fields: [role_id], references: [role_id], onDelete: Cascade)
+  lembaga      Lembaga? @relation(fields: [lembaga_id], references: [lembaga_id], onDelete: SetNull)
+
+  @@unique([user_id, role_id, lembaga_id])
+  @@index([user_id])
+  @@index([lembaga_id])
+  @@map("user_roles")
+}
+
+model Lembaga {
+  lembaga_id        Int        @id @default(autoincrement())
+  nama_lembaga      String
+  singkatan         String?
+  kepala_sekolah_id Int?
+  kurikulum_id      Int?
+
+  user_roles        UserRole[]
+  pegawai_lembaga   PegawaiLembaga[]
+  tahun_ajaran      TahunAjaran[]
+  kelas             Kelas[]
+  mata_pelajaran    MataPelajaran[]
+  jam_akademik      JamAkademik[]
+  kalender_akademik KalenderAkademik[]
+  activity_plan     ActivityPlan[]
+
+  @@map("lembaga")
+}
+
+model Pegawai {
+  pegawai_id              Int              @id @default(autoincrement())
+  user_id                 String?          @db.Uuid
+  nig                     String           @unique
+  nip                     String?
+  nik                     String?
+  nama                    String
+  jenis_kelamin           String           // 'L' | 'P'
+  tempat_lahir            String?
+  tanggal_lahir           String?
+  alamat                  String?
+  no_hp                   String?
+  status                  String           @default("Aktif") // 'Aktif' | 'Tidak Aktif'
+  jabatan                 String
+  tugas_tambahan          String?
+  jumlah_anak_laki        Int?             @default(0)
+  jumlah_anak_perempuan   Int?             @default(0)
+  nama_ayah               String?
+  nama_ibu                String?
+  golongan_darah          String?
+
+  user                    User?            @relation(fields: [user_id], references: [user_id], onDelete: SetNull)
+  pegawai_lembaga         PegawaiLembaga[]
+  jadwal_pelajaran        JadwalPelajaran[]
+  lesson_plans            LessonPlan[]
+
+  @@index([user_id])
+  @@index([status])
+  @@map("pegawai")
+}
+
+model PegawaiLembaga {
+  pegawai_id Int
+  lembaga_id Int
+
+  pegawai    Pegawai @relation(fields: [pegawai_id], references: [pegawai_id], onDelete: Cascade)
+  lembaga    Lembaga @relation(fields: [lembaga_id], references: [lembaga_id], onDelete: Cascade)
+
+  @@id([pegawai_id, lembaga_id])
+  @@map("pegawai_lembaga")
+}
+
+model WaliMurid {
+  wali_id             Int      @id @default(autoincrement())
+  user_id             String?  @db.Uuid
+  nama_ayah           String?
+  nik_ayah            String?
+  status_ayah         String?  // 'Wafat' | 'Hidup'
+  tempat_lahir_ayah   String?
+  tanggal_lahir_ayah  String?
+  email_ayah          String?
+  pin_ayah            String?
+  pendidikan_ayah     String?
+  pekerjaan_ayah      String?
+  penghasilan_ayah    String?
+  nama_ibu            String?
+  nik_ibu             String?
+  status_ibu          String?  // 'Wafat' | 'Hidup'
+  tempat_lahir_ibu    String?
+  tanggal_lahir_ibu   String?
+  email_ibu           String?
+  pin_ibu             String?
+  pendidikan_ibu      String?
+  pekerjaan_ibu       String?
+  penghasilan_ibu     String?
+  nama_wali           String
+  nik_wali            String
+  alamat              String
+  status              String   // 'Wafat' | 'Hidup'
+  no_hp_ayah          String?
+  no_hp_ibu           String?
+  no_hp_wali          String
+
+  user                User?    @relation(fields: [user_id], references: [user_id], onDelete: SetNull)
+  siswa               Siswa[]
+
+  @@map("wali_murid")
+}
+
+model Siswa {
+  siswa_id            Int               @id @default(autoincrement())
+  nis                 String            @unique
+  nisn                String            @unique
+  nik                 String?
+  pin                 String?
+  nama                String
+  panggilan           String?
+  jenis_kelamin       String            // 'L' | 'P'
+  tempat_lahir        String
+  tanggal_lahir       String
+  agama               String            @default("Islam")
+  kewarganegaraan     String            @default("Indonesia")
+  tahun_masuk         Int
+  asal_sekolah        String
+  no_un_sebelumnya    String?
+  alamat              String?
+  kode_pos            String?
+  status              String?           @default("Aktif") // 'Aktif' | 'Tidak Aktif'
+  keterangan_asrama   String            @default("Tidak") // 'Ya' | 'Tidak'
+  wali_murid_id       Int?
+  kelas_id            Int?
+  no_kk               String?
+  no_akta_kelahiran   String?
+  rt                  String?
+  rw                  String?
+  desa_kelurahan      String?
+  kecamatan           String?
+  kabupaten_kota      String?
+  provinsi            String?
+  alamat_sekolah_asal String?
+
+  wali_murid          WaliMurid?        @relation(fields: [wali_murid_id], references: [wali_id], onDelete: SetNull)
+  kelas               Kelas?            @relation(fields: [kelas_id], references: [kelas_id], onDelete: SetNull)
+  absensi_pelajaran   AbsensiPelajaran[]
+  absensi_harian      AbsensiHarian[]
+
+  @@index([kelas_id])
+  @@index([status])
+  @@map("siswa")
+}
+
+model TahunAjaran {
+  tahun_id          Int                @id @default(autoincrement())
+  lembaga_id        Int
+  nama_tahun        String
+  semester          String             // 'Ganjil' | 'Genap'
+  tanggal_mulai     String
+  tanggal_akhir     String
+  is_active         Boolean            @default(false)
+
+  lembaga           Lembaga            @relation(fields: [lembaga_id], references: [lembaga_id], onDelete: Cascade)
+  kelas             Kelas[]
+  kalender_akademik KalenderAkademik[]
+  activity_plan     ActivityPlan[]
+
+  @@map("tahun_ajaran")
+}
+
+model Kelas {
+  kelas_id         Int               @id @default(autoincrement())
+  lembaga_id       Int
+  tahun_id         Int
+  nama_kelas       String
+  wali_kelas_id    Int?
+
+  lembaga          Lembaga           @relation(fields: [lembaga_id], references: [lembaga_id], onDelete: Cascade)
+  tahun_ajaran     TahunAjaran       @relation(fields: [tahun_id], references: [tahun_id], onDelete: Cascade)
+  siswa            Siswa[]
+  kelas_mapel      KelasMapel[]
+  jadwal_pelajaran JadwalPelajaran[]
+
+  @@index([lembaga_id, tahun_id])
+  @@map("kelas")
+}
+
+model MataPelajaran {
+  mapel_id         Int               @id @default(autoincrement())
+  lembaga_id       Int
+  nama_mapel       String
+
+  lembaga          Lembaga           @relation(fields: [lembaga_id], references: [lembaga_id], onDelete: Cascade)
+  kelas_mapel      KelasMapel[]
+  jadwal_pelajaran JadwalPelajaran[]
+
+  @@map("mata_pelajaran")
+}
+
+model KelasMapel {
+  kelas_id Int
+  mapel_id Int
+
+  kelas    Kelas         @relation(fields: [kelas_id], references: [kelas_id], onDelete: Cascade)
+  mapel    MataPelajaran @relation(fields: [mapel_id], references: [mapel_id], onDelete: Cascade)
+
+  @@id([kelas_id, mapel_id])
+  @@map("kelas_mapel")
+}
+
+model JamAkademik {
+  jam_id      Int     @id @default(autoincrement())
+  lembaga_id  Int
+  urutan_jam  Int
+  jam_mulai   String
+  jam_selesai String
+  tipe        String  // 'Belajar' | 'Istirahat' | 'Sholat Dhuha & Halaqoh' | 'Apel' | 'Mapel Pilihan / Bimbingan TKA' | 'Bonding / Life Skill'
+
+  lembaga     Lembaga @relation(fields: [lembaga_id], references: [lembaga_id], onDelete: Cascade)
+
+  @@map("jam_akademik")
+}
+
+model JadwalPelajaran {
+  jadwal_id      Int              @id @default(autoincrement())
+  kelas_id       Int?
+  mapel_id       Int?
+  pegawai_id     Int?
+  ruangan        String?
+  hari           String           // 'Senin' | 'Selasa' | 'Rabu' | 'Kamis' | 'Jumat' | 'Sabtu' | 'Ahad'
+  jam_mulai_id   Int?
+  jam_selesai_id Int?
+
+  kelas          Kelas?           @relation(fields: [kelas_id], references: [kelas_id], onDelete: SetNull)
+  mapel          MataPelajaran?   @relation(fields: [mapel_id], references: [mapel_id], onDelete: SetNull)
+  pegawai        Pegawai?         @relation(fields: [pegawai_id], references: [pegawai_id], onDelete: SetNull)
+  lesson_plans   LessonPlan[]
+  jurnal_mengajar JurnalMengajar[]
+
+  @@index([kelas_id])
+  @@index([pegawai_id])
+  @@index([hari])
+  @@map("jadwal_pelajaran")
+}
+
+model LessonPlan {
+  lesson_plan_id             Int                @id @default(autoincrement())
+  pegawai_id                 Int
+  jadwal_id                  Int?
+  judul_rpp                  String
+  status_verifikasi_kepsek   String?            @default("Menunggu Verifikasi") // 'Menunggu Verifikasi' | 'Disetujui' | 'Revisi'
+  verified_by_kepsek         Int?
+  catatan_revisi_kepsek      String?
+  status_verifikasi_direktur String?            @default("Menunggu Verifikasi") // 'Menunggu Verifikasi' | 'Disetujui' | 'Revisi'
+  verified_by_direktur       Int?
+  catatan_revisi_direktur    String?
+
+  pegawai                    Pegawai            @relation(fields: [pegawai_id], references: [pegawai_id], onDelete: Cascade)
+  jadwal                     JadwalPelajaran?   @relation(fields: [jadwal_id], references: [jadwal_id], onDelete: SetNull)
+  details                    LessonPlanDetail[]
+
+  @@index([pegawai_id])
+  @@index([jadwal_id])
+  @@index([status_verifikasi_kepsek])
+  @@index([status_verifikasi_direktur])
+  @@map("lesson_plan")
+}
+
+model LessonPlanDetail {
+  detail_id               Int              @id @default(autoincrement())
+  lesson_plan_id          Int
+  pertemuan_ke            Int
+  materi                  String?
+  topik_materi            String?
+  rencana_pelaksanaan_kbm String?
+  isi                     String?
+
+  lesson_plan             LessonPlan       @relation(fields: [lesson_plan_id], references: [lesson_plan_id], onDelete: Cascade)
+  jurnal_mengajar         JurnalMengajar[]
+
+  @@index([lesson_plan_id])
+  @@map("lesson_plan_detail")
+}
+
+model JurnalMengajar {
+  jurnal_id              Int                @id @default(autoincrement())
+  jadwal_id              Int
+  lesson_plan_detail_id  Int?
+  pertemuan_ke           Int?
+  status                 String?            // 'Tertinggal' | 'Sesuai' | 'Terlalu Cepat'
+  tanggal                String
+  catatan_tambahan       String?
+
+  jadwal                 JadwalPelajaran    @relation(fields: [jadwal_id], references: [jadwal_id], onDelete: Cascade)
+  lesson_plan_detail     LessonPlanDetail?  @relation(fields: [lesson_plan_detail_id], references: [detail_id], onDelete: SetNull)
+  absensi_pelajaran      AbsensiPelajaran[]
+
+  @@index([jadwal_id])
+  @@index([tanggal])
+  @@map("jurnal_mengajar")
+}
+
+model AbsensiPelajaran {
+  absensi_pel_id   Int            @id @default(autoincrement())
+  siswa_id         Int
+  jurnal_id        Int
+  waktu_kehadiran  String?
+  status           String         // 'Hadir' | 'Sakit' | 'Izin' | 'Alpha' | 'Dispen'
+
+  siswa            Siswa          @relation(fields: [siswa_id], references: [siswa_id], onDelete: Cascade)
+  jurnal           JurnalMengajar @relation(fields: [jurnal_id], references: [jurnal_id], onDelete: Cascade)
+
+  @@index([siswa_id])
+  @@index([jurnal_id])
+  @@map("absensi_pelajaran")
+}
+
+model AbsensiHarian {
+  absensi_harian_id Int    @id @default(autoincrement())
+  siswa_id          Int
+  tanggal           String
+  status            String // 'Hadir' | 'Sakit' | 'Izin' | 'Alpha' | 'Dispen'
+
+  siswa             Siswa  @relation(fields: [siswa_id], references: [siswa_id], onDelete: Cascade)
+
+  @@index([siswa_id])
+  @@index([tanggal])
+  @@map("absensi_harian")
+}
+
+model KalenderAkademik {
+  kalender_id      Int          @id @default(autoincrement())
+  lembaga_id       Int?
+  tahun_id         Int
+  nama_kegiatan    String
+  kategori         String       // 'Akademik' | 'Acara' | 'Libur' | 'Lainnya'
+  tanggal_mulai    String
+  tanggal_berakhir String
+
+  lembaga          Lembaga?     @relation(fields: [lembaga_id], references: [lembaga_id], onDelete: SetNull)
+  tahun_ajaran     TahunAjaran  @relation(fields: [tahun_id], references: [tahun_id], onDelete: Cascade)
+
+  @@map("kalender_akademik")
+}
+
+model ActivityPlan {
+  activity_id        Int          @id @default(autoincrement())
+  lembaga_id         Int
+  tahun_id           Int
+  nama_kegiatan      String
+  kategori           String       // 'Akademik' | 'Acara' | 'Libur' | 'Lainnya'
+  tanggal_mulai      String
+  tanggal_berakhir   String
+  deskripsi          String?
+  status_verifikasi  String?      @default("Menunggu Verifikasi") // 'Menunggu Verifikasi' | 'Disetujui' | 'Revisi'
+  verified_by        Int?
+  catatan_revisi     String?
+
+  lembaga            Lembaga      @relation(fields: [lembaga_id], references: [lembaga_id], onDelete: Cascade)
+  tahun_ajaran       TahunAjaran  @relation(fields: [tahun_id], references: [tahun_id], onDelete: Cascade)
+
+  @@map("activity_plan")
+}
