@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { forwardRef, useEffect } from 'react';
 import HCaptcha from '@hcaptcha/react-hcaptcha';
 
 interface HCaptchaWidgetProps {
@@ -9,12 +9,22 @@ interface HCaptchaWidgetProps {
 
 /**
  * Wrapper hCaptcha widget.
- * Expose ref ke parent agar bisa di-reset setelah login gagal:
- *   hcaptchaRef.current?.resetCaptcha()
+ * Jika VITE_HCAPTCHA_SITE_KEY tidak diisi, widget otomatis dianggap terverifikasi.
  */
 const HCaptchaWidget = forwardRef<HCaptcha, HCaptchaWidgetProps>(
   ({ onVerify, onExpire, onError }, ref) => {
-    const siteKey = (import.meta.env.VITE_HCAPTCHA_SITE_KEY as string);
+    const siteKey = (import.meta.env.VITE_HCAPTCHA_SITE_KEY as string) || '';
+
+    useEffect(() => {
+      // Jika tidak ada site key yang dikonfigurasi, bypass otomatis
+      if (!siteKey) {
+        onVerify('disabled');
+      }
+    }, [siteKey, onVerify]);
+
+    if (!siteKey) {
+      return null;
+    }
 
     return (
       <div className="flex justify-start">
@@ -35,3 +45,4 @@ const HCaptchaWidget = forwardRef<HCaptcha, HCaptchaWidgetProps>(
 HCaptchaWidget.displayName = 'HCaptchaWidget';
 
 export default HCaptchaWidget;
+

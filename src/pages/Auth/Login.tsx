@@ -22,6 +22,8 @@ const Login: React.FC = () => {
   // Ref untuk reset widget setelah login gagal
   const hcaptchaRef = useRef<HCaptcha>(null);
 
+  const hasSiteKey = Boolean(import.meta.env.VITE_HCAPTCHA_SITE_KEY);
+
   // Jika user sudah login (sesi masih aktif), langsung redirect ke dashboard
   React.useEffect(() => {
     if (user) {
@@ -33,8 +35,8 @@ const Login: React.FC = () => {
     e.preventDefault();
     setError('');
 
-    // Blokir submit jika CAPTCHA belum diverifikasi
-    if (!captchaToken) {
+    // Blokir submit jika CAPTCHA aktif dan belum diverifikasi
+    if (hasSiteKey && !captchaToken) {
       setError('Harap selesaikan verifikasi CAPTCHA terlebih dahulu.');
       return;
     }
@@ -194,27 +196,29 @@ const Login: React.FC = () => {
               </div>
             </div>
 
-            {/* hCaptcha Widget */}
-            <div className="pt-1">
-              <HCaptchaWidget
-                ref={hcaptchaRef}
-                onVerify={(token) => {
-                  setCaptchaToken(token);
-                  if (error === 'Harap selesaikan verifikasi CAPTCHA terlebih dahulu.') {
-                    setError('');
-                  }
-                }}
-                onExpire={() => setCaptchaToken(null)}
-                onError={() => setCaptchaToken(null)}
-              />
-              {/* Indikator status CAPTCHA */}
-              {captchaToken && (
-                <div className="flex items-center justify-start gap-1.5 mt-2">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  <span className="text-[11px] text-emerald-600 font-medium">Verifikasi berhasil</span>
-                </div>
-              )}
-            </div>
+            {/* hCaptcha Widget (Hanya jika VITE_HCAPTCHA_SITE_KEY diset) */}
+            {hasSiteKey && (
+              <div className="pt-1">
+                <HCaptchaWidget
+                  ref={hcaptchaRef}
+                  onVerify={(token) => {
+                    setCaptchaToken(token);
+                    if (error === 'Harap selesaikan verifikasi CAPTCHA terlebih dahulu.') {
+                      setError('');
+                    }
+                  }}
+                  onExpire={() => setCaptchaToken(null)}
+                  onError={() => setCaptchaToken(null)}
+                />
+                {/* Indikator status CAPTCHA */}
+                {captchaToken && (
+                  <div className="flex items-center justify-start gap-1.5 mt-2">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                    <span className="text-[11px] text-emerald-600 font-medium">Verifikasi berhasil</span>
+                  </div>
+                )}
+              </div>
+            )}
 
             <button
               type="submit"
