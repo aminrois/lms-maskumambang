@@ -326,7 +326,7 @@ function parseOrderBy(orderQuery?: string): any {
 
 export const getTableRecords = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const tableName = req.params.table.toLowerCase();
+    const tableName = String(req.params.table || '').toLowerCase();
     const config = TABLE_CONFIGS[tableName];
 
     if (!config) {
@@ -334,7 +334,7 @@ export const getTableRecords = async (req: AuthRequest, res: Response, next: Nex
       return;
     }
 
-    const idParam = req.params.id;
+    const idParam = req.params.id ? String(req.params.id) : undefined;
     const where = parseWhere(req.query, config.idField, idParam);
     const orderBy = parseOrderBy(req.query.order as string);
     const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
@@ -390,7 +390,7 @@ export const getTableRecords = async (req: AuthRequest, res: Response, next: Nex
 
 export const createTableRecord = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const tableName = req.params.table.toLowerCase();
+    const tableName = String(req.params.table || '').toLowerCase();
     const config = TABLE_CONFIGS[tableName];
 
     if (!config) {
@@ -432,7 +432,7 @@ export const createTableRecord = async (req: AuthRequest, res: Response, next: N
 
 export const updateTableRecord = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const tableName = req.params.table.toLowerCase();
+    const tableName = String(req.params.table || '').toLowerCase();
     const config = TABLE_CONFIGS[tableName];
 
     if (!config) {
@@ -441,7 +441,7 @@ export const updateTableRecord = async (req: AuthRequest, res: Response, next: N
     }
 
     const prismaModel = (prisma as any)[config.model];
-    const idParam = req.params.id;
+    const idParam = req.params.id ? String(req.params.id) : undefined;
     const where = parseWhere(req.query, config.idField, idParam);
 
     const preferHeader = (req.headers['prefer'] as string) || '';
@@ -487,7 +487,7 @@ export const updateTableRecord = async (req: AuthRequest, res: Response, next: N
 
 export const deleteTableRecord = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const tableName = req.params.table.toLowerCase();
+    const tableName = String(req.params.table || '').toLowerCase();
     const config = TABLE_CONFIGS[tableName];
 
     if (!config) {
@@ -496,7 +496,7 @@ export const deleteTableRecord = async (req: AuthRequest, res: Response, next: N
     }
 
     const prismaModel = (prisma as any)[config.model];
-    const idParam = req.params.id;
+    const idParam = req.params.id ? String(req.params.id) : undefined;
     const where = parseWhere(req.query, config.idField, idParam);
 
     const preferHeader = (req.headers['prefer'] as string) || '';
