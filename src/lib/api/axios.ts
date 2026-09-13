@@ -2,13 +2,26 @@ import axios from "axios";
 import { useAuthStore } from "../../store/useAuthStore";
 import { toast } from "sonner";
 
-// Base URL ke custom backend kita
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5001";
+// Normalisasi Base URL ke custom backend (mencegah duplikasi /api/v1)
+const getApiBaseUrl = (): string => {
+    const raw = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim() || "";
+    if (!raw) {
+        return "/api/v1";
+    }
+    const clean = raw.replace(/\/+$/, "");
+    if (clean.endsWith("/api/v1")) {
+        return clean;
+    }
+    if (clean.endsWith("/api")) {
+        return `${clean}/v1`;
+    }
+    return `${clean}/api/v1`;
+};
 
 // Satu axios instance untuk semua request REST API
 export const apiClient = axios.create({
-    baseURL: `${BASE_URL}/api/v1`,
-    timeout: 10000,
+    baseURL: getApiBaseUrl(),
+    timeout: 15000,
     headers: {
         'Content-Type': 'application/json',
     },
