@@ -56,9 +56,10 @@ export function useWizardMenu({ currentStep, setCurrentStep, selections }: UseWi
 
             const [res, allLPs] = await Promise.all([
                 getJadwalPelajarans(params),
-                // Gunakan getLessonPlans biasa (bukan getAllLessonPlans pagination loop)
-                // hanya ambil fields yang diperlukan, sudah cukup untuk validasi LP
-                getLessonPlans({ select: "lesson_plan_id,pegawai_id,judul_rpp,status_verifikasi_kepsek,status_verifikasi_direktur" })
+                getLessonPlans({
+                    select: "lesson_plan_id,pegawai_id,jadwal_id,judul_rpp,status_verifikasi_kepsek,status_verifikasi_direktur",
+                    limit: 1000
+                })
             ]);
 
             // Filter berdasarkan lembaga_id dan status validitas Lesson Plan mapel & kelas tersebut
@@ -66,6 +67,10 @@ export function useWizardMenu({ currentStep, setCurrentStep, selections }: UseWi
                 const matchedForJ = (allLPs || []).filter((lp: any) => {
                     const isGlobalRole = ['Super Admin', 'Direktur', 'Admin Lembaga', 'WaKa Kurikulum'].includes(role || '');
                     if (!isGlobalRole && Number(lp.pegawai_id) !== Number(pegawai_id)) return false;
+
+                    if (lp.jadwal_id && Number(lp.jadwal_id) === Number(j.jadwal_id)) {
+                        return true;
+                    }
 
                     return isLPForSubjectAndClass(lp.judul_rpp, j.mapel?.nama_mapel, j.kelas?.nama_kelas);
                 });
@@ -152,6 +157,11 @@ export function useWizardMenu({ currentStep, setCurrentStep, selections }: UseWi
                     const isGlobalRole = ['Super Admin', 'Direktur', 'Admin Lembaga', 'WaKa Kurikulum'].includes(role || '');
                     if (!isGlobalRole && Number(lp.pegawai_id) !== Number(pegawai_id)) return false;
 
+                    const groupJadwalIds = groupJadwals.map((s: any) => Number(s.jadwal_id));
+                    if (lp.jadwal_id && groupJadwalIds.includes(Number(lp.jadwal_id))) {
+                        return true;
+                    }
+
                     return isLPForSubjectAndClass(lp.judul_rpp, first.mapel?.nama_mapel, first.kelas?.nama_kelas);
                 });
 
@@ -191,6 +201,7 @@ export function useWizardMenu({ currentStep, setCurrentStep, selections }: UseWi
                 status_verifikasi_kepsek: "eq.Disetujui",
                 status_verifikasi_direktur: "eq.Disetujui",
                 order: "lesson_plan_id.desc",
+                limit: 1000,
             };
             if (!isGlobalRole && pegawai_id) {
                 params.pegawai_id = `eq.${pegawai_id}`;

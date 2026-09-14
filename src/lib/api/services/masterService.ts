@@ -77,7 +77,6 @@ export const getPegawaiByUserId = async (
   const response = await restClient.get<Types.PEGAWAI[]>("/pegawai", {
     params: {
       user_id: `eq.${userId}`,
-      select: "pegawai_id,user_id,nama,nig,jabatan,status",
     },
   });
 

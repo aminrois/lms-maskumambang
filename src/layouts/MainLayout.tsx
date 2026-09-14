@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, LogOut, ChevronLeft, KeyRound, Loader2, ShieldOff, RefreshCw, Eye, EyeOff } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
@@ -73,6 +73,8 @@ const MainLayout: React.FC = () => {
   const displayInitial = displayName.charAt(0).toUpperCase();
 
   const isSuperAdmin = userRoles.some(r => r.role === 'Super Admin') || user?.username === 'admin';
+  const isGlobalRole = isSuperAdmin || userRole === 'Direktur';
+
   const availableRoles = isSuperAdmin
     ? [
         'Super Admin',
@@ -87,16 +89,63 @@ const MainLayout: React.FC = () => {
 
   const hasRole = Boolean((userRoles.length > 0 && userRole) || isSuperAdmin || userRole);
 
+  // Lembagas specifically assigned to this user / role
+  const allowedLembagas = useMemo(() => {
+    const allLembagas = Array.isArray(lembagas) ? lembagas : [];
+    if (allLembagas.length === 0) return [];
+    if (isGlobalRole) return allLembagas;
+
+    // Filter by active role's assigned lembaga_id
+    const roleAssignedIds = userRoles
+      .filter(r => r.role === userRole && r.lembaga_id !== null)
+      .map(r => Number(r.lembaga_id));
+
+    // Also include lembaga_id from pegawai_lembaga relations
+    const pegawaiAssignedIds = ((pegawaiData as any)?.pegawai_lembaga || [])
+      .map((pl: any) => Number(pl.lembaga_id))
+      .filter((id: number) => !isNaN(id) && id > 0);
+
+    const allAssignedIds = Array.from(new Set([...roleAssignedIds, ...pegawaiAssignedIds]));
+
+    if (allAssignedIds.length === 0) {
+      // Fallback: any lembaga in userRoles
+      const fallbackIds = userRoles
+        .map(r => (r.lembaga_id !== null ? Number(r.lembaga_id) : null))
+        .filter((id): id is number => id !== null && !isNaN(id));
+      if (fallbackIds.length > 0) {
+        return allLembagas.filter((l: any) => fallbackIds.includes(Number(l.lembaga_id)));
+      }
+      return allLembagas;
+    }
+
+    return allLembagas.filter((l: any) => allAssignedIds.includes(Number(l.lembaga_id)));
+  }, [lembagas, isGlobalRole, userRoles, userRole, pegawaiData]);
+
+  // Keep active lembaga strictly within allowedLembagas for non-global roles
+  useEffect(() => {
+    if (!isGlobalRole && allowedLembagas.length > 0) {
+      const isCurrentValid = allowedLembagas.some((l: any) => Number(l.lembaga_id) === Number(userLembaga));
+      if (!isCurrentValid) {
+        const first = allowedLembagas[0];
+        setActiveRole({
+          role: userRole || 'Guru',
+          lembaga_id: first.lembaga_id,
+          lembaga_name: first.singkatan || first.nama_lembaga,
+        });
+      }
+    }
+  }, [isGlobalRole, allowedLembagas, userLembaga, userRole, setActiveRole]);
+
   const handleRoleChange = (newRole: string) => {
-    let targetContext = userRoles.find(r => r.role === newRole);
+    let targetContext = userRoles.find(r => r.role === newRole && r.lembaga_id !== null);
     if (!targetContext) {
-      const defaultLembagaId = (lembagas.length > 0 && !['Super Admin', 'Direktur'].includes(newRole))
-        ? lembagas[0].lembaga_id
+      const defaultLembagaId = (allowedLembagas.length > 0 && !['Super Admin', 'Direktur'].includes(newRole))
+        ? allowedLembagas[0].lembaga_id
         : null;
       targetContext = {
         role: newRole as any,
         lembaga_id: defaultLembagaId,
-        lembaga_name: lembagas.find((l: any) => l.lembaga_id === defaultLembagaId)?.singkatan || null,
+        lembaga_name: allowedLembagas.find((l: any) => l.lembaga_id === defaultLembagaId)?.singkatan || null,
       };
     }
     setActiveRole(targetContext);
@@ -105,7 +154,7 @@ const MainLayout: React.FC = () => {
   };
 
   const handleLembagaChange = (lembagaId: number | null) => {
-    const lembagaInfo = lembagas.find((l: any) => l.lembaga_id === lembagaId);
+    const lembagaInfo = allowedLembagas.find((l: any) => l.lembaga_id === lembagaId) || lembagas.find((l: any) => l.lembaga_id === lembagaId);
     setActiveRole({
       role: userRole || 'Super Admin',
       lembaga_id: lembagaId,
@@ -392,10 +441,9 @@ const MainLayout: React.FC = () => {
 
                 {/* Lembaga Selector */}
                 {(() => {
-                  const showLembagaSelector = (isSuperAdmin && !['Super Admin', 'Direktur'].includes(userRole || '')) ||
-                    (!isSuperAdmin && userRoles.filter(r => r.role === userRole).some(r => r.lembaga_id !== null));
+                  const showLembagaSelector = isGlobalRole || allowedLembagas.length > 0;
 
-                  if (showLembagaSelector && lembagas.length > 0) {
+                  if (showLembagaSelector && allowedLembagas.length > 0) {
                     return (
                       <select
                         className="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none cursor-pointer hover:bg-slate-100 focus:ring-2 focus:ring-blue-500 max-w-44 truncate shadow-xs"
@@ -408,7 +456,7 @@ const MainLayout: React.FC = () => {
                         {isSuperAdmin && (
                           <option value="">Semua Lembaga</option>
                         )}
-                        {lembagas.map((l: any, i: number) => (
+                        {allowedLembagas.map((l: any, i: number) => (
                           <option key={`lembaga-opt-${i}`} value={l.lembaga_id}>
                             {l.singkatan || l.nama_lembaga}
                           </option>

@@ -193,9 +193,11 @@ export function useLessonPlanForm() {
         return;
       }
       try {
-        const mapelRows = await getMataPelajarans({
-          select: "mapel_id,nama_mapel,lembaga_id"
-        });
+        const params: any = { select: "mapel_id,nama_mapel,lembaga_id", order: "nama_mapel.asc" };
+        if (lembagaId) {
+          params.lembaga_id = `eq.${lembagaId}`;
+        }
+        const mapelRows = await getMataPelajarans(params);
         setMapels(mapelRows);
 
         if (mapelRows.length > 0) {

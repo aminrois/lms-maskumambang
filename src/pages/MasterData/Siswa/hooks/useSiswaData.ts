@@ -203,8 +203,11 @@ export function useSiswaData(paramsInput?: {
       queryClient.invalidateQueries({ queryKey: ['master-data', 'siswa-all'], refetchType: 'all' });
     },
     onError: (error: any) => {
-      if (error?.response?.status === 409 || error?.message?.includes("duplicate")) {
+      const errorDetail = error?.response?.data?.message || error?.response?.data?.error || error?.message || "";
+      if (error?.response?.status === 409 || errorDetail.includes("duplicate") || errorDetail.includes("Unique constraint")) {
         toast.error("Gagal: NIS atau NISN sudah terdaftar di sistem.");
+      } else if (errorDetail) {
+        toast.error(`Gagal menyimpan data siswa: ${errorDetail}`);
       } else {
         toast.error("Data siswa gagal disimpan. Periksa kembali isian dan coba lagi.");
       }
@@ -218,8 +221,11 @@ export function useSiswaData(paramsInput?: {
       queryClient.invalidateQueries({ queryKey: ['master-data', 'siswa-all'], refetchType: 'all' });
     },
     onError: (error: any) => {
-      if (error?.response?.status === 409 || error?.message?.includes("duplicate")) {
+      const errorDetail = error?.response?.data?.message || error?.response?.data?.error || error?.message || "";
+      if (error?.response?.status === 409 || errorDetail.includes("duplicate") || errorDetail.includes("Unique constraint")) {
         toast.error("Gagal: NIS atau NISN sudah terdaftar di sistem.");
+      } else if (errorDetail) {
+        toast.error(`Gagal menyimpan perubahan siswa: ${errorDetail}`);
       } else {
         toast.error("Perubahan data siswa gagal disimpan. Silakan coba lagi.");
       }

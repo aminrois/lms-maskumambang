@@ -244,32 +244,36 @@ model KelasMapel {
 }
 
 model JamAkademik {
-  jam_id      Int     @id @default(autoincrement())
-  lembaga_id  Int
-  urutan_jam  Int
-  jam_mulai   String
-  jam_selesai String
-  tipe        String  // 'Belajar' | 'Istirahat' | 'Sholat Dhuha & Halaqoh' | 'Apel' | 'Mapel Pilihan / Bimbingan TKA' | 'Bonding / Life Skill'
+  jam_id         Int               @id @default(autoincrement())
+  lembaga_id     Int
+  urutan_jam     Int
+  jam_mulai      String
+  jam_selesai    String
+  tipe           String            // 'Belajar' | 'Istirahat' | 'Sholat Dhuha & Halaqoh' | 'Apel' | 'Mapel Pilihan / Bimbingan TKA' | 'Bonding / Life Skill'
 
-  lembaga     Lembaga @relation(fields: [lembaga_id], references: [lembaga_id], onDelete: Cascade)
+  lembaga        Lembaga           @relation(fields: [lembaga_id], references: [lembaga_id], onDelete: Cascade)
+  jadwal_mulai   JadwalPelajaran[] @relation("JamMulai")
+  jadwal_selesai JadwalPelajaran[] @relation("JamSelesai")
 
   @@map("jam_akademik")
 }
 
 model JadwalPelajaran {
-  jadwal_id      Int              @id @default(autoincrement())
-  kelas_id       Int?
-  mapel_id       Int?
-  pegawai_id     Int?
-  ruangan        String?
-  hari           String           // 'Senin' | 'Selasa' | 'Rabu' | 'Kamis' | 'Jumat' | 'Sabtu' | 'Ahad'
-  jam_mulai_id   Int?
-  jam_selesai_id Int?
+  jadwal_id       Int              @id @default(autoincrement())
+  kelas_id        Int?
+  mapel_id        Int?
+  pegawai_id      Int?
+  ruangan         String?
+  hari            String           // 'Senin' | 'Selasa' | 'Rabu' | 'Kamis' | 'Jumat' | 'Sabtu' | 'Ahad'
+  jam_mulai_id    Int?
+  jam_selesai_id  Int?
 
-  kelas          Kelas?           @relation(fields: [kelas_id], references: [kelas_id], onDelete: SetNull)
-  mapel          MataPelajaran?   @relation(fields: [mapel_id], references: [mapel_id], onDelete: SetNull)
-  pegawai        Pegawai?         @relation(fields: [pegawai_id], references: [pegawai_id], onDelete: SetNull)
-  lesson_plans   LessonPlan[]
+  kelas           Kelas?           @relation(fields: [kelas_id], references: [kelas_id], onDelete: SetNull)
+  mapel           MataPelajaran?   @relation(fields: [mapel_id], references: [mapel_id], onDelete: SetNull)
+  pegawai         Pegawai?         @relation(fields: [pegawai_id], references: [pegawai_id], onDelete: SetNull)
+  jam_mulai       JamAkademik?     @relation("JamMulai", fields: [jam_mulai_id], references: [jam_id], onDelete: SetNull)
+  jam_selesai     JamAkademik?     @relation("JamSelesai", fields: [jam_selesai_id], references: [jam_id], onDelete: SetNull)
+  lesson_plans    LessonPlan[]
   jurnal_mengajar JurnalMengajar[]
 
   @@index([kelas_id])

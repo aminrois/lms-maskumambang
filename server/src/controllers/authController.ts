@@ -27,7 +27,15 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
             lembaga: true,
           },
         },
-        pegawai: true,
+        pegawai: {
+          include: {
+            pegawai_lembaga: {
+              include: {
+                lembaga: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -46,7 +54,15 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
                   lembaga: true,
                 },
               },
-              pegawai: true,
+              pegawai: {
+                include: {
+                  pegawai_lembaga: {
+                    include: {
+                      lembaga: true,
+                    },
+                  },
+                },
+              },
             },
           },
         },
@@ -186,7 +202,15 @@ export const getMe = async (req: AuthRequest, res: Response, next: NextFunction)
             lembaga: true,
           },
         },
-        pegawai: true,
+        pegawai: {
+          include: {
+            pegawai_lembaga: {
+              include: {
+                lembaga: true,
+              },
+            },
+          },
+        },
         wali_murid: true,
       },
     });

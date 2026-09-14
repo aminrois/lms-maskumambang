@@ -124,6 +124,8 @@ const TABLE_CONFIGS: Record<string, ModelConfig> = {
       kelas: true,
       mapel: true,
       pegawai: true,
+      jam_mulai: true,
+      jam_selesai: true,
     },
   },
   lesson_plan: {
@@ -135,6 +137,8 @@ const TABLE_CONFIGS: Record<string, ModelConfig> = {
         include: {
           kelas: true,
           mapel: true,
+          jam_mulai: true,
+          jam_selesai: true,
         },
       },
       details: true,
@@ -149,6 +153,8 @@ const TABLE_CONFIGS: Record<string, ModelConfig> = {
         include: {
           kelas: true,
           mapel: true,
+          jam_mulai: true,
+          jam_selesai: true,
         },
       },
       details: true,
@@ -167,6 +173,8 @@ const TABLE_CONFIGS: Record<string, ModelConfig> = {
           kelas: true,
           mapel: true,
           pegawai: true,
+          jam_mulai: true,
+          jam_selesai: true,
         },
       },
       lesson_plan_detail: true,
@@ -547,6 +555,50 @@ export const getTableRecords = async (req: AuthRequest, res: Response, next: Nex
   }
 };
 
+const KNOWN_INT_FIELDS = new Set([
+  'siswa_id', 'wali_murid_id', 'kelas_id', 'tahun_id', 'lembaga_id', 'tahun_masuk',
+  'mapel_id', 'pegawai_id', 'jam_mulai_id', 'jam_selesai_id', 'jam_id', 'urutan_jam',
+  'jadwal_id', 'lesson_plan_id', 'detail_id', 'pertemuan_ke', 'jurnal_id',
+  'absensi_pel_id', 'absensi_harian_id', 'activity_id', 'kalender_id', 'wali_id',
+  'user_id', 'role_id', 'wali_kelas_id',
+]);
+
+const KNOWN_BOOL_FIELDS = new Set(['is_active']);
+
+function sanitizeData(raw: any): any {
+  if (!raw || typeof raw !== 'object') return raw;
+  const clean: Record<string, any> = {};
+
+  for (const [key, val] of Object.entries(raw)) {
+    // Skip relation nested objects or arrays unless meant as relation data
+    if (val !== null && typeof val === 'object' && !Array.isArray(val) && !(val instanceof Date)) {
+      continue;
+    }
+
+    if (KNOWN_INT_FIELDS.has(key) || key.endsWith('_id')) {
+      if (val === '' || val === null || val === undefined) {
+        clean[key] = null;
+      } else if (typeof val === 'string' && /^-?\d+$/.test(val.trim())) {
+        clean[key] = parseInt(val.trim(), 10);
+      } else {
+        clean[key] = val;
+      }
+    } else if (KNOWN_BOOL_FIELDS.has(key)) {
+      if (typeof val === 'string') {
+        clean[key] = val.toLowerCase() === 'true';
+      } else {
+        clean[key] = Boolean(val);
+      }
+    } else if (val === '' && (key.endsWith('_id') || key.startsWith('tanggal_') || key === 'nik' || key === 'pin' || key === 'no_un_sebelumnya' || key === 'ruangan')) {
+      clean[key] = null;
+    } else {
+      clean[key] = val;
+    }
+  }
+
+  return clean;
+}
+
 export const createTableRecord = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const tableName = String(req.params.table || '').toLowerCase();
@@ -564,8 +616,9 @@ export const createTableRecord = async (req: AuthRequest, res: Response, next: N
     if (Array.isArray(req.body)) {
       const createdItems = [];
       for (const item of req.body) {
+        const sanitized = sanitizeData(item);
         const created = await prismaModel.create({
-          data: item,
+          data: sanitized,
           ...(config.defaultInclude ? { include: config.defaultInclude } : {}),
         });
         createdItems.push(created);
@@ -574,8 +627,9 @@ export const createTableRecord = async (req: AuthRequest, res: Response, next: N
       return;
     }
 
+    const sanitized = sanitizeData(req.body);
     const created = await prismaModel.create({
-      data: req.body,
+      data: sanitized,
       ...(config.defaultInclude ? { include: config.defaultInclude } : {}),
     });
 
@@ -605,13 +659,14 @@ export const updateTableRecord = async (req: AuthRequest, res: Response, next: N
 
     const preferHeader = (req.headers['prefer'] as string) || '';
     const wantRepresentation = preferHeader.includes('return=representation');
+    const sanitized = sanitizeData(req.body);
 
     // If ID is specified in path or query
     if (where[config.idField] !== undefined) {
       const idVal = where[config.idField];
       const updated = await prismaModel.update({
         where: { [config.idField]: idVal },
-        data: req.body,
+        data: sanitized,
         ...(config.defaultInclude ? { include: config.defaultInclude } : {}),
       });
 
@@ -626,7 +681,7 @@ export const updateTableRecord = async (req: AuthRequest, res: Response, next: N
     // Multiple records update
     await prismaModel.updateMany({
       where,
-      data: req.body,
+      data: sanitized,
     });
 
     const updatedList = await prismaModel.findMany({

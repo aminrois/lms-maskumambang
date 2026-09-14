@@ -424,7 +424,12 @@ export const useJamAkademik = () => {
                   ruangan: null
                 });
               } catch (err: any) {
-                if (err?.response?.status === 409 || err?.response?.data?.code === "23505") {
+                const isDuplicate = err?.response?.status === 409 ||
+                  err?.response?.data?.code === "23505" ||
+                  err?.response?.data?.code === "P2002" ||
+                  err?.message?.includes("Unique constraint") ||
+                  err?.response?.data?.message?.includes("Unique constraint");
+                if (isDuplicate) {
                   console.warn(`Race condition: jadwal sudah ada`);
                 } else {
                   throw err;
