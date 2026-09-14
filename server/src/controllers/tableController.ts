@@ -224,6 +224,19 @@ const TABLE_CONFIGS: Record<string, ModelConfig> = {
       tahun_ajaran: true,
     },
   },
+  user: {
+    model: 'user',
+    idField: 'user_id',
+    defaultInclude: {
+      user_roles: {
+        include: {
+          role: true,
+          lembaga: true,
+        },
+      },
+      pegawai: true,
+    },
+  },
   users: {
     model: 'user',
     idField: 'user_id',
@@ -254,6 +267,10 @@ const TABLE_CONFIGS: Record<string, ModelConfig> = {
       lembaga: true,
       user: true,
     },
+  },
+  role: {
+    model: 'role',
+    idField: 'role_id',
   },
   roles: {
     model: 'role',

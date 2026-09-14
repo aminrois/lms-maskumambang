@@ -137,3 +137,44 @@ export const absensiSummary = async (req: Request, res: Response, next: NextFunc
     next(error);
   }
 };
+
+// Absensi Harian Summary
+export const absensiHarianSummary = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { p_lembaga_id, p_kelas_id, p_tanggal_mulai, p_tanggal_akhir } = req.body;
+
+    const whereClause: any = {};
+    if (p_tanggal_mulai && p_tanggal_akhir) {
+      whereClause.tanggal = {
+        gte: p_tanggal_mulai,
+        lte: p_tanggal_akhir,
+      };
+    }
+    if (p_kelas_id && p_kelas_id !== 0) {
+      whereClause.siswa = {
+        kelas_id: Number(p_kelas_id),
+      };
+    } else if (p_lembaga_id && p_lembaga_id !== 0) {
+      whereClause.siswa = {
+        kelas: {
+          lembaga_id: Number(p_lembaga_id),
+        },
+      };
+    }
+
+    const records = await prisma.absensiHarian.findMany({
+      where: whereClause,
+      include: {
+        siswa: {
+          include: {
+            kelas: true,
+          },
+        },
+      },
+    });
+
+    res.json(records);
+  } catch (error) {
+    next(error);
+  }
+};

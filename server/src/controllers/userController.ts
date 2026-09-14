@@ -179,3 +179,78 @@ export const deleteUserRole = async (req: Request, res: Response, next: NextFunc
     next(error);
   }
 };
+
+export const updateUserAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { user_id, email, password, username } = req.body;
+    if (!user_id) {
+      res.status(400).json({ success: false, message: 'user_id wajib diisi' });
+      return;
+    }
+
+    const dataToUpdate: any = {};
+    if (username) dataToUpdate.username = username;
+    if (email) dataToUpdate.email = email;
+    if (password) {
+      dataToUpdate.password_hash = await bcrypt.hash(password, 10);
+    }
+
+    const updated = await prisma.user.update({
+      where: { user_id },
+      data: dataToUpdate,
+    });
+
+    res.json({ success: true, message: 'User berhasil diperbarui', data: updated });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createUserAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { username, email, password = 'password123' } = req.body;
+    if (!username) {
+      res.status(400).json({ success: false, message: 'username/NIG wajib diisi' });
+      return;
+    }
+
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        OR: [{ username }, ...(email ? [{ email }] : [])],
+      },
+    });
+
+    if (existingUser) {
+      res.status(409).json({ success: false, message: 'User dengan username/NIG atau email ini sudah terdaftar' });
+      return;
+    }
+
+    const password_hash = await bcrypt.hash(password, 10);
+    const user = await prisma.user.create({
+      data: {
+        username,
+        email: email || `${username}@mlms.local`,
+        password_hash,
+      },
+    });
+
+    res.status(201).json({ user: { id: user.user_id, ...user }, user_id: user.user_id });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteUserAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { user_id } = req.body;
+    if (!user_id) {
+      res.status(400).json({ success: false, message: 'user_id wajib diisi' });
+      return;
+    }
+
+    await prisma.user.delete({ where: { user_id } });
+    res.json({ success: true, message: 'User berhasil dihapus' });
+  } catch (error) {
+    next(error);
+  }
+};

@@ -9,5 +9,6 @@ router.post('/verify_lesson_plan_direktur', authenticate, rpcController.verifyLe
 router.post('/verify_activity_plan', authenticate, rpcController.verifyActivityPlan);
 router.post('/monitoring_kbm', authenticate, rpcController.monitoringKbm);
 router.post('/absensi_summary', authenticate, rpcController.absensiSummary);
+router.post('/absensi_harian_summary', authenticate, rpcController.absensiHarianSummary);
 
 export default router;
