@@ -65,3 +65,19 @@ export const resetAbsensi = async (payload: ResetAbsensiPayload) => {
   return response.data;
 };
 
+// RPC: Jurnal Mengajar Monitoring — Monitoring KBM & Absensi Guru
+export interface JurnalMengajarMonitoringPayload {
+  p_tanggal_mulai?: string;
+  p_tanggal_akhir?: string;
+  p_lembaga_id?: number | null;
+  p_kelas_id?: number | null;
+  p_status_filter?: 'Semua' | 'Sudah' | 'Belum';
+  p_search?: string;
+}
+
+export const getJurnalMengajarMonitoring = async (payload: JurnalMengajarMonitoringPayload) => {
+  const response = await restClient.post('/rpc/jurnal_mengajar_monitoring', payload);
+  return response.data;
+};
+
+

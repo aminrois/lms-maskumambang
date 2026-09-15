@@ -425,3 +425,271 @@ export const resetAbsensi = async (req: AuthRequest, res: Response, next: NextFu
   }
 };
 
+// Monitoring Jurnal Mengajar Terpadu (Direktur, Wali Kelas, Guru, dll.)
+export const jurnalMengajarMonitoring = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const {
+      p_tanggal_mulai,
+      p_tanggal_akhir,
+      p_lembaga_id,
+      p_kelas_id,
+      p_status_filter,
+      p_search
+    } = req.body;
+
+    const userRoles = req.user?.roles || [];
+    const isDirectorOrAdmin = userRoles.includes('Direktur') || userRoles.includes('Super Admin');
+    const isWaliKelas = userRoles.includes('Wali Kelas');
+    const isGuruOnly = userRoles.includes('Guru') && !isDirectorOrAdmin && !isWaliKelas;
+
+    // Ambil pegawai_id user
+    let pegawaiId: number | null = null;
+    if (req.user?.user_id) {
+      const userObj = await prisma.user.findUnique({
+        where: { user_id: req.user.user_id },
+        select: { pegawai: { select: { pegawai_id: true } } }
+      });
+      pegawaiId = userObj?.pegawai?.[0]?.pegawai_id || null;
+    }
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const startDate = p_tanggal_mulai || todayStr;
+    const endDate = p_tanggal_akhir || todayStr;
+
+    // 1. Tentukan filter Jadwal Pelajaran berdasarkan role
+    const jadwalWhere: any = {};
+
+    if (p_kelas_id && Number(p_kelas_id) > 0) {
+      jadwalWhere.kelas_id = Number(p_kelas_id);
+    } else if (p_lembaga_id && Number(p_lembaga_id) > 0) {
+      jadwalWhere.kelas = { lembaga_id: Number(p_lembaga_id) };
+    }
+
+    if (isWaliKelas && pegawaiId) {
+      // Cari kelas yang diampu oleh Wali Kelas ini
+      const kelasWali = await prisma.kelas.findMany({
+        where: { wali_kelas_id: pegawaiId },
+        select: { kelas_id: true }
+      });
+      const kelasIds = kelasWali.map(k => k.kelas_id);
+      if (kelasIds.length > 0) {
+        if (!jadwalWhere.kelas_id) {
+          jadwalWhere.kelas_id = { in: kelasIds };
+        }
+      }
+    } else if (isGuruOnly && pegawaiId) {
+      jadwalWhere.pegawai_id = pegawaiId;
+    }
+
+    // Ambil seluruh jadwal pelajaran aktif
+    const activeJadwals = await prisma.jadwalPelajaran.findMany({
+      where: jadwalWhere,
+      include: {
+        kelas: true,
+        mapel: true,
+        pegawai: true,
+        jam_mulai: true,
+        jam_selesai: true
+      },
+      orderBy: [
+        { kelas: { nama_kelas: 'asc' } },
+        { jam_mulai: { urutan_jam: 'asc' } }
+      ]
+    });
+
+    const activeJadwalIds = activeJadwals.map(j => j.jadwal_id);
+
+    // 2. Ambil seluruh Jurnal Mengajar yang sudah dibuat pada rentang tanggal
+    const jurnals = await prisma.jurnalMengajar.findMany({
+      where: {
+        tanggal: {
+          gte: startDate,
+          lte: endDate
+        },
+        jadwal_id: { in: activeJadwalIds }
+      },
+      include: {
+        jadwal: {
+          include: {
+            kelas: true,
+            mapel: true,
+            pegawai: true,
+            jam_mulai: true
+          }
+        },
+        lesson_plan_detail: true,
+        absensi_pelajaran: {
+          select: {
+            absensi_pel_id: true,
+            status: true,
+            siswa_id: true
+          }
+        }
+      },
+      orderBy: { tanggal: 'desc' }
+    });
+
+    // Map jurnal existing berdasarkan `jadwal_id_tanggal`
+    const completedJurnalMap = new Map<string, any>();
+    jurnals.forEach(j => {
+      const key = `${j.jadwal_id}_${j.tanggal}`;
+      completedJurnalMap.set(key, j);
+    });
+
+    const dayNames = ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+
+    // Generate list tanggal dalam rentang startDate .. endDate
+    const dateList: string[] = [];
+    let curr = new Date(startDate);
+    const end = new Date(endDate);
+    while (curr <= end) {
+      dateList.push(curr.toISOString().slice(0, 10));
+      curr.setDate(curr.getDate() + 1);
+    }
+
+    const items: any[] = [];
+
+    // Kumpulkan sesi KBM dari tanggal yang dipilih dan jadwal yang sesuai
+    dateList.forEach(tgl => {
+      const dayOfWeek = dayNames[new Date(tgl).getDay()];
+
+      activeJadwals.forEach(j => {
+        // Cek apakah jadwal ini jatuh pada hari tersebut
+        if (j.hari !== dayOfWeek) return;
+
+        const key = `${j.jadwal_id}_${tgl}`;
+        const existingJurnal = completedJurnalMap.get(key);
+
+        if (existingJurnal) {
+          // Status: Sudah Mengajar & Mengisi Absensi
+          const hadir = existingJurnal.absensi_pelajaran.filter((a: any) => a.status === 'Hadir').length;
+          const totalSiswa = existingJurnal.absensi_pelajaran.length;
+
+          items.push({
+            jurnal_id: existingJurnal.jurnal_id,
+            jadwal_id: j.jadwal_id,
+            tanggal: tgl,
+            hari: j.hari,
+            pertemuan_ke: existingJurnal.pertemuan_ke || 1,
+            status: "Terlaksana",
+            is_completed: true,
+            is_danger: false,
+            kelas: j.kelas?.nama_kelas || "Kelas Tidak Diketahui",
+            kelas_id: j.kelas_id,
+            lembaga_id: j.kelas?.lembaga_id,
+            mapel: j.mapel?.nama_mapel || "Mata Pelajaran",
+            mapel_id: j.mapel_id,
+            guru: j.pegawai?.nama || "Guru Pengampu",
+            pegawai_id: j.pegawai_id,
+            jam_label: j.jam_mulai ? `Jam ${j.jam_mulai.urutan_jam}` : "-",
+            materi: existingJurnal.lesson_plan_detail?.materi || "Materi Pembelajaran",
+            topik: existingJurnal.lesson_plan_detail?.topik_materi || "",
+            catatan: existingJurnal.catatan_tambahan || "",
+            total_hadir: hadir,
+            total_siswa: totalSiswa
+          });
+        } else {
+          // Status: Belum Mengajar & Belum Mengisi Absensi (Card Merah untuk Direktur & Wali Kelas)
+          items.push({
+            jurnal_id: null,
+            jadwal_id: j.jadwal_id,
+            tanggal: tgl,
+            hari: j.hari,
+            pertemuan_ke: null,
+            status: "Belum Absensi",
+            is_completed: false,
+            is_danger: true,
+            kelas: j.kelas?.nama_kelas || "Kelas Tidak Diketahui",
+            kelas_id: j.kelas_id,
+            lembaga_id: j.kelas?.lembaga_id,
+            mapel: j.mapel?.nama_mapel || "Mata Pelajaran",
+            mapel_id: j.mapel_id,
+            guru: j.pegawai?.nama || "Guru Pengampu",
+            pegawai_id: j.pegawai_id,
+            jam_label: j.jam_mulai ? `Jam ${j.jam_mulai.urutan_jam}` : "-",
+            materi: "Belum diisi",
+            topik: "",
+            catatan: "Guru belum mengisi jurnal mengajar & absensi kelas ini.",
+            total_hadir: 0,
+            total_siswa: 0
+          });
+        }
+      });
+    });
+
+    // Tambahkan jurnal yang mungkin tanggalnya tidak pas nama hari jadwal (misal kelas pengganti)
+    jurnals.forEach(j => {
+      const key = `${j.jadwal_id}_${j.tanggal}`;
+      const alreadyInList = items.some(it => it.jurnal_id === j.jurnal_id);
+      if (!alreadyInList) {
+        const hadir = j.absensi_pelajaran.filter((a: any) => a.status === 'Hadir').length;
+        items.push({
+          jurnal_id: j.jurnal_id,
+          jadwal_id: j.jadwal_id,
+          tanggal: j.tanggal,
+          hari: j.jadwal?.hari || "-",
+          pertemuan_ke: j.pertemuan_ke || 1,
+          status: "Terlaksana",
+          is_completed: true,
+          is_danger: false,
+          kelas: j.jadwal?.kelas?.nama_kelas || "Kelas",
+          kelas_id: j.jadwal?.kelas_id,
+          lembaga_id: j.jadwal?.kelas?.lembaga_id,
+          mapel: j.jadwal?.mapel?.nama_mapel || "Mata Pelajaran",
+          mapel_id: j.jadwal?.mapel_id,
+          guru: j.jadwal?.pegawai?.nama || "Guru",
+          pegawai_id: j.jadwal?.pegawai_id,
+          jam_label: j.jadwal?.jam_mulai ? `Jam ${j.jadwal.jam_mulai.urutan_jam}` : "-",
+          materi: j.lesson_plan_detail?.materi || "Materi Pembelajaran",
+          topik: j.lesson_plan_detail?.topik_materi || "",
+          catatan: j.catatan_tambahan || "",
+          total_hadir: hadir,
+          total_siswa: j.absensi_pelajaran.length
+        });
+      }
+    });
+
+    // Filter Search
+    let filteredItems = items;
+    if (p_search && String(p_search).trim()) {
+      const q = String(p_search).toLowerCase().trim();
+      filteredItems = filteredItems.filter(it =>
+        (it.kelas && it.kelas.toLowerCase().includes(q)) ||
+        (it.mapel && it.mapel.toLowerCase().includes(q)) ||
+        (it.guru && it.guru.toLowerCase().includes(q))
+      );
+    }
+
+    // Filter Status: 'Sudah' | 'Belum' | 'Semua'
+    if (p_status_filter === 'Sudah') {
+      filteredItems = filteredItems.filter(it => it.is_completed);
+    } else if (p_status_filter === 'Belum') {
+      filteredItems = filteredItems.filter(it => !it.is_completed);
+    }
+
+    // Urutkan: tanggal desc, lalu yang belum absensi (merah) di atas jika pada tanggal yang sama, lalu kelas asc
+    filteredItems.sort((a, b) => {
+      if (a.tanggal !== b.tanggal) return b.tanggal.localeCompare(a.tanggal);
+      if (a.is_completed !== b.is_completed) return a.is_completed ? 1 : -1;
+      return (a.kelas || '').localeCompare(b.kelas || '');
+    });
+
+    const totalSesi = items.length;
+    const totalSudahMengajar = items.filter(it => it.is_completed).length;
+    const totalBelumMengajar = items.filter(it => !it.is_completed).length;
+
+    res.json({
+      data: filteredItems,
+      summary: {
+        totalSesi,
+        totalSudahMengajar,
+        totalBelumMengajar,
+        persentase: totalSesi > 0 ? Math.round((totalSudahMengajar / totalSesi) * 100) : 0
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+

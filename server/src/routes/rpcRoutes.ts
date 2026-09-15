@@ -13,6 +13,7 @@ router.post('/monitoring_kbm', authenticate, rpcController.monitoringKbm);
 router.post('/absensi_summary', authenticate, rpcController.absensiSummary);
 router.post('/absensi_harian_summary', authenticate, rpcController.absensiHarianSummary);
 router.post('/reset_absensi', authenticate, rpcController.resetAbsensi);
+router.post('/jurnal_mengajar_monitoring', authenticate, rpcController.jurnalMengajarMonitoring);
 
 export default router;
 

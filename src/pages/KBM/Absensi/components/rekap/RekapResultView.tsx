@@ -1,5 +1,4 @@
-import React from "react";
-import { ChevronLeft, ChevronRight, Loader2, Calendar, Users, FileText, CheckCircle2, XCircle, AlertCircle, Download } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Calendar, Users, FileText, CheckCircle2, XCircle, Download, HeartPulse, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { utils, writeFile } from "xlsx";
 
@@ -151,44 +150,54 @@ export function RekapResultView({
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-xs flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
             <CheckCircle2 className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-500">Rata-rata Kehadiran</p>
-            <h3 className="text-2xl font-bold text-gray-900">{totals.avgKehadiran}%</h3>
+            <p className="text-xs font-semibold text-gray-500">Rata-rata Kehadiran</p>
+            <h3 className="text-xl font-bold text-gray-900 mt-0.5">{totals.avgKehadiran}%</h3>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center">
+        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-xs flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+            <HeartPulse className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-gray-500">Total Sakit</p>
+            <h3 className="text-xl font-bold text-gray-900 mt-0.5">{totals.totalSakit}</h3>
+          </div>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-xs flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+            <Info className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-gray-500">Total Izin</p>
+            <h3 className="text-xl font-bold text-gray-900 mt-0.5">{totals.totalIzin}</h3>
+          </div>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-xs flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center shrink-0">
             <XCircle className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-500">Total Alpha</p>
-            <h3 className="text-2xl font-bold text-gray-900">{totals.totalAlpha}</h3>
+            <p className="text-xs font-semibold text-gray-500">Total Alpha</p>
+            <h3 className="text-xl font-bold text-gray-900 mt-0.5">{totals.totalAlpha}</h3>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center">
-            <AlertCircle className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-gray-500">Total Sakit / Izin</p>
-            <h3 className="text-2xl font-bold text-gray-900">{totals.totalSakit + totals.totalIzin}</h3>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
+        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-xs flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-purple-50 border border-purple-100 text-purple-600 flex items-center justify-center shrink-0">
             <FileText className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-500">Total Dispensasi</p>
-            <h3 className="text-2xl font-bold text-gray-900">{totals.totalDispen}</h3>
+            <p className="text-xs font-semibold text-gray-500">Total Dispensasi</p>
+            <h3 className="text-xl font-bold text-gray-900 mt-0.5">{totals.totalDispen}</h3>
           </div>
         </div>
       </div>
