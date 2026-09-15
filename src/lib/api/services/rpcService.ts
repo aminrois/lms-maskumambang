@@ -48,3 +48,20 @@ export const absensiSummary = async (payload: Types.ABSENSI_SUMMARY_REQUEST) => 
   const response = await restClient.post('/rpc/absensi_summary', payload);
   return response.data;
 };
+
+// RPC: Reset Absensi — Khusus Direktur/Super Admin dengan PIN 1859
+export interface ResetAbsensiPayload {
+  pin: string;
+  type?: 'mapel' | 'harian' | 'all';
+  lembaga_id?: number | null;
+  kelas_id?: number | null;
+  mapel_id?: number | null;
+  pertemuan_ke?: number | null;
+  tanggal?: string | null;
+}
+
+export const resetAbsensi = async (payload: ResetAbsensiPayload) => {
+  const response = await restClient.post('/rpc/reset_absensi', payload);
+  return response.data;
+};
+

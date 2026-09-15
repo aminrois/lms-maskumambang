@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, ArrowLeft, PenLine, PlusCircle } from "lucide-react";
+import { Loader2, ArrowLeft, Lock, PlusCircle } from "lucide-react";
 import type { AbsensiState } from "../Index";
 import { useFormAbsensi } from "../hooks/useFormAbsensi";
 
@@ -35,9 +35,9 @@ export default function FormAbsensi({ selections, setCurrentStep }: FormAbsensiP
                     <div className="flex items-center gap-3 flex-wrap">
                         <h2 className="text-xl font-bold">Input Absensi & Jurnal</h2>
                         {isEditMode ? (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-xs font-bold">
-                                <PenLine className="w-3 h-3" />
-                                Memperbarui Pertemuan Ke-{selections.pertemuan}
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 text-slate-700 border border-slate-300 rounded-full text-xs font-bold">
+                                <Lock className="w-3.5 h-3.5 text-slate-500" />
+                                Pertemuan Ke-{selections.pertemuan} (Terkunci)
                             </span>
                         ) : (
                             <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-700 border border-green-200 rounded-full text-xs font-bold">
@@ -48,12 +48,13 @@ export default function FormAbsensi({ selections, setCurrentStep }: FormAbsensiP
                     </div>
                     <p className="text-sm text-gray-500 mt-1">Kelas: {selections.kelas_nama} · Mapel: {selections.mapel_nama} · Pertemuan ke-{selections.pertemuan}</p>
                     {isEditMode && (
-                        <p className="text-xs text-amber-600 mt-1 font-medium">
-                            ⚠️ Pertemuan ini sudah memiliki catatan absensi. Data ditampilkan dari jurnal sebelumnya. Simpan kembali untuk memperbarui data.
+                        <p className="text-xs text-rose-600 mt-1 font-medium flex items-center gap-1">
+                            <Lock className="w-3.5 h-3.5" /> Pertemuan ini sudah selesai dilakukan dan otomatis terkunci. Data tidak dapat diedit kembali.
                         </p>
                     )}
                 </div>
             </div>
+
 
             <div className="border rounded-xl overflow-hidden shadow-sm">
                 <table className="w-full text-sm text-left text-gray-600">
@@ -79,8 +80,9 @@ export default function FormAbsensi({ selections, setCurrentStep }: FormAbsensiP
                                         <div className="flex items-center justify-center">
                                             <input
                                                 type="radio"
+                                                disabled={isEditMode}
                                                 name={`status_${s.siswa_id}`}
-                                                className={`w-5 h-5 cursor-pointer ${
+                                                className={`w-5 h-5 ${isEditMode ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'} ${
                                                     status === 'Hadir' ? 'accent-emerald-500' :
                                                     status === 'Sakit' ? 'accent-amber-500' :
                                                     status === 'Izin' ? 'accent-blue-500' :
@@ -88,7 +90,7 @@ export default function FormAbsensi({ selections, setCurrentStep }: FormAbsensiP
                                                     'accent-purple-500'
                                                 }`}
                                                 checked={absensiMap[s.siswa_id] === status}
-                                                onChange={() => handleStatusChange(s.siswa_id, status)}
+                                                onChange={() => !isEditMode && handleStatusChange(s.siswa_id, status)}
                                             />
                                         </div>
                                     </td>
@@ -109,10 +111,11 @@ export default function FormAbsensi({ selections, setCurrentStep }: FormAbsensiP
             <div className="space-y-3 p-5 bg-gray-50 border rounded-xl">
                 <label className="font-semibold text-gray-700">Catatan Jurnal Mengajar (Opsional)</label>
                 <Input
+                    disabled={isEditMode}
                     value={catatan}
                     onChange={(e) => setCatatan(e.target.value)}
                     placeholder="Contoh: Pembelajaran berjalan lancar, 2 siswa absen..."
-                    className="bg-white"
+                    className={`bg-white ${isEditMode ? 'cursor-not-allowed bg-slate-100 text-slate-500' : ''}`}
                 />
             </div>
 
@@ -120,14 +123,14 @@ export default function FormAbsensi({ selections, setCurrentStep }: FormAbsensiP
                 {(canCreate || canUpdate) && (
                     <Button
                         onClick={() => submitMutation.mutate()}
-                        disabled={submitMutation.isPending || siswas.length === 0}
+                        disabled={submitMutation.isPending || siswas.length === 0 || isEditMode}
                         size="lg"
-                        className={`w-full sm:w-auto min-w-50 ${isEditMode ? 'bg-amber-600 hover:bg-amber-700' : ''}`}
+                        className={`w-full sm:w-auto min-w-50 ${isEditMode ? 'bg-slate-400 text-white cursor-not-allowed opacity-80' : 'bg-[#243B7A] hover:bg-[#1a2b5a]'}`}
                     >
                         {submitMutation.isPending
                             ? <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Menyimpan...</>
                             : isEditMode
-                                ? "Perbarui Absensi & Jurnal"
+                                ? <><Lock className="w-4 h-4 mr-2" /> Pertemuan Terkunci</>
                                 : "Simpan Absensi & Jurnal"
                         }
                     </Button>

@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Building, Book, GraduationCap, User,
   Calendar, BarChart, FileText, BookOpen, Clock,
-  PenTool, Clipboard, Eye, CalendarDays, BookMarked
+  PenTool, Clipboard, Eye, CalendarDays, BookMarked, RotateCcw
 } from "lucide-react";
 
 export type MenuItem = {
@@ -57,6 +57,7 @@ export const allMenuGroups: MenuGroup[] = [
       { name: "Absensi Harian", icon: Clipboard, path: "/kbm/absensi/harian", allowedRoles: ['Wali Kelas'], color: "cyan" },
       { name: "Rekap Kehadiran", icon: FileText, path: "/kbm/absensi/rekap-harian", allowedRoles: ['Direktur', 'Wali Kelas'], color: "orange" },
       // { name: "Face Recog", icon: Focus, path: "/kbm/face-recognition", allowedRoles: ['Direktur', 'Kepala Sekolah', 'WaKa Kurikulum', 'Wali Kelas', 'Guru'], color: "blue" }, // HIDDEN
+      { name: "Reset Absensi", icon: RotateCcw, path: "/kbm/absensi/reset", allowedRoles: ['Direktur', 'Super Admin'], color: "rose" },
       { name: "Monitoring", icon: BarChart, path: "/kbm/monitoring/universal", allowedRoles: ['Direktur', 'Kepala Sekolah', 'WaKa Kurikulum'], color: "indigo" },
       { name: "Pantau Wali", icon: Eye, path: "/kbm/monitoring/wali-kelas", allowedRoles: ['Wali Kelas'], color: "teal" },
     ]

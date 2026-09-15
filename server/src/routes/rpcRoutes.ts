@@ -12,5 +12,7 @@ router.post('/verify_activity_plan', authenticate, rpcController.verifyActivityP
 router.post('/monitoring_kbm', authenticate, rpcController.monitoringKbm);
 router.post('/absensi_summary', authenticate, rpcController.absensiSummary);
 router.post('/absensi_harian_summary', authenticate, rpcController.absensiHarianSummary);
+router.post('/reset_absensi', authenticate, rpcController.resetAbsensi);
 
 export default router;
+

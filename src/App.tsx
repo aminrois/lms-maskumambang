@@ -47,6 +47,7 @@ const AbsensiRekapSiswa     = React.lazy(() => import("./pages/KBM/Absensi/Rekap
 const AbsensiHarianIndex    = React.lazy(() => import("./pages/KBM/AbsensiHarian/Index"));
 const RekapAbsensiHarianIndex = React.lazy(() => import("./pages/KBM/AbsensiHarian/Rekap/Index"));
 const AbsensiMataPelajaran  = React.lazy(() => import("./pages/KBM/Absensi/Index"));
+const ResetAbsensi          = React.lazy(() => import("./pages/KBM/Absensi/ResetAbsensi"));
 const FaceRecognitionIndex  = React.lazy(() => import("./pages/KBM/FaceRecognition/Index"));
 const MonitoringUniversal   = React.lazy(() => import("./pages/KBM/Monitoring/Universal"));
 const MonitoringWaliKelas   = React.lazy(() => import("./pages/KBM/Monitoring/WaliKelas"));
@@ -441,6 +442,21 @@ const App: React.FC = () => {
                 >
                   <Route path="absensi/rekap-harian" element={<RekapAbsensiHarianIndex />} />
                 </Route>
+
+                {/* Reset Absensi (Khusus Direktur & Super Admin) */}
+                <Route
+                  element={
+                    <ProtectedRoute
+                      allowedRoles={[
+                        "Direktur",
+                        "Super Admin",
+                      ]}
+                    />
+                  }
+                >
+                  <Route path="absensi/reset" element={<ResetAbsensi />} />
+                </Route>
+
 
                 {/* Face Recognition (Mapped with Absensi Pelajaran but strictly for operational users) */}
                 <Route

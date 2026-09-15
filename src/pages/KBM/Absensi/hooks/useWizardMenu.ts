@@ -1,7 +1,7 @@
-import React from "react";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/useAuthStore";
-import { getLessonPlans } from "@/lib/api/services/kbmService";
+import { getLessonPlans, getJurnalMengajars } from "@/lib/api/services/kbmService";
 import { getJadwalPelajarans } from "@/lib/api/services/akademikService";
 import type { AbsensiState } from "../Index";
 
@@ -211,11 +211,31 @@ export function useWizardMenu({ currentStep, setCurrentStep, selections }: UseWi
     });
 
     // Hitung jumlah detail pertemuan dari lesson plan yang dipilih
-    const selectedLP = React.useMemo(() =>
+    const selectedLP = useMemo(() =>
         allLessonPlans.find((lp: any) => lp.lesson_plan_id === selections.lesson_plan_detail_id),
         [allLessonPlans, selections.lesson_plan_detail_id]
     );
     const maxPertemuan = selectedLP ? (selectedLP as any).lesson_plan_detail?.length || 16 : 16;
+
+    // 3. Fetch completed pertemuan untuk jadwal/sesi ini (otomatis lock pertemuan yang sudah selesai)
+    const { data: completedPertemuans = [], isLoading: isLoadingCompleted } = useQuery({
+        queryKey: ['kbm', 'absensi', 'completed_pertemuan', selections.jadwal_ids, selections.kelas_id, selections.mapel_id],
+        queryFn: async () => {
+            if (!selections.jadwal_ids || selections.jadwal_ids.length === 0) return [];
+
+            const jurnals = await getJurnalMengajars({
+                select: "jurnal_id,jadwal_id,pertemuan_ke,tanggal",
+                jadwal_id: `in.(${selections.jadwal_ids.join(',')})`,
+            });
+
+            const pertemuans = (jurnals || [])
+                .map((j: any) => Number(j.pertemuan_ke))
+                .filter((p: number) => !isNaN(p) && p > 0);
+
+            return Array.from(new Set(pertemuans));
+        },
+        enabled: !!(selections.jadwal_ids && selections.jadwal_ids.length > 0)
+    });
 
     const days = ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
     const today = days[new Date().getDay()];
@@ -230,8 +250,11 @@ export function useWizardMenu({ currentStep, setCurrentStep, selections }: UseWi
         isLoadingLP,
         selectedLP,
         maxPertemuan,
+        completedPertemuans,
+        isLoadingCompleted,
         today,
         nextStep,
         prevStep
     };
 }
+

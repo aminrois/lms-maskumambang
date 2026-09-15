@@ -310,3 +310,118 @@ export const absensiHarianSummary = async (req: Request, res: Response, next: Ne
     next(error);
   }
 };
+
+// Reset Absensi (Khusus Direktur & Super Admin dengan PIN 1859)
+export const resetAbsensi = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { pin, type, lembaga_id, kelas_id, mapel_id, pertemuan_ke, tanggal } = req.body;
+
+    // 1. Validasi PIN konfirmasi (1859)
+    if (String(pin).trim() !== '1859') {
+      res.status(400).json({ error: 'PIN konfirmasi salah! Reset absensi dibatalkan.' });
+      return;
+    }
+
+    // 2. Validasi role (hanya Direktur atau Super Admin)
+    const userRoles = req.user?.roles || [];
+    const hasAuthority = userRoles.includes('Direktur') || userRoles.includes('Super Admin');
+    if (req.user && !hasAuthority) {
+      res.status(403).json({ error: 'Akses ditolak. Hanya Direktur atau Super Admin yang berwenang melakukan reset absensi.' });
+      return;
+    }
+
+    let deletedJurnalCount = 0;
+    let deletedAbsensiPelajaranCount = 0;
+    let deletedAbsensiHarianCount = 0;
+
+    const resetMapel = type === 'mapel' || type === 'all' || !type;
+    const resetHarian = type === 'harian' || type === 'all' || !type;
+
+    // Reset Absensi Mapel & Jurnal Mengajar
+    if (resetMapel) {
+      const jurnalWhere: any = {};
+      if (pertemuan_ke && Number(pertemuan_ke) > 0) {
+        jurnalWhere.pertemuan_ke = Number(pertemuan_ke);
+      }
+      if (tanggal) {
+        jurnalWhere.tanggal = tanggal;
+      }
+
+      // Filter jadwal berdasarkan kelas, mapel, lembaga
+      const jadwalWhere: any = {};
+      if (kelas_id && Number(kelas_id) > 0) {
+        jadwalWhere.kelas_id = Number(kelas_id);
+      }
+      if (mapel_id && Number(mapel_id) > 0) {
+        jadwalWhere.mapel_id = Number(mapel_id);
+      }
+      if (lembaga_id && Number(lembaga_id) > 0) {
+        jadwalWhere.kelas = {
+          lembaga_id: Number(lembaga_id)
+        };
+      }
+
+      if (Object.keys(jadwalWhere).length > 0) {
+        jurnalWhere.jadwal = jadwalWhere;
+      }
+
+      // Cari ID jurnal yang cocok
+      const matchedJurnals = await prisma.jurnalMengajar.findMany({
+        where: jurnalWhere,
+        select: { jurnal_id: true }
+      });
+
+      const jurnalIds = matchedJurnals.map((j: any) => j.jurnal_id);
+
+      if (jurnalIds.length > 0) {
+        const absensiPelRes = await prisma.absensiPelajaran.deleteMany({
+          where: { jurnal_id: { in: jurnalIds } }
+        });
+        deletedAbsensiPelajaranCount = absensiPelRes.count;
+
+        const jurnalRes = await prisma.jurnalMengajar.deleteMany({
+          where: { jurnal_id: { in: jurnalIds } }
+        });
+        deletedJurnalCount = jurnalRes.count;
+      }
+    }
+
+    // Reset Absensi Harian
+    if (resetHarian) {
+      const harianWhere: any = {};
+      if (tanggal) {
+        harianWhere.tanggal = tanggal;
+      }
+
+      const siswaWhere: any = {};
+      if (kelas_id && Number(kelas_id) > 0) {
+        siswaWhere.kelas_id = Number(kelas_id);
+      }
+      if (lembaga_id && Number(lembaga_id) > 0) {
+        siswaWhere.kelas = {
+          lembaga_id: Number(lembaga_id)
+        };
+      }
+
+      if (Object.keys(siswaWhere).length > 0) {
+        harianWhere.siswa = siswaWhere;
+      }
+
+      const harianRes = await prisma.absensiHarian.deleteMany({
+        where: harianWhere
+      });
+      deletedAbsensiHarianCount = harianRes.count;
+    }
+
+    res.json({
+      success: true,
+      message: `Reset absensi berhasil dilakukan. Data yang dihapus: ${deletedJurnalCount} sesi jurnal mapel (${deletedAbsensiPelajaranCount} data absensi siswa) dan ${deletedAbsensiHarianCount} data absensi harian.`,
+      deletedJurnalCount,
+      deletedAbsensiPelajaranCount,
+      deletedAbsensiHarianCount
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
