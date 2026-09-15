@@ -22,7 +22,6 @@ export default function KbmJurnalMengajar() {
     tanggalAkhir,
     setTanggalAkhir,
     isDirector,
-    isWaliKelas,
     lembagaList,
     selectedLembagaId,
     setSelectedLembagaId,
@@ -41,7 +40,7 @@ export default function KbmJurnalMengajar() {
     executeDelete
   } = useJurnalMengajarList();
 
-  const isGuruOnly = role === 'Guru' && !isDirector && !isWaliKelas;
+  const isGuruOnly = role === 'Guru';
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto w-full space-y-6 relative">

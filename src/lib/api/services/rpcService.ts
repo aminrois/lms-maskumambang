@@ -73,6 +73,8 @@ export interface JurnalMengajarMonitoringPayload {
   p_kelas_id?: number | null;
   p_status_filter?: 'Semua' | 'Sudah' | 'Belum';
   p_search?: string;
+  p_role?: string;
+  p_pegawai_id?: number | null;
 }
 
 export const getJurnalMengajarMonitoring = async (payload: JurnalMengajarMonitoringPayload) => {

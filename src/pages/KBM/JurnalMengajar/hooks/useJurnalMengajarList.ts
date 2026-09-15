@@ -132,7 +132,9 @@ export function useJurnalMengajarList() {
         p_tanggal_mulai: tanggalMulai,
         p_tanggal_akhir: tanggalAkhir,
         p_status_filter: statusFilter,
-        p_search: debouncedSearchQuery
+        p_search: debouncedSearchQuery,
+        p_role: role,
+        p_pegawai_id: pegawai_id
       };
 
       if (isDirector) {
@@ -154,8 +156,31 @@ export function useJurnalMengajarList() {
     }
   });
 
-  const allItems: JurnalUI[] = monitoringResult.data || [];
-  const summary = monitoringResult.summary || { totalSesi: 0, totalSudahMengajar: 0, totalBelumMengajar: 0, persentase: 0 };
+  const isGuruOnly = role === 'Guru' && !isDirector && !isWaliKelas;
+
+  const allItems: JurnalUI[] = useMemo(() => {
+    const raw: JurnalUI[] = monitoringResult.data || [];
+    if (isGuruOnly || role === 'Guru') {
+      return raw.filter((it: JurnalUI) => 
+        it.is_completed && 
+        !it.is_danger && 
+        (!pegawai_id || !it.pegawai_id || Number(it.pegawai_id) === Number(pegawai_id))
+      );
+    }
+    return raw;
+  }, [monitoringResult.data, isGuruOnly, role, pegawai_id]);
+
+  const summary = useMemo(() => {
+    if (isGuruOnly || role === 'Guru') {
+      return {
+        totalSesi: allItems.length,
+        totalSudahMengajar: allItems.length,
+        totalBelumMengajar: 0,
+        persentase: 100
+      };
+    }
+    return monitoringResult.summary || { totalSesi: 0, totalSudahMengajar: 0, totalBelumMengajar: 0, persentase: 0 };
+  }, [monitoringResult.summary, isGuruOnly, role, allItems.length]);
 
   const totalPages = Math.ceil(allItems.length / itemsPerPage) || 1;
   const paginatedData = useMemo(() => {

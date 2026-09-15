@@ -224,26 +224,31 @@ export function useWizardMenu({ currentStep, setCurrentStep, selections }: UseWi
         queryFn: async () => {
             if (!selections.jadwal_ids || selections.jadwal_ids.length === 0) return [];
 
-            // Fetch jurnal mengajar untuk jadwal ini
+            // Fetch jurnal mengajar untuk jadwal ini (sudah include absensi_pelajaran)
             const jurnals = await getJurnalMengajars({
-                select: "jurnal_id,jadwal_id,pertemuan_ke,tanggal",
                 jadwal_id: `in.(${selections.jadwal_ids.join(',')})`,
             });
 
             if (!jurnals || jurnals.length === 0) return [];
 
-            // Untuk setiap jurnal, cek apakah sudah ada absensi yang diisi
             const lockedPertemuans: number[] = [];
-            for (const j of jurnals) {
+            for (const j of jurnals as any[]) {
                 if (!j.jurnal_id || !j.pertemuan_ke) continue;
-                try {
-                    const absensiRes = await restClient.get(`/absensi_pelajaran?jurnal_id=eq.${j.jurnal_id}&select=absensi_pel_id&limit=1`);
-                    const hasAbsensi = absensiRes.data && absensiRes.data.length > 0;
-                    if (hasAbsensi) {
+                // Cek relasi absensi_pelajaran
+                if (Array.isArray(j.absensi_pelajaran)) {
+                    if (j.absensi_pelajaran.length > 0) {
                         lockedPertemuans.push(Number(j.pertemuan_ke));
                     }
-                } catch {
-                    // Jika error, anggap belum ada absensi (jangan lock)
+                } else {
+                    // Fallback jika absensi_pelajaran tidak ter-include
+                    try {
+                        const absensiRes = await restClient.get(`/absensi_pelajaran?jurnal_id=eq.${j.jurnal_id}&select=absensi_pel_id&limit=1`);
+                        if (absensiRes.data && absensiRes.data.length > 0) {
+                            lockedPertemuans.push(Number(j.pertemuan_ke));
+                        }
+                    } catch {
+                        // Jangan lock jika gagal
+                    }
                 }
             }
 

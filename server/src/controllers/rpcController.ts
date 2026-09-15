@@ -434,17 +434,19 @@ export const jurnalMengajarMonitoring = async (req: AuthRequest, res: Response, 
       p_lembaga_id,
       p_kelas_id,
       p_status_filter,
-      p_search
+      p_search,
+      p_role,
+      p_pegawai_id
     } = req.body;
 
     const userRoles = req.user?.roles || [];
-    const isDirectorOrAdmin = userRoles.includes('Direktur') || userRoles.includes('Super Admin');
-    const isWaliKelas = userRoles.includes('Wali Kelas');
-    const isGuruOnly = userRoles.includes('Guru') && !isDirectorOrAdmin && !isWaliKelas;
+    const isDirectorOrAdmin = p_role ? (p_role === 'Direktur' || p_role === 'Super Admin') : (userRoles.includes('Direktur') || userRoles.includes('Super Admin'));
+    const isWaliKelas = p_role ? (p_role === 'Wali Kelas') : userRoles.includes('Wali Kelas');
+    const isGuruOnly = p_role ? (p_role === 'Guru') : (userRoles.includes('Guru') && !isDirectorOrAdmin && !isWaliKelas);
 
     // Ambil pegawai_id user
-    let pegawaiId: number | null = null;
-    if (req.user?.user_id) {
+    let pegawaiId: number | null = p_pegawai_id ? Number(p_pegawai_id) : null;
+    if (!pegawaiId && req.user?.user_id) {
       const userObj = await prisma.user.findUnique({
         where: { user_id: req.user.user_id },
         select: { pegawai: { select: { pegawai_id: true } } }
@@ -465,7 +467,9 @@ export const jurnalMengajarMonitoring = async (req: AuthRequest, res: Response, 
       jadwalWhere.kelas = { lembaga_id: Number(p_lembaga_id) };
     }
 
-    if (isWaliKelas && pegawaiId) {
+    if (isGuruOnly && pegawaiId) {
+      jadwalWhere.pegawai_id = pegawaiId;
+    } else if (isWaliKelas && pegawaiId) {
       // Cari kelas yang diampu oleh Wali Kelas ini
       const kelasWali = await prisma.kelas.findMany({
         where: { wali_kelas_id: pegawaiId },
@@ -477,8 +481,6 @@ export const jurnalMengajarMonitoring = async (req: AuthRequest, res: Response, 
           jadwalWhere.kelas_id = { in: kelasIds };
         }
       }
-    } else if (isGuruOnly && pegawaiId) {
-      jadwalWhere.pegawai_id = pegawaiId;
     }
 
     // Ambil seluruh jadwal pelajaran aktif
@@ -641,6 +643,7 @@ export const jurnalMengajarMonitoring = async (req: AuthRequest, res: Response, 
       const key = `${j.jadwal_id}_${j.tanggal}`;
       const alreadyInList = items.some(it => it.jurnal_id === j.jurnal_id);
       if (!alreadyInList) {
+        if (isGuruOnly && pegawaiId && j.jadwal?.pegawai_id !== pegawaiId) return;
         const hadir = j.absensi_pelajaran.filter((a: any) => a.status === 'Hadir').length;
 
         // Hitung status_kbm untuk jurnal extra (kelas pengganti)

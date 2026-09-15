@@ -38,28 +38,27 @@ export function useFormAbsensi({ selections, setCurrentStep }: UseFormAbsensiPro
         enabled: !!selections.kelas_id
     });
 
-    // Load jurnal + absensi yang sudah ada untuk hari ini pada jadwal ini
-    // Identifier unik: jadwal_id + tanggal (mengikuti constraint DB)
-    const todayDate = new Date().toISOString().split('T')[0];
+    // Load jurnal + absensi yang sudah ada untuk pertemuan ini pada jadwal ini
     const firstJadwalId = selections.jadwal_ids?.[0] || null;
+    const pertemuan = selections.pertemuan;
     const { data: existingJurnalData, isLoading: isLoadingExistingJurnal } = useQuery({
-        queryKey: ['kbm', 'existing-jurnal', firstJadwalId, todayDate],
+        queryKey: ['kbm', 'existing-jurnal', firstJadwalId, pertemuan],
         queryFn: async () => {
-            if (!firstJadwalId) return null;
+            if (!firstJadwalId || !pertemuan) return null;
             const jurnals = await getJurnalMengajars({
                 jadwal_id: `in.(${selections.jadwal_ids.join(',')})`,
-                tanggal: `eq.${todayDate}`
+                pertemuan_ke: `eq.${pertemuan}`
             });
             if (!jurnals || jurnals.length === 0) return null;
             const jurnal = jurnals[0];
 
             // Load absensi yang sudah ada untuk jurnal ini
-            const absensiList = await getAbsensiPelajarans({
+            const absensiList = (jurnal as any).absensi_pelajaran || await getAbsensiPelajarans({
                 jurnal_id: `eq.${jurnal.jurnal_id}`
             });
             return { jurnal, absensiList };
         },
-        enabled: !!firstJadwalId
+        enabled: !!firstJadwalId && !!pertemuan
     });
 
     const isLoading = isLoadingSiswa || isLoadingExistingJurnal;
@@ -176,10 +175,10 @@ export function useFormAbsensi({ selections, setCurrentStep }: UseFormAbsensiPro
             // Gunakan jadwal_id utama untuk 1 sesi pertemuan ini (1 jurnal mengajar per pertemuan)
             const primaryJadwalId = selections.jadwal_ids[0];
 
-            // Cek apakah jurnal mengajar sudah ada untuk sesi ini pada hari ini
+            // Cek apakah jurnal mengajar sudah ada untuk sesi ini pada pertemuan ini
             const existingJurnals = await getJurnalMengajars({
                 jadwal_id: `in.(${selections.jadwal_ids.join(',')})`,
-                tanggal: `eq.${todayDate}`
+                pertemuan_ke: `eq.${selections.pertemuan}`
             });
 
             let jurnalId: number;
@@ -196,6 +195,7 @@ export function useFormAbsensi({ selections, setCurrentStep }: UseFormAbsensiPro
                 await updateJurnalMengajar(jurnalId, {
                     lesson_plan_detail_id: finalDetailId,
                     pertemuan_ke: selections.pertemuan,
+                    tanggal: primaryJurnal.tanggal || todayDate,
                     catatan_tambahan: catatan.trim()
                 });
 
@@ -253,7 +253,9 @@ export function useFormAbsensi({ selections, setCurrentStep }: UseFormAbsensiPro
         onSuccess: () => {
             toast.success("Absensi dan Jurnal berhasil disimpan!");
             queryClient.invalidateQueries({ queryKey: ['kbm', 'jurnals-index'] });
-            queryClient.invalidateQueries({ queryKey: ['kbm', 'existing-jurnal', selections.jadwal_ids?.[0], todayDate] });
+            queryClient.invalidateQueries({ queryKey: ['kbm', 'jurnal_monitoring'] });
+            queryClient.invalidateQueries({ queryKey: ['kbm', 'absensi'] });
+            queryClient.invalidateQueries({ queryKey: ['kbm', 'existing-jurnal'] });
             setCurrentStep(1);
         },
         onError: (error: any) => {
@@ -266,7 +268,8 @@ export function useFormAbsensi({ selections, setCurrentStep }: UseFormAbsensiPro
         setAbsensiMap(prev => ({ ...prev, [siswa_id]: status }));
     };
 
-    const isEditMode = !!(existingJurnalData?.jurnal);
+    // Pertemuan hanya terkunci jika data absensi SUDAH DIISI (ada minimal 1 data absensi)
+    const isEditMode = !!(existingJurnalData?.jurnal && existingJurnalData.absensiList && existingJurnalData.absensiList.length > 0);
 
     return {
         absensiMap,
