@@ -6,9 +6,12 @@ import { UniversalResultView } from "./components/universal/UniversalResultView"
 
 export interface MonitoringKBMResponse {
   id?: number;
+  jurnal_id?: number;
   nama_guru: string;
   nama_mapel: string;
   nama_kelas: string;
+  kelas_id?: number;
+  lembaga_id?: number;
   pertemuan_ke: number;
   lp_pertemuan_ke: number;
   status: "Tertinggal" | "Sesuai" | "Terlalu Cepat" | string;
@@ -17,6 +20,9 @@ export interface MonitoringKBMResponse {
   catatan_tambahan?: string | null;
   hari?: string;
   jam?: string;
+  materi?: string;
+  total_hadir?: number;
+  total_siswa?: number;
 }
 
 export default function MonitoringUniversal() {

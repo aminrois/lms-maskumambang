@@ -10,36 +10,37 @@ import { useFeatureRealtimeSync } from "@/hooks/useRealtimeSync";
 const HARI_MAP = ["Ahad", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 
 export function enrichMonitoringRow(item: any, jadwalsList: any[] = []): MonitoringKBMResponse {
-  let computedStatus = item.status;
-  
-  const rawTglRencana = item.tanggal_rencana || item.tgl_rencana || item.tanggal_target || item.tgl_target || item.tanggal_rpp || item.rpp_tanggal || item.tanggal_lesson_plan || "";
+  const nama_guru = item.nama_guru || item.jadwal?.pegawai?.nama || item.pegawai?.nama || "Guru";
+  const nama_mapel = item.nama_mapel || item.jadwal?.mapel?.nama_mapel || item.mapel?.nama_mapel || "Mata Pelajaran";
+  const nama_kelas = item.nama_kelas || item.jadwal?.kelas?.nama_kelas || item.kelas?.nama_kelas || "Kelas";
+  const pertemuan_ke = item.pertemuan_ke || 1;
+  const lp_pertemuan_ke = item.lp_pertemuan_ke || item.lesson_plan_detail?.pertemuan_ke || pertemuan_ke;
+
+  const rawTglRencana = item.tanggal_rencana || item.lesson_plan_detail?.rencana_pelaksanaan_kbm || item.tgl_rencana || item.tanggal_target || item.tgl_target || item.tanggal_rpp || item.rpp_tanggal || item.tanggal_lesson_plan || "";
   const rawTglAbsensi = item.tanggal;
-  
-  if (rawTglRencana && rawTglAbsensi) {
-    const tglRencana = String(rawTglRencana).substring(0, 10);
-    const tglAbsensi = String(rawTglAbsensi).substring(0, 10);
-    
-    if (tglAbsensi === tglRencana) {
-      computedStatus = "Sesuai";
-    } else if (tglAbsensi > tglRencana) {
-      computedStatus = "Terlambat";
-    } else if (tglAbsensi < tglRencana) {
-      computedStatus = "Terlalu Cepat";
-    }
-  }
-  
-  if (!computedStatus || String(computedStatus).trim() === "") {
-    if (item.pertemuan_ke && item.lp_pertemuan_ke) {
-      if (item.pertemuan_ke === item.lp_pertemuan_ke) computedStatus = "Sesuai";
-      else if (item.pertemuan_ke < item.lp_pertemuan_ke) computedStatus = "Terlambat";
+
+  let computedStatus = item.status;
+  if (!computedStatus || computedStatus === "Sesuai") {
+    if (rawTglRencana && rawTglAbsensi) {
+      const tglRencana = String(rawTglRencana).split(' ')[0].trim().substring(0, 10);
+      const tglAbsensi = String(rawTglAbsensi).split(' ')[0].trim().substring(0, 10);
+      
+      if (tglAbsensi === tglRencana) {
+        computedStatus = "Sesuai";
+      } else if (tglAbsensi > tglRencana) {
+        computedStatus = "Terlambat";
+      } else if (tglAbsensi < tglRencana) {
+        computedStatus = "Terlalu Cepat";
+      }
+    } else if (pertemuan_ke && lp_pertemuan_ke) {
+      if (pertemuan_ke === lp_pertemuan_ke) computedStatus = "Sesuai";
+      else if (pertemuan_ke < lp_pertemuan_ke) computedStatus = "Terlambat";
       else computedStatus = "Terlalu Cepat";
-    } else {
-      computedStatus = "Sesuai";
     }
   }
 
   // 1. Determine Hari
-  let hari = item.hari || item.jadwal_hari || item.hari_nama;
+  let hari = item.hari || item.jadwal?.hari || item.jadwal_hari || item.hari_nama;
   if (!hari && rawTglAbsensi) {
     const d = new Date(rawTglAbsensi);
     if (!isNaN(d.getTime())) {
@@ -49,12 +50,18 @@ export function enrichMonitoringRow(item: any, jadwalsList: any[] = []): Monitor
 
   // 2. Determine Jam
   let jam = item.jam || item.jam_ke || item.lp_jam || item.jam_pelajaran || item.alokasi_waktu;
+  if (!jam && item.jadwal?.jam_mulai) {
+    const jm = item.jadwal.jam_mulai.jam_mulai?.substring(0, 5);
+    const js = item.jadwal.jam_selesai?.jam_selesai?.substring(0, 5);
+    if (jm && js) jam = `${jm} - ${js}`;
+    else jam = `Jam ${item.jadwal.jam_mulai.urutan_jam}`;
+  }
   
-  // Match with jadwal_pelajaran
+  // Match with jadwal_pelajaran if needed
   if (jadwalsList && jadwalsList.length > 0) {
     const matched = jadwalsList.find((j: any) => 
-      (j.kelas?.nama_kelas === item.nama_kelas || j.kelas_id === item.kelas_id) &&
-      (j.mapel?.nama_mapel === item.nama_mapel || j.mapel_id === item.mapel_id)
+      (j.kelas?.nama_kelas === nama_kelas || j.kelas_id === item.kelas_id) &&
+      (j.mapel?.nama_mapel === nama_mapel || j.mapel_id === item.mapel_id)
     );
     if (matched) {
       if (!hari && matched.hari) hari = matched.hari;
@@ -68,13 +75,19 @@ export function enrichMonitoringRow(item: any, jadwalsList: any[] = []): Monitor
 
   if (!hari) hari = "—";
   if (!jam) {
-    jam = item.pertemuan_ke ? `Pertemuan ke-${item.pertemuan_ke}` : "—";
+    jam = pertemuan_ke ? `Pertemuan ke-${pertemuan_ke}` : "—";
   }
 
   return {
     ...item,
+    id: item.id || item.jurnal_id,
+    nama_guru,
+    nama_mapel,
+    nama_kelas,
+    pertemuan_ke,
+    lp_pertemuan_ke,
     tanggal_rencana: rawTglRencana || item.tanggal_rencana || item.tanggal || "",
-    status: computedStatus,
+    status: computedStatus || "Sesuai",
     hari,
     jam,
   } as MonitoringKBMResponse;
@@ -191,7 +204,9 @@ export function useUniversalMonitoring() {
         `${row.nama_guru} ${row.nama_mapel} ${row.nama_kelas} ${row.hari || ''} ${row.jam || ''}`
           .toLowerCase()
           .includes(debouncedSearchTerm.toLowerCase());
-      const matchesKelas = selectedKelasId === "Semua" || row.nama_kelas === kelases.find(k => String(k.kelas_id) === selectedKelasId)?.nama_kelas;
+      const matchesKelas = selectedKelasId === "Semua" || 
+        String(row.kelas_id) === String(selectedKelasId) || 
+        row.nama_kelas === kelases.find(k => String(k.kelas_id) === selectedKelasId)?.nama_kelas;
       return matchesSearch && matchesKelas;
     });
   }, [rows, debouncedSearchTerm, selectedKelasId, kelases]);

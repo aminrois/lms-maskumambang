@@ -208,8 +208,8 @@ export const monitoringKbm = async (req: Request, res: Response, next: NextFunct
       where: {
         ...whereJurnal,
         jadwal: {
-          ...(p_kelas_id && p_kelas_id !== 0 ? { kelas_id: Number(p_kelas_id) } : {}),
-          ...(p_lembaga_id && p_lembaga_id !== 0
+          ...(p_kelas_id && Number(p_kelas_id) > 0 ? { kelas_id: Number(p_kelas_id) } : {}),
+          ...(p_lembaga_id && Number(p_lembaga_id) > 0
             ? { kelas: { lembaga_id: Number(p_lembaga_id) } }
             : {}),
         },
@@ -220,6 +220,8 @@ export const monitoringKbm = async (req: Request, res: Response, next: NextFunct
             kelas: true,
             mapel: true,
             pegawai: true,
+            jam_mulai: true,
+            jam_selesai: true,
           },
         },
         lesson_plan_detail: true,
@@ -228,7 +230,57 @@ export const monitoringKbm = async (req: Request, res: Response, next: NextFunct
       orderBy: { tanggal: 'desc' },
     });
 
-    res.json(jurnals);
+    const result = jurnals.map((j) => {
+      const rencanaStr = j.lesson_plan_detail?.rencana_pelaksanaan_kbm || null;
+      let status = "Sesuai";
+      if (rencanaStr && j.tanggal) {
+        const rDate = String(rencanaStr).split(' ')[0].trim();
+        const tDate = String(j.tanggal).split(' ')[0].trim();
+        if (tDate === rDate) {
+          status = "Sesuai";
+        } else if (tDate > rDate) {
+          status = "Terlambat";
+        } else if (tDate < rDate) {
+          status = "Terlalu Cepat";
+        }
+      }
+
+      const jmMulai = j.jadwal?.jam_mulai?.jam_mulai?.substring(0, 5) || "";
+      const jmSelesai = j.jadwal?.jam_selesai?.jam_selesai?.substring(0, 5) || "";
+      const jamStr = (jmMulai && jmSelesai) 
+        ? `${jmMulai} - ${jmSelesai}` 
+        : (j.jadwal?.jam_mulai ? `Jam ${j.jadwal.jam_mulai.urutan_jam}` : `Pertemuan ke-${j.pertemuan_ke || 1}`);
+
+      const hadir = j.absensi_pelajaran ? j.absensi_pelajaran.filter(a => a.status === 'Hadir').length : 0;
+      const totalSiswa = j.absensi_pelajaran ? j.absensi_pelajaran.length : 0;
+
+      return {
+        id: j.jurnal_id,
+        jurnal_id: j.jurnal_id,
+        nama_guru: j.jadwal?.pegawai?.nama || "Guru",
+        nama_mapel: j.jadwal?.mapel?.nama_mapel || "Mata Pelajaran",
+        nama_kelas: j.jadwal?.kelas?.nama_kelas || "Kelas",
+        kelas_id: j.jadwal?.kelas_id,
+        lembaga_id: j.jadwal?.kelas?.lembaga_id,
+        pertemuan_ke: j.pertemuan_ke || 1,
+        lp_pertemuan_ke: j.lesson_plan_detail?.pertemuan_ke || j.pertemuan_ke || 1,
+        status: status,
+        tanggal: j.tanggal,
+        tanggal_rencana: rencanaStr || j.tanggal,
+        catatan_tambahan: j.catatan_tambahan || null,
+        hari: j.jadwal?.hari || "-",
+        jam: jamStr,
+        materi: j.lesson_plan_detail?.materi || "",
+        total_hadir: hadir,
+        total_siswa: totalSiswa,
+        // Also keep nested objects for compatibility
+        jadwal: j.jadwal,
+        lesson_plan_detail: j.lesson_plan_detail,
+        absensi_pelajaran: j.absensi_pelajaran,
+      };
+    });
+
+    res.json(result);
   } catch (error) {
     next(error);
   }
