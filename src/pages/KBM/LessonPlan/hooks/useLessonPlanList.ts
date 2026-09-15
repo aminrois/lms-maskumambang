@@ -590,17 +590,45 @@ export function useLessonPlanList() {
 
   const getJadwalInfoForPlan = (plan?: LessonPlanSummary) => {
     if (!plan?.jadwal_id) return null;
-    const jadwal = jadwalPelajarans.find((j: any) => j.jadwal_id === plan.jadwal_id);
-    if (!jadwal) return null;
-    const jamMulai = (jadwal.jam_mulai?.jam_mulai || "").substring(0, 5);
-    const jamSelesai = (jadwal.jam_selesai?.jam_selesai || "").substring(0, 5);
-    const namaKelas = jadwal.kelas?.nama_kelas || kelasMap.get(jadwal.kelas_id)?.nama_kelas || "";
+    const anchorJadwal = jadwalPelajarans.find((j: any) => j.jadwal_id === plan.jadwal_id);
+    if (!anchorJadwal) return null;
+
+    // Safety guard: if plan has pegawai_id and anchor has pegawai_id, they must match
+    if (plan.pegawai_id && anchorJadwal.pegawai_id && anchorJadwal.pegawai_id !== plan.pegawai_id) {
+      return null;
+    }
+
+    // Find all consecutive matching slots with same kelas, mapel, hari, and pegawai
+    const matching = jadwalPelajarans
+      .filter((j: any) =>
+        j.kelas_id === anchorJadwal.kelas_id &&
+        j.mapel_id === anchorJadwal.mapel_id &&
+        j.hari === anchorJadwal.hari &&
+        (!anchorJadwal.pegawai_id || j.pegawai_id === anchorJadwal.pegawai_id)
+      )
+      .sort((a: any, b: any) => {
+        if ((a.jam_mulai?.urutan_jam || 0) !== (b.jam_mulai?.urutan_jam || 0)) {
+          return (a.jam_mulai?.urutan_jam || 0) - (b.jam_mulai?.urutan_jam || 0);
+        }
+        return (a.jam_mulai?.jam_mulai || "").localeCompare(b.jam_mulai?.jam_mulai || "");
+      });
+
+    if (matching.length === 0) return null;
+
+    const firstSlot = matching[0];
+    const lastSlot = matching[matching.length - 1];
+
+    const jamMulai = (firstSlot.jam_mulai?.jam_mulai || "").substring(0, 5);
+    const jamSelesai = (lastSlot.jam_selesai?.jam_selesai || "").substring(0, 5);
+    const namaKelas = anchorJadwal.kelas?.nama_kelas || kelasMap.get(anchorJadwal.kelas_id)?.nama_kelas || "";
+
     return {
-      hari: jadwal.hari || "",
+      hari: anchorJadwal.hari || "",
       jam_mulai: jamMulai,
       jam_selesai: jamSelesai,
+      jumlah_jam: matching.length,
       nama_kelas: namaKelas,
-      ruangan: jadwal.ruangan || "",
+      ruangan: anchorJadwal.ruangan || "",
     };
   };
 
@@ -610,22 +638,27 @@ export function useLessonPlanList() {
     const anchorJadwal = jadwalPelajarans.find((j: any) => j.jadwal_id === plan.jadwal_id);
     if (!anchorJadwal) return "";
     
-    // Cari semua jam pada hari yang sama, mapel sama, kelas sama
-    const matching = jadwalPelajarans.filter((j: any) => {
-      return j.kelas_id === anchorJadwal.kelas_id && 
-             j.mapel_id === anchorJadwal.mapel_id &&
-             j.hari === anchorJadwal.hari;
-    });
+    // Cari semua jam pada hari yang sama, mapel sama, kelas sama, pegawai sama
+    const matching = jadwalPelajarans
+      .filter((j: any) => {
+        return (
+          j.kelas_id === anchorJadwal.kelas_id && 
+          j.mapel_id === anchorJadwal.mapel_id &&
+          j.hari === anchorJadwal.hari &&
+          (!anchorJadwal.pegawai_id || j.pegawai_id === anchorJadwal.pegawai_id)
+        );
+      })
+      .sort((a: any, b: any) => (a.jam_mulai?.urutan_jam || 0) - (b.jam_mulai?.urutan_jam || 0));
 
     if (matching.length === 0) return "";
 
-    const timeSlots = matching.map((s: any) => {
-      const start = (s.jam_mulai?.jam_mulai || "").substring(0, 5).replace(":", ".");
-      const end = (s.jam_selesai?.jam_selesai || "").substring(0, 5).replace(":", ".");
-      return start && end ? `${start} - ${end}` : "";
-    }).filter(Boolean);
+    const firstSlot = matching[0];
+    const lastSlot = matching[matching.length - 1];
+    const start = (firstSlot.jam_mulai?.jam_mulai || "").substring(0, 5).replace(":", ".");
+    const end = (lastSlot.jam_selesai?.jam_selesai || "").substring(0, 5).replace(":", ".");
+    const durationNote = matching.length > 1 ? ` (${matching.length} Jam Pelajaran)` : "";
 
-    return Array.from(new Set(timeSlots)).join(", ");
+    return start && end ? `${start} - ${end}${durationNote}` : "";
   };
 
   const getLembagaNamaForPlan = (plan?: LessonPlanSummary) => {

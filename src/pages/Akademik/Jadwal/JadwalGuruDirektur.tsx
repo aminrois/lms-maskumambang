@@ -38,15 +38,172 @@ export const JadwalGuruDirektur: React.FC = () => {
 
   const hariOrder = ["Sabtu", "Ahad", "Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
 
-  // Group selected teacher's schedules by day
+  const isCountedCategory = (tipe?: string | null): boolean => {
+    if (!tipe) return true;
+    return tipe.trim().toLowerCase() === "belajar";
+  };
+
+  // Group selected teacher's schedules by day & merge consecutive periods
   const groupedModalJadwals = React.useMemo(() => {
     if (!selectedTeacher || !selectedTeacher.jadwals) return {};
     const acc: Record<string, typeof selectedTeacher.jadwals> = {};
+
+    // Group by hari
+    const rawGrouped: Record<string, typeof selectedTeacher.jadwals> = {};
     selectedTeacher.jadwals.forEach((j) => {
       const h = j.hari || "Lainnya";
-      if (!acc[h]) acc[h] = [];
-      acc[h].push(j);
+      if (!rawGrouped[h]) rawGrouped[h] = [];
+      rawGrouped[h].push(j);
     });
+
+    Object.keys(rawGrouped).forEach((hari) => {
+      const rows = rawGrouped[hari];
+      const slotMap = new Map<string, {
+        jadwal_id: number;
+        jadwal_ids: number[];
+        jam_mulai_display: string;
+        jam_selesai_display: string;
+        mapel_nama: string;
+        ruangan?: string | null;
+        tipe?: string | null;
+        urutan_jam: number;
+        kelases: Set<string>;
+      }>();
+
+      rows.forEach((row) => {
+        const jamMulai = row.jam_mulai_display || "—";
+        const jamSelesai = row.jam_selesai_display || "—";
+        const mapelNama = row.mapel_nama || "—";
+        const ruangan = row.ruangan || null;
+        const tipe = row.tipe || "";
+        const urutanJam = row.urutan_jam || 0;
+        const slotKey = `${jamMulai}_${jamSelesai}_${mapelNama}_${ruangan || ''}`;
+
+        if (!slotMap.has(slotKey)) {
+          slotMap.set(slotKey, {
+            jadwal_id: row.jadwal_id,
+            jadwal_ids: [row.jadwal_id],
+            jam_mulai_display: jamMulai,
+            jam_selesai_display: jamSelesai,
+            mapel_nama: mapelNama,
+            ruangan,
+            tipe,
+            urutan_jam: urutanJam,
+            kelases: new Set<string>()
+          });
+        } else {
+          slotMap.get(slotKey)!.jadwal_ids.push(row.jadwal_id);
+        }
+
+        const slot = slotMap.get(slotKey)!;
+        if (row.nama_kelas && row.nama_kelas !== "—") {
+          slot.kelases.add(row.nama_kelas);
+        }
+      });
+
+      const sortedSlots = Array.from(slotMap.values()).sort((a, b) => {
+        if (a.urutan_jam !== b.urutan_jam) return a.urutan_jam - b.urutan_jam;
+        return a.jam_mulai_display.localeCompare(b.jam_mulai_display);
+      });
+
+      let jamCounter = 0;
+      const slotsWithJamNum = sortedSlots.map((slot) => {
+        const sortedKelas = Array.from(slot.kelases).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+        const isBelajar = isCountedCategory(slot.tipe);
+        if (isBelajar) {
+          jamCounter += 1;
+        }
+        return {
+          ...slot,
+          nama_kelas: sortedKelas.join(", ") || "—",
+          jamNum: isBelajar ? jamCounter : null,
+        };
+      });
+
+      const mergedList: typeof selectedTeacher.jadwals = [];
+      let currentGroup: any = null;
+
+      for (const slot of slotsWithJamNum) {
+        const canMerge =
+          currentGroup &&
+          currentGroup.mapel_nama === slot.mapel_nama &&
+          currentGroup.nama_kelas === slot.nama_kelas &&
+          currentGroup.ruangan === slot.ruangan &&
+          (
+            currentGroup.jam_selesai_display === slot.jam_mulai_display ||
+            (currentGroup.last_urutan !== undefined && currentGroup.last_urutan + 1 === slot.urutan_jam) ||
+            (currentGroup.last_jamNum !== null && slot.jamNum !== null && currentGroup.last_jamNum + 1 === slot.jamNum)
+          );
+
+        if (canMerge) {
+          currentGroup.jam_selesai_display = slot.jam_selesai_display;
+          currentGroup.last_urutan = slot.urutan_jam;
+          if (slot.jamNum !== null) {
+            currentGroup.last_jamNum = slot.jamNum;
+            currentGroup.end_jam = slot.jamNum;
+          }
+          currentGroup.jumlah_jam += 1;
+          currentGroup.jadwal_ids.push(...slot.jadwal_ids);
+        } else {
+          if (currentGroup) {
+            mergedList.push({
+              jadwal_id: currentGroup.jadwal_id,
+              jadwal_ids: currentGroup.jadwal_ids,
+              hari,
+              jam_mulai_display: currentGroup.jam_mulai_display,
+              jam_selesai_display: currentGroup.jam_selesai_display,
+              nama_kelas: currentGroup.nama_kelas,
+              mapel_nama: currentGroup.mapel_nama,
+              ruangan: currentGroup.ruangan,
+              tipe: currentGroup.tipe,
+              urutan_jam: currentGroup.urutan_jam,
+              start_jam: currentGroup.start_jam,
+              end_jam: currentGroup.end_jam,
+              jumlah_jam: currentGroup.jumlah_jam,
+            });
+          }
+
+          currentGroup = {
+            jadwal_id: slot.jadwal_id,
+            jadwal_ids: [...slot.jadwal_ids],
+            hari,
+            jam_mulai_display: slot.jam_mulai_display,
+            jam_selesai_display: slot.jam_selesai_display,
+            nama_kelas: slot.nama_kelas,
+            mapel_nama: slot.mapel_nama,
+            ruangan: slot.ruangan,
+            tipe: slot.tipe,
+            urutan_jam: slot.urutan_jam,
+            last_urutan: slot.urutan_jam,
+            start_jam: slot.jamNum,
+            end_jam: slot.jamNum,
+            last_jamNum: slot.jamNum,
+            jumlah_jam: 1,
+          };
+        }
+      }
+
+      if (currentGroup) {
+        mergedList.push({
+          jadwal_id: currentGroup.jadwal_id,
+          jadwal_ids: currentGroup.jadwal_ids,
+          hari,
+          jam_mulai_display: currentGroup.jam_mulai_display,
+          jam_selesai_display: currentGroup.jam_selesai_display,
+          nama_kelas: currentGroup.nama_kelas,
+          mapel_nama: currentGroup.mapel_nama,
+          ruangan: currentGroup.ruangan,
+          tipe: currentGroup.tipe,
+          urutan_jam: currentGroup.urutan_jam,
+          start_jam: currentGroup.start_jam,
+          end_jam: currentGroup.end_jam,
+          jumlah_jam: currentGroup.jumlah_jam,
+        });
+      }
+
+      acc[hari] = mergedList;
+    });
+
     return acc;
   }, [selectedTeacher]);
 
@@ -104,6 +261,8 @@ export const JadwalGuruDirektur: React.FC = () => {
           ) : (
             sortedModalHari.map((hari) => {
               const sessions = groupedModalJadwals[hari];
+              const totalJamHari = sessions.reduce((sum, s) => sum + (s.jumlah_jam || 1), 0);
+
               return (
                 <div key={hari} className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-2xs space-y-4">
                   {/* Day Header */}
@@ -114,7 +273,7 @@ export const JadwalGuruDirektur: React.FC = () => {
                       </span>
                     </div>
                     <span className="text-xs font-bold text-blue-600 bg-blue-50 border border-blue-100 px-3 py-1 rounded-full">
-                      {sessions.length} Sesi Mengajar
+                      {sessions.length} Sesi Mengajar{totalJamHari > sessions.length ? ` (${totalJamHari} jam pelajaran)` : ''}
                     </span>
                   </div>
 
@@ -128,7 +287,7 @@ export const JadwalGuruDirektur: React.FC = () => {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-1.5">
                             <span className="font-extrabold text-xs bg-indigo-100/80 text-indigo-700 px-2 py-0.5 rounded-md border border-indigo-200/50">
-                              Jam {i + 1}
+                              Jam {j.start_jam !== undefined && j.start_jam !== null ? (j.start_jam === j.end_jam ? j.start_jam : `${j.start_jam}–${j.end_jam}`) : (i + 1)}
                             </span>
                             <span className="font-mono text-xs font-bold text-blue-600">
                               {j.jam_mulai_display}–{j.jam_selesai_display}
@@ -139,9 +298,16 @@ export const JadwalGuruDirektur: React.FC = () => {
                           </span>
                         </div>
                         <div>
-                          <h4 className="font-bold text-[#2B3674] text-sm leading-snug" title={j.mapel_nama}>
-                            {j.mapel_nama}
-                          </h4>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h4 className="font-bold text-[#2B3674] text-sm leading-snug" title={j.mapel_nama}>
+                              {j.mapel_nama}
+                            </h4>
+                            {j.jumlah_jam !== undefined && j.jumlah_jam > 1 && (
+                              <span className="inline-flex items-center px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100">
+                                {j.jumlah_jam} jam
+                              </span>
+                            )}
+                          </div>
                           {j.ruangan && (
                             <p className="text-xs text-slate-500 font-medium mt-1">
                               Ruangan: {j.ruangan}

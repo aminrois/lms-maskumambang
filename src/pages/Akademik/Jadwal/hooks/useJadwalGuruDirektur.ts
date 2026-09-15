@@ -4,6 +4,7 @@ import { restClient } from "@/lib/api/axios";
 
 export type JadwalSession = {
   jadwal_id: number;
+  jadwal_ids?: number[];
   hari: string;
   jam_mulai_display: string;
   jam_selesai_display: string;
@@ -12,6 +13,9 @@ export type JadwalSession = {
   ruangan?: string | null;
   tipe?: string | null;
   urutan_jam: number;
+  start_jam?: number | null;
+  end_jam?: number | null;
+  jumlah_jam?: number;
   kelas_id?: number | null;
 };
 

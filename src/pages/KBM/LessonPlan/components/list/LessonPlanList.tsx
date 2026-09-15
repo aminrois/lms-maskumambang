@@ -20,7 +20,7 @@ interface LessonPlanListProps {
   onOpenPertemuan: (plan: LessonPlanSummary, detail: LESSON_PLAN_DETAIL) => void;
   onKirimVerifikasi?: (plan: LessonPlanSummary) => void;
   isSendingVerification?: boolean;
-  getJadwalInfo?: (plan: LessonPlanSummary) => { hari: string; jam_mulai: string; jam_selesai: string; nama_kelas: string; ruangan: string } | null;
+  getJadwalInfo?: (plan: LessonPlanSummary) => { hari: string; jam_mulai: string; jam_selesai: string; jumlah_jam: number; nama_kelas: string; ruangan: string } | null;
 }
 
 export function LessonPlanList({
@@ -137,6 +137,11 @@ export function LessonPlanList({
                               <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-md">
                                 <Clock className="w-3 h-3 shrink-0" />
                                 {info.jam_mulai} – {info.jam_selesai}
+                                {info.jumlah_jam > 1 && (
+                                  <span className="ml-1 text-[10px] font-bold text-emerald-800 bg-emerald-100/80 px-1.5 py-0.2 rounded">
+                                    ({info.jumlah_jam} jam pelajaran)
+                                  </span>
+                                )}
                               </span>
                             )}
                             {info.nama_kelas && (
