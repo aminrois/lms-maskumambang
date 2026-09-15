@@ -561,6 +561,22 @@ export const jurnalMengajarMonitoring = async (req: AuthRequest, res: Response, 
         const existingJurnal = completedJurnalMap.get(key);
 
         if (existingJurnal) {
+          // Hitung status_kbm berdasarkan perbandingan tanggal jurnal vs rencana_pelaksanaan_kbm
+          const rencanaStr = existingJurnal.lesson_plan_detail?.rencana_pelaksanaan_kbm || null;
+          let status_kbm = "Sesuai Target";
+          if (rencanaStr) {
+            // Ambil tanggal pertama jika formatnya range (misal "2026-09-01 - 2026-09-07")
+            const rencanaDate = rencanaStr.split(' ')[0].trim();
+            const tglJurnal = tgl; // format YYYY-MM-DD
+            if (tglJurnal < rencanaDate) {
+              status_kbm = "Terlalu Cepat";
+            } else if (tglJurnal > rencanaDate) {
+              status_kbm = "Terlambat";
+            } else {
+              status_kbm = "Sesuai Target";
+            }
+          }
+
           // Status: Sudah Mengajar & Mengisi Absensi
           const hadir = existingJurnal.absensi_pelajaran.filter((a: any) => a.status === 'Hadir').length;
           const totalSiswa = existingJurnal.absensi_pelajaran.length;
@@ -571,7 +587,7 @@ export const jurnalMengajarMonitoring = async (req: AuthRequest, res: Response, 
             tanggal: tgl,
             hari: j.hari,
             pertemuan_ke: existingJurnal.pertemuan_ke || 1,
-            status: "Terlaksana",
+            status: status_kbm,
             is_completed: true,
             is_danger: false,
             kelas: j.kelas?.nama_kelas || "Kelas Tidak Diketahui",
@@ -589,6 +605,9 @@ export const jurnalMengajarMonitoring = async (req: AuthRequest, res: Response, 
             total_siswa: totalSiswa
           });
         } else {
+          // Jika role Guru: skip card merah (belum mengajar)
+          if (isGuruOnly) return;
+
           // Status: Belum Mengajar & Belum Mengisi Absensi (Card Merah untuk Direktur & Wali Kelas)
           items.push({
             jurnal_id: null,
@@ -623,13 +642,27 @@ export const jurnalMengajarMonitoring = async (req: AuthRequest, res: Response, 
       const alreadyInList = items.some(it => it.jurnal_id === j.jurnal_id);
       if (!alreadyInList) {
         const hadir = j.absensi_pelajaran.filter((a: any) => a.status === 'Hadir').length;
+
+        // Hitung status_kbm untuk jurnal extra (kelas pengganti)
+        const rencanaStr2 = j.lesson_plan_detail?.rencana_pelaksanaan_kbm || null;
+        let status_kbm2 = "Sesuai Target";
+        if (rencanaStr2) {
+          const rencanaDate2 = rencanaStr2.split(' ')[0].trim();
+          const tglJurnal2 = j.tanggal;
+          if (tglJurnal2 < rencanaDate2) {
+            status_kbm2 = "Terlalu Cepat";
+          } else if (tglJurnal2 > rencanaDate2) {
+            status_kbm2 = "Terlambat";
+          }
+        }
+
         items.push({
           jurnal_id: j.jurnal_id,
           jadwal_id: j.jadwal_id,
           tanggal: j.tanggal,
           hari: j.jadwal?.hari || "-",
           pertemuan_ke: j.pertemuan_ke || 1,
-          status: "Terlaksana",
+          status: status_kbm2,
           is_completed: true,
           is_danger: false,
           kelas: j.jadwal?.kelas?.nama_kelas || "Kelas",

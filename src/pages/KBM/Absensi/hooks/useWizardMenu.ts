@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/useAuthStore";
 import { getLessonPlans, getJurnalMengajars } from "@/lib/api/services/kbmService";
 import { getJadwalPelajarans } from "@/lib/api/services/akademikService";
+import { restClient } from "@/lib/api/axios";
 import type { AbsensiState } from "../Index";
 
 export function isLPForSubjectAndClass(lpTitleRaw: string, mapelNamaRaw: string, kelasNamaRaw: string): boolean {
@@ -217,22 +218,36 @@ export function useWizardMenu({ currentStep, setCurrentStep, selections }: UseWi
     );
     const maxPertemuan = selectedLP ? (selectedLP as any).lesson_plan_detail?.length || 16 : 16;
 
-    // 3. Fetch completed pertemuan untuk jadwal/sesi ini (otomatis lock pertemuan yang sudah selesai)
+    // 3. Fetch completed pertemuan untuk jadwal/sesi ini (lock hanya pertemuan yang SUDAH DIISI absensinya)
     const { data: completedPertemuans = [], isLoading: isLoadingCompleted } = useQuery({
         queryKey: ['kbm', 'absensi', 'completed_pertemuan', selections.jadwal_ids, selections.kelas_id, selections.mapel_id],
         queryFn: async () => {
             if (!selections.jadwal_ids || selections.jadwal_ids.length === 0) return [];
 
+            // Fetch jurnal mengajar untuk jadwal ini
             const jurnals = await getJurnalMengajars({
                 select: "jurnal_id,jadwal_id,pertemuan_ke,tanggal",
                 jadwal_id: `in.(${selections.jadwal_ids.join(',')})`,
             });
 
-            const pertemuans = (jurnals || [])
-                .map((j: any) => Number(j.pertemuan_ke))
-                .filter((p: number) => !isNaN(p) && p > 0);
+            if (!jurnals || jurnals.length === 0) return [];
 
-            return Array.from(new Set(pertemuans));
+            // Untuk setiap jurnal, cek apakah sudah ada absensi yang diisi
+            const lockedPertemuans: number[] = [];
+            for (const j of jurnals) {
+                if (!j.jurnal_id || !j.pertemuan_ke) continue;
+                try {
+                    const absensiRes = await restClient.get(`/absensi_pelajaran?jurnal_id=eq.${j.jurnal_id}&select=absensi_pel_id&limit=1`);
+                    const hasAbsensi = absensiRes.data && absensiRes.data.length > 0;
+                    if (hasAbsensi) {
+                        lockedPertemuans.push(Number(j.pertemuan_ke));
+                    }
+                } catch {
+                    // Jika error, anggap belum ada absensi (jangan lock)
+                }
+            }
+
+            return Array.from(new Set(lockedPertemuans));
         },
         enabled: !!(selections.jadwal_ids && selections.jadwal_ids.length > 0)
     });

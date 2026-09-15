@@ -5,6 +5,7 @@ interface JurnalInfoCardProps {
   pertemuanKe: number;
   status: string;
   materi: string;
+  topik?: string;
   catatanTambahan: string | null;
 }
 
@@ -12,6 +13,7 @@ export function JurnalInfoCard({
   pertemuanKe,
   status,
   materi,
+  topik,
   catatanTambahan
 }: JurnalInfoCardProps) {
   return (
@@ -27,9 +29,12 @@ export function JurnalInfoCard({
           {getStatusBadge(status)}
         </div>
 
-        <div className="bg-slate-50 p-4 rounded-xl">
-          <p className="text-xs text-slate-500 mb-1">Materi / Topik (RPP)</p>
+        <div className="bg-slate-50 p-4 rounded-xl space-y-2">
+          <p className="text-xs text-slate-500">Materi / Topik (RPP)</p>
           <p className="text-sm text-slate-800 font-bold leading-snug">{materi || "Tidak terhubung ke RPP"}</p>
+          {topik && topik !== materi && (
+            <p className="text-xs text-slate-600 font-medium leading-relaxed border-t border-slate-200/60 pt-2">{topik}</p>
+          )}
         </div>
 
         {catatanTambahan && (

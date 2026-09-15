@@ -41,7 +41,8 @@ export default function JurnalMengajarDetail() {
   const mapelName = jurnal.jadwal_pelajaran?.mata_pelajaran?.nama_mapel;
   const className = jurnal.jadwal_pelajaran?.kelas?.nama_kelas;
   const guruName = jurnal.jadwal_pelajaran?.pegawai?.nama;
-  const materi = jurnal.lesson_plan_detail?.materi;
+  const materi = jurnal.lesson_plan_detail?.materi || jurnal.lesson_plan_detail?.topik_materi;
+  const statusKbm = jurnal.status_kbm || jurnal.status || "Sesuai Target";
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto w-full space-y-6">
@@ -57,8 +58,9 @@ export default function JurnalMengajarDetail() {
         <div className="md:col-span-1 space-y-6 animate-in slide-in-from-top-6 fade-in duration-500">
           <JurnalInfoCard
             pertemuanKe={jurnal.pertemuan_ke}
-            status={jurnal.status}
+            status={statusKbm}
             materi={materi}
+            topik={jurnal.lesson_plan_detail?.topik_materi}
             catatanTambahan={jurnal.catatan_tambahan}
           />
         </div>

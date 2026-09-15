@@ -20,29 +20,48 @@ interface JurnalListProps {
 }
 
 export function getStatusBadge(input: JurnalUI | string) {
-  if (typeof input === 'string') {
-    if (input === 'Belum Absensi' || input.includes('Belum')) {
-      return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-rose-100 text-rose-700 text-[11px] font-bold uppercase tracking-wider rounded-md border border-rose-300">
-          <XCircle className="w-3.5 h-3.5" /> {input}
-        </span>
-      );
-    }
+  const statusStr = typeof input === 'string' ? input : input.status;
+
+  // 3 status KBM berdasarkan lesson plan
+  if (statusStr === 'Sesuai Target') {
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-50 text-emerald-700 text-[11px] font-bold uppercase tracking-wider rounded-md border border-emerald-200">
-        <CheckCircle2 className="w-3.5 h-3.5" /> {input || "Terlaksana"}
+        <CheckCircle2 className="w-3.5 h-3.5" /> Sesuai Target
+      </span>
+    );
+  }
+  if (statusStr === 'Terlalu Cepat') {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-amber-50 text-amber-700 text-[11px] font-bold uppercase tracking-wider rounded-md border border-amber-300">
+        <AlertTriangle className="w-3.5 h-3.5" /> Terlalu Cepat
+      </span>
+    );
+  }
+  if (statusStr === 'Terlambat') {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-red-100 text-red-700 text-[11px] font-bold uppercase tracking-wider rounded-md border border-red-300">
+        <AlertCircle className="w-3.5 h-3.5" /> Terlambat
       </span>
     );
   }
 
-  if (!input.is_completed || input.is_danger) {
+  // Fallback: belum mengajar / absensi
+  if (typeof input !== 'string' && (!input.is_completed || input.is_danger)) {
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-rose-100 text-rose-700 text-[11px] font-bold uppercase tracking-wider rounded-md border border-rose-300">
-        <XCircle className="w-3.5 h-3.5" /> Belum Mengajar & Absensi
+        <XCircle className="w-3.5 h-3.5" /> Belum Mengajar &amp; Absensi
+      </span>
+    );
+  }
+  if (statusStr === 'Belum Absensi' || (typeof statusStr === 'string' && statusStr.includes('Belum'))) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-rose-100 text-rose-700 text-[11px] font-bold uppercase tracking-wider rounded-md border border-rose-300">
+        <XCircle className="w-3.5 h-3.5" /> {statusStr}
       </span>
     );
   }
 
+  // Default: terlaksana
   return (
     <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-50 text-emerald-700 text-[11px] font-bold uppercase tracking-wider rounded-md border border-emerald-200">
       <CheckCircle2 className="w-3.5 h-3.5" /> Terlaksana
