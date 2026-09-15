@@ -576,6 +576,7 @@ export function useLessonPlanList() {
   }, [searchQuery]);
   const [kelasFilter, setKelasFilter] = useState("Semua Kelas");
   const [mapelFilter, setMapelFilter] = useState("Semua Mapel");
+  const [pertemuanFilter, setPertemuanFilter] = useState<number | null>(null);
   const [isSendingVerification, setIsSendingVerification] = useState(false);
 
   // Opsi unik untuk filter Kelas & Mapel
@@ -625,15 +626,35 @@ export function useLessonPlanList() {
 
   const filteredLessonPlans = useMemo(() => {
     const list = lessonPlans.filter((plan) => {
-      // Filter Status Tab
-      if (activeTab === "Menunggu Verifikasi" && !plan.status_ringkas?.startsWith("Menunggu")) {
-        return false;
-      }
-      if (activeTab === "Revisi" && !plan.status_ringkas?.startsWith("Revisi")) {
-        return false;
-      }
-      if (activeTab !== "Semua" && activeTab !== "Menunggu Verifikasi" && activeTab !== "Revisi" && plan.status_ringkas !== activeTab) {
-        return false;
+      // Jika Filter Pertemuan aktif (contoh: Pertemuan 1)
+      if (pertemuanFilter !== null) {
+        const targetDetail = (plan.details || []).find((d) => d.pertemuan_ke === pertemuanFilter) || {
+          status_verifikasi_kepsek: plan.status_verifikasi_kepsek || "Menunggu Verifikasi",
+          status_verifikasi_direktur: plan.status_verifikasi_direktur || "Menunggu Verifikasi",
+        };
+        const dtStatus = resolveDetailStatus(targetDetail);
+
+        // Filter Status Tab untuk pertemuan terpilih
+        if (activeTab === "Menunggu Verifikasi" && !dtStatus.startsWith("Menunggu")) {
+          return false;
+        }
+        if (activeTab === "Revisi" && !dtStatus.startsWith("Revisi")) {
+          return false;
+        }
+        if (activeTab === "Disetujui" && dtStatus !== "Disetujui") {
+          return false;
+        }
+      } else {
+        // Filter Status Tab untuk keseluruhan RPP
+        if (activeTab === "Menunggu Verifikasi" && !plan.status_ringkas?.startsWith("Menunggu")) {
+          return false;
+        }
+        if (activeTab === "Revisi" && !plan.status_ringkas?.startsWith("Revisi")) {
+          return false;
+        }
+        if (activeTab !== "Semua" && activeTab !== "Menunggu Verifikasi" && activeTab !== "Revisi" && plan.status_ringkas !== activeTab) {
+          return false;
+        }
       }
 
       // Filter Kelas
@@ -664,10 +685,47 @@ export function useLessonPlanList() {
     });
 
     // PENGURUTAN PRIORITAS:
-    // Untuk role Kepala Sekolah, Direktur, dan Super Admin, letakkan RPP yang membutuhkan verifikasi di urutan paling atas.
+    // Untuk role Kepala Sekolah, Direktur, dan Super Admin, letakkan yang membutuhkan verifikasi di urutan paling atas.
     return [...list].sort((a, b) => {
       const getPriority = (plan: LessonPlanSummary) => {
         const details = plan.details || [];
+
+        // Jika Filter Pertemuan aktif, prioritas ditentukan oleh status pertemuan tersebut
+        if (pertemuanFilter !== null) {
+          const detail = details.find((d) => d.pertemuan_ke === pertemuanFilter) || {
+            status_verifikasi_kepsek: plan.status_verifikasi_kepsek || "Menunggu Verifikasi",
+            status_verifikasi_direktur: plan.status_verifikasi_direktur || "Menunggu Verifikasi",
+          };
+
+          if (role === "Kepala Sekolah") {
+            const needsVerify = detail.status_verifikasi_kepsek !== "Disetujui" && detail.status_verifikasi_kepsek !== "Revisi";
+            if (needsVerify) return 1;
+            if (detail.status_verifikasi_kepsek === "Revisi") return 2;
+            return 3;
+          }
+
+          if (role === "Direktur") {
+            const needsVerify =
+              detail.status_verifikasi_kepsek === "Disetujui" &&
+              detail.status_verifikasi_direktur !== "Disetujui" &&
+              detail.status_verifikasi_direktur !== "Revisi";
+            if (needsVerify) return 1;
+            if (detail.status_verifikasi_direktur === "Revisi") return 2;
+            return 3;
+          }
+
+          if (role === "Super Admin") {
+            const needsVerify =
+              (detail.status_verifikasi_kepsek !== "Disetujui" && detail.status_verifikasi_kepsek !== "Revisi") ||
+              (detail.status_verifikasi_kepsek === "Disetujui" && detail.status_verifikasi_direktur !== "Disetujui" && detail.status_verifikasi_direktur !== "Revisi");
+            if (needsVerify) return 1;
+            return 2;
+          }
+
+          return 2;
+        }
+
+        // Mode Semua Pertemuan
         if (role === "Kepala Sekolah") {
           const needsVerify =
             details.some((d) => d.status_verifikasi_kepsek !== "Disetujui" && d.status_verifikasi_kepsek !== "Revisi") ||
@@ -718,12 +776,12 @@ export function useLessonPlanList() {
       // Urutan sekunder: ID terbaru di atas
       return b.lesson_plan_id - a.lesson_plan_id;
     });
-  }, [activeTab, kelasFilter, mapelFilter, debouncedSearchQuery, lessonPlans, role]);
+  }, [activeTab, kelasFilter, mapelFilter, pertemuanFilter, debouncedSearchQuery, lessonPlans, role]);
 
   // Reset ke halaman 1 setiap kali filter / search berubah
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeTab, kelasFilter, mapelFilter, debouncedSearchQuery]);
+  }, [activeTab, kelasFilter, mapelFilter, pertemuanFilter, debouncedSearchQuery]);
 
   // Slice untuk halaman saat ini
   const totalPages = Math.max(1, Math.ceil(filteredLessonPlans.length / pageSize));
@@ -1010,6 +1068,8 @@ export function useLessonPlanList() {
     setKelasFilter,
     mapelFilter,
     setMapelFilter,
+    pertemuanFilter,
+    setPertemuanFilter,
     kelasOptions,
     mapelOptions,
     executeKirimVerifikasi,

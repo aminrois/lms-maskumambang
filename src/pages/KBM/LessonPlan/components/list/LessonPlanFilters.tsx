@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Filter, Search, School, BookOpen, CheckCircle2, Loader2 } from "lucide-react";
+import { Filter, Search, School, BookOpen, CheckCircle2, Loader2, Layers } from "lucide-react";
 
 interface LessonPlanFiltersProps {
   activeTab: string;
@@ -13,6 +13,8 @@ interface LessonPlanFiltersProps {
   setKelasFilter: (kelas: string) => void;
   mapelFilter: string;
   setMapelFilter: (mapel: string) => void;
+  pertemuanFilter: number | null;
+  setPertemuanFilter: (pertemuan: number | null) => void;
   kelasOptions: string[];
   mapelOptions: string[];
   canVerify?: boolean;
@@ -31,6 +33,8 @@ export function LessonPlanFilters({
   setKelasFilter,
   mapelFilter,
   setMapelFilter,
+  pertemuanFilter,
+  setPertemuanFilter,
   kelasOptions,
   mapelOptions,
   canVerify,
@@ -90,7 +94,7 @@ export function LessonPlanFilters({
         </div>
 
         {/* ROW 2: TABS STATUS VERIFIKASI */}
-        <div className="pt-1 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center text-slate-700 font-semibold text-xs shrink-0">
             <Filter className="w-3.5 h-3.5 mr-1.5 text-indigo-600" />
             <span>Status Verifikasi:</span>
@@ -102,7 +106,7 @@ export function LessonPlanFilters({
                 type="button"
                 variant="outline"
                 onClick={() => setActiveTab(tab)}
-                className={`h-8 px-3 rounded-xl text-xs transition-all ${
+                className={`h-8 px-3 rounded-xl text-xs transition-all cursor-pointer ${
                   activeTab === tab 
                     ? "border-indigo-600 bg-indigo-50 text-indigo-900 font-bold shadow-2xs" 
                     : "text-slate-600 border-slate-200 hover:bg-slate-50 font-medium"
@@ -114,7 +118,43 @@ export function LessonPlanFilters({
           </div>
         </div>
 
-        {/* ROW 3: TOMBOL SETUJUI SEMUA (DIBAWAH STATUS VERIFIKASI) */}
+        {/* ROW 3: BUTTON FILTER PER PERTEMUAN ([Semua] [1] [2] [3] ... [16]) */}
+        <div className="pt-2.5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center text-slate-700 font-semibold text-xs shrink-0">
+            <Layers className="w-3.5 h-3.5 mr-1.5 text-indigo-600" />
+            <span>Filter Pertemuan:</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+            <button
+              type="button"
+              onClick={() => setPertemuanFilter(null)}
+              className={`h-7 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
+                pertemuanFilter === null
+                  ? "bg-indigo-600 text-white border-indigo-600 shadow-2xs"
+                  : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
+              }`}
+            >
+              Semua
+            </button>
+            {Array.from({ length: 16 }, (_, i) => i + 1).map((pKe) => (
+              <button
+                key={pKe}
+                type="button"
+                onClick={() => setPertemuanFilter(pKe === pertemuanFilter ? null : pKe)}
+                className={`w-7 h-7 rounded-lg text-xs font-bold transition-all cursor-pointer border flex items-center justify-center ${
+                  pertemuanFilter === pKe
+                    ? "bg-indigo-600 text-white border-indigo-600 shadow-2xs scale-105"
+                    : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
+                }`}
+                title={`Lihat Pertemuan Ke-${pKe} dari seluruh guru dan mata pelajaran`}
+              >
+                {pKe}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ROW 4: TOMBOL SETUJUI SEMUA (DIBAWAH STATUS VERIFIKASI) */}
         {canVerify && eligibleApproveCount > 0 && onSetujuiSemua && (
           <div className="mt-3 flex items-center justify-between gap-3 flex-wrap bg-emerald-50/60 p-3 rounded-xl border border-emerald-200 animate-in fade-in duration-300">
             <div className="flex items-center gap-2 text-xs text-emerald-900 font-medium">

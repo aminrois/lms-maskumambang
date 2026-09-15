@@ -73,6 +73,8 @@ export default function LessonPlanGuru() {
     setKelasFilter,
     mapelFilter,
     setMapelFilter,
+    pertemuanFilter,
+    setPertemuanFilter,
     kelasOptions,
     mapelOptions,
     executeKirimVerifikasi,
@@ -247,6 +249,8 @@ export default function LessonPlanGuru() {
         setKelasFilter={setKelasFilter}
         mapelFilter={mapelFilter}
         setMapelFilter={setMapelFilter}
+        pertemuanFilter={pertemuanFilter}
+        setPertemuanFilter={setPertemuanFilter}
         kelasOptions={kelasOptions}
         mapelOptions={mapelOptions}
         canVerify={canVerify}
@@ -270,6 +274,7 @@ export default function LessonPlanGuru() {
         onKirimVerifikasi={executeKirimVerifikasi}
         isSendingVerification={isSendingVerification}
         getJadwalInfo={getJadwalInfoForPlan}
+        pertemuanFilter={pertemuanFilter}
       />
 
       {/* PAGINATION BAR */}

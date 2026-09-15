@@ -22,6 +22,7 @@ interface LessonPlanListProps {
   onKirimVerifikasi?: (plan: LessonPlanSummary) => void;
   isSendingVerification?: boolean;
   getJadwalInfo?: (plan: LessonPlanSummary) => { hari: string; jam_mulai: string; jam_selesai: string; jumlah_jam: number; nama_kelas: string; ruangan: string } | null;
+  pertemuanFilter?: number | null;
 }
 
 export function LessonPlanList({
@@ -39,25 +40,285 @@ export function LessonPlanList({
   onKirimVerifikasi,
   isSendingVerification,
   getJadwalInfo,
+  pertemuanFilter = null,
 }: LessonPlanListProps) {
   const pegawaiId = useAuthStore((state) => state.user?.pegawai_id);
   const isReadOnlyRole = role === "Direktur" || role === "Kepala Sekolah" || role === "WaKa Kurikulum";
 
+  if (isLoading) {
+    return (
+      <Card className="rounded-2xl border-slate-100 shadow-sm">
+        <CardContent className="p-6 flex items-center justify-center text-gray-500">
+          <Loader2 className="w-5 h-5 mr-2 animate-spin text-blue-600" /> Memuat lesson plan...
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (filteredLessonPlans.length === 0) {
+    return (
+      <Card className="rounded-2xl border-slate-100 shadow-sm">
+        <CardContent className="p-6 text-center text-gray-500">
+          {pertemuanFilter !== null
+            ? `Belum ada data Pertemuan Ke-${pertemuanFilter} untuk filter ini.`
+            : "Belum ada lesson plan untuk filter ini."}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // TAMPILAN KHUSUS FILTER PER PERTEMUAN ([1] [2] [3] ... [16])
+  // Menampilkan kartu pertemuan terpilih dari semua guru dan mata pelajaran
+  if (pertemuanFilter !== null) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between bg-indigo-50/80 border border-indigo-200 px-4 py-3 rounded-2xl">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow-xs shrink-0">
+              {pertemuanFilter}
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-800 text-xs sm:text-sm">
+                Menampilkan Pertemuan Ke-{pertemuanFilter}
+              </h3>
+              <p className="text-[11px] text-slate-500">
+                Daftar materi dan status verifikasi Pertemuan {pertemuanFilter} dari semua guru & mata pelajaran
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {filteredLessonPlans.map((plan) => {
+          const dt: LESSON_PLAN_DETAIL = (plan.details || []).find((d) => d.pertemuan_ke === pertemuanFilter) || {
+            detail_id: 0,
+            lesson_plan_id: plan.lesson_plan_id,
+            pertemuan_ke: pertemuanFilter,
+            materi: "",
+            topik_materi: "",
+            status_verifikasi_kepsek: "Menunggu Verifikasi",
+            status_verifikasi_direktur: "Menunggu Verifikasi",
+          };
+
+          const dtStatus = resolveDetailStatus(dt);
+          const dtBadgeClass =
+            dtStatus === "Disetujui"
+              ? "bg-emerald-100 text-emerald-800 border-emerald-200"
+              : dtStatus.includes("Revisi")
+                ? "bg-rose-100 text-rose-800 border-rose-200"
+                : dtStatus === "Menunggu Verifikasi Direktur"
+                  ? "bg-purple-100 text-purple-800 border-purple-200"
+                  : "bg-amber-100 text-amber-800 border-amber-200";
+
+          const isKepsekCanVerify =
+            canVerify &&
+            role === "Kepala Sekolah" &&
+            dt.status_verifikasi_kepsek !== "Disetujui" &&
+            dt.status_verifikasi_kepsek !== "Revisi";
+
+          const isDirekturCanVerify =
+            canVerify &&
+            role === "Direktur" &&
+            dt.status_verifikasi_kepsek === "Disetujui" &&
+            dt.status_verifikasi_direktur !== "Disetujui" &&
+            dt.status_verifikasi_direktur !== "Revisi";
+
+          const isSuperAdminCanVerify =
+            canVerify &&
+            role === "Super Admin" &&
+            (dt.status_verifikasi_kepsek !== "Disetujui" || dt.status_verifikasi_direktur !== "Disetujui");
+
+          const jadwalInfo = getJadwalInfo ? getJadwalInfo(plan) : null;
+
+          return (
+            <Card
+              key={plan.lesson_plan_id}
+              className={`border-l-4 overflow-hidden rounded-2xl border-y-slate-100 border-r-slate-100 shadow-sm transition-all bg-white ${
+                dtStatus === "Disetujui"
+                  ? "border-l-green-500 hover:border-emerald-300"
+                  : dtStatus.includes("Revisi")
+                    ? "border-l-red-500 hover:border-rose-300"
+                    : dtStatus === "Menunggu Verifikasi Direktur"
+                      ? "border-l-purple-500 hover:border-purple-300"
+                      : "border-l-amber-500 hover:border-amber-300"
+              }`}
+            >
+              <CardContent className="p-5 space-y-4">
+                {/* HEADER: Pertemuan Ke, Info RPP, Mapel, Guru, Jadwal & Badge */}
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-3 border-b border-slate-100">
+                  <div className="flex items-start gap-3.5">
+                    <div
+                      className={`w-11 h-11 shrink-0 rounded-2xl flex flex-col items-center justify-center font-bold border ${
+                        dtStatus === "Disetujui"
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          : dtStatus.includes("Revisi")
+                            ? "bg-rose-50 text-rose-700 border-rose-200"
+                            : "bg-indigo-50 text-indigo-700 border-indigo-200"
+                      }`}
+                    >
+                      <span className="text-sm">{dt.pertemuan_ke}</span>
+                      <span className="text-[8px] font-medium leading-none">Pertemuan</span>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-bold text-gray-800 text-sm">{plan.judul_rpp}</h3>
+                        <span className="bg-blue-100 text-blue-800 text-[10px] px-2 py-0.5 rounded font-bold uppercase shrink-0">
+                          {plan.nama_mapel || "Mata Pelajaran"}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 font-medium">
+                        {plan.nama_guru || "Guru Pengampu"}
+                      </p>
+                      {/* Jadwal Info tags */}
+                      {jadwalInfo && (
+                        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                          {jadwalInfo.hari && (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-md">
+                              <Calendar className="w-3 h-3 shrink-0" />
+                              {jadwalInfo.hari}
+                            </span>
+                          )}
+                          {jadwalInfo.jam_mulai && jadwalInfo.jam_selesai && (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-md">
+                              <Clock className="w-3 h-3 shrink-0" />
+                              {jadwalInfo.jam_mulai} – {jadwalInfo.jam_selesai}
+                              {jadwalInfo.jumlah_jam > 1 && (
+                                <span className="ml-1 text-[10px] font-bold text-emerald-800 bg-emerald-100/80 px-1.5 py-0.2 rounded">
+                                  ({jadwalInfo.jumlah_jam} jam pelajaran)
+                                </span>
+                              )}
+                            </span>
+                          )}
+                          {jadwalInfo.nama_kelas && (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded-md">
+                              {jadwalInfo.nama_kelas}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                    <span className={`px-2.5 py-1 rounded-md text-xs font-bold border ${dtBadgeClass}`}>
+                      {dtStatus}
+                    </span>
+                  </div>
+                </div>
+
+                {/* BODY: Materi & Subtopik & Pelaksanaan */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 bg-slate-50/70 p-3.5 rounded-xl border border-slate-100 text-xs">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">
+                      Materi Pembelajaran
+                    </span>
+                    <p className="font-semibold text-slate-800">
+                      {dt.materi || <span className="text-slate-400 italic font-normal">Belum ditentukan</span>}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">
+                      Sub-Topik / Pokok Bahasan
+                    </span>
+                    <p className="text-slate-600 font-medium">
+                      {dt.topik_materi || <span className="text-slate-400 italic font-normal">-</span>}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Catatan Revisi Kepsek */}
+                {dt.status_verifikasi_kepsek === "Revisi" && dt.catatan_revisi_kepsek && (
+                  <div className="text-xs text-rose-700 bg-rose-50 px-3 py-2 rounded-xl border border-rose-200 flex flex-col gap-0.5">
+                    <span className="font-bold flex items-center gap-1.5">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      Catatan Revisi Kepala Sekolah:
+                    </span>
+                    <span className="italic pl-5">"{dt.catatan_revisi_kepsek}"</span>
+                  </div>
+                )}
+
+                {/* Catatan Revisi Direktur */}
+                {dt.status_verifikasi_direktur === "Revisi" && dt.catatan_revisi_direktur && (
+                  <div className="text-xs text-rose-700 bg-rose-50 px-3 py-2 rounded-xl border border-rose-200 flex flex-col gap-0.5">
+                    <span className="font-bold flex items-center gap-1.5">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      Catatan Revisi Direktur:
+                    </span>
+                    <span className="italic pl-5">"{dt.catatan_revisi_direktur}"</span>
+                  </div>
+                )}
+
+                {/* Notice for Direktur if Kepsek hasn't approved */}
+                {role === "Direktur" && dt.status_verifikasi_kepsek !== "Disetujui" && (
+                  <div className="text-xs text-amber-800 bg-amber-50 px-3 py-2 rounded-xl border border-amber-200">
+                    ⏳ Menunggu persetujuan Kepala Sekolah terlebih dahulu sebelum dapat disetujui Direktur.
+                  </div>
+                )}
+
+                {/* FOOTER ACTIONS */}
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    {/* Button Setujui / Revisi for this meeting */}
+                    {onVerifyDetailAction && (isKepsekCanVerify || isDirekturCanVerify || isSuperAdminCanVerify) && (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => onVerifyDetailAction(plan, dt, "Disetujui")}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-3.5 rounded-lg shadow-2xs cursor-pointer flex items-center gap-1.5"
+                          title={`Setujui Pertemuan Ke-${dt.pertemuan_ke}`}
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Setujui Pertemuan {dt.pertemuan_ke}</span>
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onVerifyDetailAction(plan, dt, "Revisi")}
+                          className="border-rose-300 text-rose-700 hover:bg-rose-50 hover:text-rose-800 font-bold text-xs h-8 px-3.5 rounded-lg shadow-2xs cursor-pointer flex items-center gap-1.5"
+                          title={`Minta Revisi Pertemuan Ke-${dt.pertemuan_ke}`}
+                        >
+                          <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                          <span>Minta Revisi</span>
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      onClick={() => onOpenPertemuan(plan, dt)}
+                      className={`rounded-xl font-bold h-8 px-3.5 text-xs transition-all shadow-2xs cursor-pointer border ${
+                        isReadOnlyRole
+                          ? "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300"
+                          : "bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200"
+                      }`}
+                    >
+                      {isReadOnlyRole ? (
+                        <>
+                          <Eye className="w-3.5 h-3.5 mr-1.5 text-slate-600" /> Lihat Pertemuan Ke-{dt.pertemuan_ke}
+                        </>
+                      ) : (
+                        <>
+                          <Pencil className="w-3.5 h-3.5 mr-1.5" /> Edit Pertemuan Ke-{dt.pertemuan_ke}
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
-      {isLoading ? (
-        <Card className="rounded-2xl border-slate-100 shadow-sm">
-          <CardContent className="p-6 flex items-center justify-center text-gray-500">
-            <Loader2 className="w-5 h-5 mr-2 animate-spin text-blue-600" /> Memuat lesson plan...
-          </CardContent>
-        </Card>
-      ) : filteredLessonPlans.length === 0 ? (
-        <Card className="rounded-2xl border-slate-100 shadow-sm">
-          <CardContent className="p-6 text-center text-gray-500">Belum ada lesson plan untuk filter ini.</CardContent>
-        </Card>
-      ) : (
-        filteredLessonPlans.map((plan) => {
-          const statusRingkas = plan.status_ringkas || resolveStatus(plan);
+      {filteredLessonPlans.map((plan) => {
+        const statusRingkas = plan.status_ringkas || resolveStatus(plan);
           const badgeClass =
             statusRingkas === "Disetujui"
               ? "bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold"
@@ -412,8 +673,7 @@ export function LessonPlanList({
               </CardContent>
             </Card>
           );
-        })
-      )}
+        })}
     </div>
   );
 }
