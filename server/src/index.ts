@@ -7,6 +7,7 @@ import morgan from 'morgan';
 import routes from './routes';
 import { errorHandler } from './middlewares/errorHandler';
 import { deduplicateLessonPlans } from './scripts/cleanDuplicateLessonPlans';
+import { syncLessonPlansWithJadwal } from './scripts/syncLessonPlansWithJadwal';
 
 dotenv.config();
 
@@ -69,10 +70,15 @@ const server = app.listen(PORT, () => {
   console.log(`📡 API Endpoints available at http://localhost:${PORT}/api/v1`);
   console.log(`🌍 Environment: ${NODE_ENV}`);
 
-  // Run initial cleanup for duplicates in background
-  deduplicateLessonPlans().catch((err) => {
-    console.error('Initial deduplication error:', err);
-  });
+  // Run initial cleanup for duplicates and schedule sync in background
+  (async () => {
+    try {
+      await deduplicateLessonPlans();
+      await syncLessonPlansWithJadwal();
+    } catch (err) {
+      console.error('Initial lesson plan sync error:', err);
+    }
+  })();
 });
 
 // Graceful Shutdown
