@@ -259,30 +259,19 @@ export const useJamAkademik = () => {
     if (kelasForLembaga.length === 0) return false;
 
     const jamIds = jamForLembaga.map(j => j.id).sort();
-    const jamIdsKamis = jamForLembaga.filter(j => j.urutanJam <= 5).map(j => j.id).sort();
 
     // Periksa seluruh kelas pada lembaga ini, jika ada 1 kelas saja yang jam-nya belum sesuai/lengkap, kembalikan true
     for (const kelas of kelasForLembaga) {
-      // 1. Cek Hari Biasa (Senin)
-      const sampleJadwal = jadwalTemplate.filter(
-        (j: any) => j.kelas_id === kelas.kelas_id && j.hari === "Senin"
-      );
-      const jadwalJamIds = sampleJadwal.map((j: any) => j.jam_mulai_id).sort();
+      for (const hari of ["Senin", "Kamis"] as const) {
+        const sampleJadwal = jadwalTemplate.filter(
+          (j: any) => j.kelas_id === kelas.kelas_id && j.hari === hari
+        );
+        const jadwalJamIds = sampleJadwal.map((j: any) => j.jam_mulai_id).sort();
 
-      if (jamIds.length !== jadwalJamIds.length) return true;
-      for (let i = 0; i < jamIds.length; i++) {
-        if (jamIds[i] !== jadwalJamIds[i]) return true;
-      }
-
-      // 2. Cek Hari Kamis (maksimal jam ke-5)
-      const sampleJadwalKamis = jadwalTemplate.filter(
-        (j: any) => j.kelas_id === kelas.kelas_id && j.hari === "Kamis"
-      );
-      const jadwalJamIdsKamis = sampleJadwalKamis.map((j: any) => j.jam_mulai_id).sort();
-
-      if (jamIdsKamis.length !== jadwalJamIdsKamis.length) return true;
-      for (let i = 0; i < jamIdsKamis.length; i++) {
-        if (jamIdsKamis[i] !== jadwalJamIdsKamis[i]) return true;
+        if (jamIds.length !== jadwalJamIds.length) return true;
+        for (let i = 0; i < jamIds.length; i++) {
+          if (jamIds[i] !== jadwalJamIds[i]) return true;
+        }
       }
     }
 
@@ -393,9 +382,7 @@ export const useJamAkademik = () => {
           setTerapkanProgressUmum(Math.round((processedUmum / totalKelasHari) * 100));
           setTerapkanStatsUmum({ current: processedUmum, total: totalKelasHari });
 
-          const jamUntukHari = hari === "Kamis"
-            ? jamForLembaga.filter(j => j.urutanJam <= 5)
-            : jamForLembaga;
+          const jamUntukHari = jamForLembaga;
           const jamIdsUntukHari = new Set(jamUntukHari.map(j => j.id));
 
           const existingJadwal = freshJadwal.filter(
@@ -403,10 +390,10 @@ export const useJamAkademik = () => {
           );
           const existingJamIds = new Set(existingJadwal.map((j: any) => j.jam_mulai_id));
 
-          // 1. Hapus jadwal usang (termasuk jam di atas 5 khusus hari Kamis)
+          // 1. Hapus jadwal usang (jam yang tidak lagi ada di konfigurasi jam akademik)
           for (const jadwal of existingJadwal) {
             const isInvalidForDay = !jamIdsUntukHari.has(jadwal.jam_mulai_id);
-            if (isInvalidForDay && (hari === "Kamis" || !jadwal.mapel_id)) {
+            if (isInvalidForDay && !jadwal.mapel_id) {
               await deleteJadwalPelajaran(jadwal.jadwal_id);
             }
           }
