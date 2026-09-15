@@ -68,6 +68,7 @@ export default function LessonPlanGuru() {
     isSendingVerification,
     getAlokasiWaktuForPlan,
     getLembagaNamaForPlan,
+    getJadwalInfoForPlan,
     // Pagination
     currentPage,
     setCurrentPage,
@@ -256,6 +257,7 @@ export default function LessonPlanGuru() {
         onOpenPertemuan={handleOpenPertemuan}
         onKirimVerifikasi={executeKirimVerifikasi}
         isSendingVerification={isSendingVerification}
+        getJadwalInfo={getJadwalInfoForPlan}
       />
 
       {/* PAGINATION BAR */}

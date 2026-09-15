@@ -588,6 +588,22 @@ export function useLessonPlanList() {
     }
   });
 
+  const getJadwalInfoForPlan = (plan?: LessonPlanSummary) => {
+    if (!plan?.jadwal_id) return null;
+    const jadwal = jadwalPelajarans.find((j: any) => j.jadwal_id === plan.jadwal_id);
+    if (!jadwal) return null;
+    const jamMulai = (jadwal.jam_mulai?.jam_mulai || "").substring(0, 5);
+    const jamSelesai = (jadwal.jam_selesai?.jam_selesai || "").substring(0, 5);
+    const namaKelas = jadwal.kelas?.nama_kelas || kelasMap.get(jadwal.kelas_id)?.nama_kelas || "";
+    return {
+      hari: jadwal.hari || "",
+      jam_mulai: jamMulai,
+      jam_selesai: jamSelesai,
+      nama_kelas: namaKelas,
+      ruangan: jadwal.ruangan || "",
+    };
+  };
+
   const getAlokasiWaktuForPlan = (plan?: LessonPlanSummary) => {
     if (!plan || !plan.jadwal_id) return "";
 
@@ -737,6 +753,8 @@ export function useLessonPlanList() {
     isSendingVerification,
     getAlokasiWaktuForPlan,
     getLembagaNamaForPlan,
+    getJadwalInfoForPlan,
+    jadwalPelajarans,
     // Pagination
     currentPage,
     setCurrentPage,
