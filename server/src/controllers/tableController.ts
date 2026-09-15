@@ -427,8 +427,26 @@ function parseWhere(query: Record<string, any>, idField: string, idParam?: strin
 
   for (const [rawKey, rawVal] of Object.entries(query)) {
     if (['select', 'order', 'limit', 'offset', 'page', 'count'].includes(rawKey)) continue;
+
+    // Handle array values when the same query param key appears multiple times
+    // e.g. ?tanggal=gte.2026-09-01&tanggal=lte.2026-09-30 → rawVal = ["gte.2026-09-01", "lte.2026-09-30"]
+    if (Array.isArray(rawVal)) {
+      for (const item of rawVal) {
+        if (typeof item !== 'string') continue;
+        const key = rawKey.trim();
+        const val = item.trim();
+        if (key.includes('.')) {
+          const pathParts = key.split('.');
+          const condition = parseOpAndValue(val);
+          andList.push(buildNestedCondition(pathParts, condition));
+        } else {
+          andList.push({ [key]: parseOpAndValue(val) });
+        }
+      }
+      continue;
+    }
+
     if (typeof rawVal !== 'string') {
-      andList.push({ [rawKey]: rawVal });
       continue;
     }
 
