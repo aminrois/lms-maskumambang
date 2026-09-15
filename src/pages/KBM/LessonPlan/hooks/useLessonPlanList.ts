@@ -10,12 +10,14 @@ import {
   deleteLessonPlan,
   verifyLessonPlanKepsek,
   verifyLessonPlanDirektur,
+  verifyLessonPlanDetailKepsek,
+  verifyLessonPlanDetailDirektur,
   deleteJurnalMengajarByDetailIds
 } from "@/lib/api/services/kbmService";
 import { restClient } from "@/lib/api/axios";
 import { getPegawais } from "@/lib/api/services/masterService";
 import { getMataPelajarans, getAllJadwalPelajarans } from "@/lib/api/services/akademikService";
-import type { LESSON_PLAN, PEGAWAI } from "@/types/database";
+import type { LESSON_PLAN, LESSON_PLAN_DETAIL, PEGAWAI } from "@/types/database";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
@@ -24,32 +26,82 @@ export type LessonPlanSummary = LESSON_PLAN & {
   nama_guru?: string;
   nama_mapel?: string;
   detail_count: number;
-  details: any[];
+  details: LESSON_PLAN_DETAIL[];
   status_ringkas: "Menunggu Verifikasi" | "Menunggu Verifikasi Kepsek" | "Menunggu Verifikasi Direktur" | "Disetujui" | "Revisi Kepsek" | "Revisi Direktur";
 };
 
-export const resolveStatus = (plan: LESSON_PLAN): LessonPlanSummary["status_ringkas"] => {
+export const resolveDetailStatus = (
+  detail?: Partial<LESSON_PLAN_DETAIL> | null
+): "Disetujui" | "Menunggu Verifikasi Kepsek" | "Menunggu Verifikasi Direktur" | "Revisi Kepsek" | "Revisi Direktur" => {
+  if (!detail) return "Menunggu Verifikasi Kepsek";
+
   if (
-    plan.status_verifikasi_kepsek === "Disetujui" &&
-    plan.status_verifikasi_direktur === "Disetujui"
+    detail.status_verifikasi_kepsek === "Disetujui" &&
+    detail.status_verifikasi_direktur === "Disetujui"
   ) {
     return "Disetujui";
   }
 
-  if (plan.status_verifikasi_kepsek === "Revisi") {
+  if (detail.status_verifikasi_kepsek === "Revisi") {
     return "Revisi Kepsek";
   }
 
-  if (plan.status_verifikasi_direktur === "Revisi") {
+  if (detail.status_verifikasi_direktur === "Revisi") {
     return "Revisi Direktur";
   }
 
-  // Alur Verifikasi: Kepala Sekolah -> Direktur
-  if (plan.status_verifikasi_kepsek !== "Disetujui") {
+  if (detail.status_verifikasi_kepsek !== "Disetujui") {
     return "Menunggu Verifikasi Kepsek";
   }
 
-  if (plan.status_verifikasi_direktur !== "Disetujui") {
+  if (detail.status_verifikasi_direktur !== "Disetujui") {
+    return "Menunggu Verifikasi Direktur";
+  }
+
+  return "Menunggu Verifikasi Kepsek";
+};
+
+export const resolveStatus = (
+  plan: LESSON_PLAN & { details?: LESSON_PLAN_DETAIL[] }
+): LessonPlanSummary["status_ringkas"] => {
+  const details = plan.details || [];
+  if (details.length === 0) {
+    if (
+      plan.status_verifikasi_kepsek === "Disetujui" &&
+      plan.status_verifikasi_direktur === "Disetujui"
+    ) {
+      return "Disetujui";
+    }
+    if (plan.status_verifikasi_kepsek === "Revisi") return "Revisi Kepsek";
+    if (plan.status_verifikasi_direktur === "Revisi") return "Revisi Direktur";
+    if (plan.status_verifikasi_kepsek !== "Disetujui") return "Menunggu Verifikasi Kepsek";
+    if (plan.status_verifikasi_direktur !== "Disetujui") return "Menunggu Verifikasi Direktur";
+    return "Menunggu Verifikasi Kepsek";
+  }
+
+  if (details.some((d) => d.status_verifikasi_kepsek === "Revisi")) {
+    return "Revisi Kepsek";
+  }
+
+  if (details.some((d) => d.status_verifikasi_direktur === "Revisi")) {
+    return "Revisi Direktur";
+  }
+
+  const allApproved =
+    details.length >= 16 &&
+    details.every(
+      (d) =>
+        d.status_verifikasi_kepsek === "Disetujui" &&
+        d.status_verifikasi_direktur === "Disetujui"
+    );
+  if (allApproved) {
+    return "Disetujui";
+  }
+
+  const allKepsekApproved =
+    details.length >= 16 &&
+    details.every((d) => d.status_verifikasi_kepsek === "Disetujui");
+  if (allKepsekApproved) {
     return "Menunggu Verifikasi Direktur";
   }
 
@@ -94,6 +146,13 @@ export function useLessonPlanList() {
   const [isApprovingAll, setIsApprovingAll] = useState(false);
   const [revisiNote, setRevisiNote] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
+
+  // Verifikasi Per-Pertemuan
+  const [selectedDetailForVerify, setSelectedDetailForVerify] = useState<{ plan: LessonPlanSummary; detail: LESSON_PLAN_DETAIL } | null>(null);
+  const [isDetailApproveModalOpen, setIsDetailApproveModalOpen] = useState(false);
+  const [isDetailRevisiModalOpen, setIsDetailRevisiModalOpen] = useState(false);
+  const [detailRevisiNote, setDetailRevisiNote] = useState("");
+  const [isVerifyingDetail, setIsVerifyingDetail] = useState(false);
 
   // Fetch dengan React Query supaya bisa di-invalidate oleh useRealtimeSync
   const { data: lessonPlans = [], isLoading } = useQuery({
@@ -156,7 +215,7 @@ export function useLessonPlanList() {
           nama_mapel: extractMapelFromJudul(plan.judul_rpp, "Mata Pelajaran"),
           detail_count: planDetails.length,
           details: planDetails,
-          status_ringkas: resolveStatus(plan),
+          status_ringkas: resolveStatus({ ...plan, details: planDetails }),
         };
       });
 
@@ -176,10 +235,11 @@ export function useLessonPlanList() {
         });
       }
 
-      // Direktur hanya melihat RPP yang sudah disetujui Kepala Sekolah
+      // Direktur hanya melihat RPP yang minimal memiliki pertemuan disetujui Kepala Sekolah atau berstatus disetujui Kepsek
       if (role === 'Direktur') {
         nextRows = nextRows.filter((plan) =>
-          plan.status_verifikasi_kepsek === 'Disetujui'
+          plan.status_verifikasi_kepsek === 'Disetujui' ||
+          (plan.details && plan.details.some((d: any) => d.status_verifikasi_kepsek === 'Disetujui'))
         );
       }
 
@@ -216,20 +276,88 @@ export function useLessonPlanList() {
       }
 
       if (action === "Disetujui") {
-        toast.success("RPP telah disetujui.");
+        toast.success("RPP dan seluruh pertemuannya telah disetujui.");
         setIsApproveModalOpen(false);
       } else {
         toast.info("RPP dikembalikan untuk direvisi.");
         setIsRevisiModalOpen(false);
       }
 
-      // Invalidate agar data ter-refresh via React Query
       queryClient.invalidateQueries({ queryKey: Array.from(QUERY_KEY) });
     } catch (error) {
       console.error(error);
       toast.error("Gagal memproses verifikasi. Silakan coba lagi.");
     } finally {
       setIsVerifying(false);
+    }
+  };
+
+  const handleVerifyDetailAction = (plan: LessonPlanSummary, detail: LESSON_PLAN_DETAIL, action: "Disetujui" | "Revisi") => {
+    setSelectedDetailForVerify({ plan, detail });
+    if (action === "Revisi") {
+      const existingNote = role === "Direktur" ? detail.catatan_revisi_direktur : detail.catatan_revisi_kepsek;
+      setDetailRevisiNote(existingNote || "");
+      setIsDetailRevisiModalOpen(true);
+    } else {
+      setIsDetailApproveModalOpen(true);
+    }
+  };
+
+  const executeVerifyDetail = async (action: "Disetujui" | "Revisi") => {
+    if (!selectedDetailForVerify) return;
+    const { plan, detail } = selectedDetailForVerify;
+
+    setIsVerifyingDetail(true);
+    try {
+      let detailId = detail.detail_id;
+      if (!detailId || detailId === 0) {
+        const created = await createLessonPlanDetail({
+          lesson_plan_id: plan.lesson_plan_id,
+          pertemuan_ke: detail.pertemuan_ke,
+          materi: detail.materi || "",
+          topik_materi: detail.topik_materi || "",
+          rencana_pelaksanaan_kbm: detail.rencana_pelaksanaan_kbm || null,
+          isi: detail.isi || null,
+          status_verifikasi_kepsek: role === "Kepala Sekolah" ? action : "Menunggu Verifikasi",
+          catatan_revisi_kepsek: role === "Kepala Sekolah" && action === "Revisi" ? detailRevisiNote : "",
+          status_verifikasi_direktur: role === "Direktur" ? action : "Menunggu Verifikasi",
+          catatan_revisi_direktur: role === "Direktur" && action === "Revisi" ? detailRevisiNote : "",
+          verified_by_kepsek: role === "Kepala Sekolah" ? (pegawai_id || null) : null,
+          verified_by_direktur: role === "Direktur" ? (pegawai_id || null) : null,
+        });
+        detailId = created.detail_id;
+      } else {
+        if (role === "Kepala Sekolah") {
+          await verifyLessonPlanDetailKepsek({
+            p_detail_id: detailId,
+            p_action: action,
+            p_catatan_revisi: action === "Revisi" ? detailRevisiNote : "",
+            p_verified_by: pegawai_id,
+          });
+        } else if (role === "Direktur" || role === "Super Admin") {
+          await verifyLessonPlanDetailDirektur({
+            p_detail_id: detailId,
+            p_action: action,
+            p_catatan_revisi: action === "Revisi" ? detailRevisiNote : "",
+            p_verified_by: pegawai_id,
+          });
+        }
+      }
+
+      if (action === "Disetujui") {
+        toast.success(`Pertemuan Ke-${detail.pertemuan_ke} telah disetujui.`);
+        setIsDetailApproveModalOpen(false);
+      } else {
+        toast.info(`Pertemuan Ke-${detail.pertemuan_ke} dikembalikan untuk direvisi.`);
+        setIsDetailRevisiModalOpen(false);
+      }
+
+      queryClient.invalidateQueries({ queryKey: Array.from(QUERY_KEY) });
+    } catch (error) {
+      console.error(error);
+      toast.error("Gagal memproses verifikasi pertemuan. Silakan coba lagi.");
+    } finally {
+      setIsVerifyingDetail(false);
     }
   };
 
@@ -393,6 +521,12 @@ export function useLessonPlanList() {
               topik_materi: topikMateri,
               rencana_pelaksanaan_kbm: rencana || null,
               isi: isi || null,
+              status_verifikasi_kepsek: "Menunggu Verifikasi",
+              verified_by_kepsek: null,
+              catatan_revisi_kepsek: "",
+              status_verifikasi_direktur: "Menunggu Verifikasi",
+              verified_by_direktur: null,
+              catatan_revisi_direktur: "",
             });
           } else {
             await createLessonPlanDetail({
@@ -402,6 +536,12 @@ export function useLessonPlanList() {
               topik_materi: topikMateri,
               rencana_pelaksanaan_kbm: rencana || null,
               isi: isi || null,
+              status_verifikasi_kepsek: "Menunggu Verifikasi",
+              verified_by_kepsek: null,
+              catatan_revisi_kepsek: "",
+              status_verifikasi_direktur: "Menunggu Verifikasi",
+              verified_by_direktur: null,
+              catatan_revisi_direktur: "",
             });
           }
         }
@@ -461,9 +601,13 @@ export function useLessonPlanList() {
     setIsSendingVerification(true);
     try {
       // Alur sekuensial: kirim/kirim-ulang selalu mulai dari Kepala Sekolah terlebih dahulu.
-      // Status Direktur dikembalikan ke "Menunggu Verifikasi" agar tidak dianggap sudah selesai,
-      // namun RPP tidak akan tampil di Direktur sampai Kepala Sekolah menyetujuinya.
       await restClient.patch(`/lesson_plan?lesson_plan_id=eq.${plan.lesson_plan_id}`, {
+        status_verifikasi_kepsek: "Menunggu Verifikasi",
+        status_verifikasi_direktur: "Menunggu Verifikasi",
+        catatan_revisi_kepsek: "",
+        catatan_revisi_direktur: "",
+      });
+      await restClient.patch(`/lesson_plan_detail?lesson_plan_id=eq.${plan.lesson_plan_id}`, {
         status_verifikasi_kepsek: "Menunggu Verifikasi",
         status_verifikasi_direktur: "Menunggu Verifikasi",
         catatan_revisi_kepsek: "",
@@ -696,6 +840,12 @@ export function useLessonPlanList() {
           topik_materi: updatedDetail.topik_materi,
           rencana_pelaksanaan_kbm: updatedDetail.rencana_pelaksanaan_kbm,
           isi: updatedDetail.isi,
+          status_verifikasi_kepsek: "Menunggu Verifikasi",
+          verified_by_kepsek: null,
+          catatan_revisi_kepsek: "",
+          status_verifikasi_direktur: "Menunggu Verifikasi",
+          verified_by_direktur: null,
+          catatan_revisi_direktur: "",
         });
       } else {
         await createLessonPlanDetail({
@@ -705,10 +855,22 @@ export function useLessonPlanList() {
           topik_materi: updatedDetail.topik_materi,
           rencana_pelaksanaan_kbm: updatedDetail.rencana_pelaksanaan_kbm,
           isi: updatedDetail.isi,
+          status_verifikasi_kepsek: "Menunggu Verifikasi",
+          verified_by_kepsek: null,
+          catatan_revisi_kepsek: "",
+          status_verifikasi_direktur: "Menunggu Verifikasi",
+          verified_by_direktur: null,
+          catatan_revisi_direktur: "",
         });
       }
 
-      toast.success(`Pertemuan Ke-${updatedDetail.pertemuan_ke} berhasil disimpan!`);
+      // Reset parent plan status as well if it had been disetujui or revisi
+      await restClient.patch(`/lesson_plan?lesson_plan_id=eq.${selectedPlanForPertemuan.lesson_plan_id}`, {
+        status_verifikasi_kepsek: "Menunggu Verifikasi",
+        status_verifikasi_direktur: "Menunggu Verifikasi",
+      });
+
+      toast.success(`Pertemuan Ke-${updatedDetail.pertemuan_ke} berhasil disimpan! Status verifikasi pertemuan telah direset ke Menunggu Verifikasi.`);
       queryClient.invalidateQueries({ queryKey: Array.from(QUERY_KEY) });
       setIsPertemuanModalOpen(false);
       setSelectedPertemuan(null);
@@ -754,6 +916,18 @@ export function useLessonPlanList() {
     isVerifying,
     handleVerifyAction,
     executeVerify,
+    // Per-Meeting Verification
+    selectedDetailForVerify,
+    setSelectedDetailForVerify,
+    isDetailApproveModalOpen,
+    setIsDetailApproveModalOpen,
+    isDetailRevisiModalOpen,
+    setIsDetailRevisiModalOpen,
+    detailRevisiNote,
+    setDetailRevisiNote,
+    isVerifyingDetail,
+    handleVerifyDetailAction,
+    executeVerifyDetail,
     confirmDelete,
     executeDelete,
     handleExport,

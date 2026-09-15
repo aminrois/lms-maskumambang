@@ -306,18 +306,26 @@ model LessonPlan {
 }
 
 model LessonPlanDetail {
-  detail_id               Int              @id @default(autoincrement())
-  lesson_plan_id          Int
-  pertemuan_ke            Int
-  materi                  String?
-  topik_materi            String?
-  rencana_pelaksanaan_kbm String?
-  isi                     String?
+  detail_id                  Int              @id @default(autoincrement())
+  lesson_plan_id             Int
+  pertemuan_ke               Int
+  materi                     String?
+  topik_materi               String?
+  rencana_pelaksanaan_kbm    String?
+  isi                        String?
+  status_verifikasi_kepsek   String?          @default("Menunggu Verifikasi")
+  verified_by_kepsek         Int?
+  catatan_revisi_kepsek      String?
+  status_verifikasi_direktur String?          @default("Menunggu Verifikasi")
+  verified_by_direktur       Int?
+  catatan_revisi_direktur    String?
 
-  lesson_plan             LessonPlan       @relation(fields: [lesson_plan_id], references: [lesson_plan_id], onDelete: Cascade)
-  jurnal_mengajar         JurnalMengajar[]
+  lesson_plan                LessonPlan       @relation(fields: [lesson_plan_id], references: [lesson_plan_id], onDelete: Cascade)
+  jurnal_mengajar            JurnalMengajar[]
 
   @@index([lesson_plan_id])
+  @@index([status_verifikasi_kepsek])
+  @@index([status_verifikasi_direktur])
   @@map("lesson_plan_detail")
 }
 

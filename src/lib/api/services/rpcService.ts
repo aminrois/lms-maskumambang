@@ -13,6 +13,18 @@ export const verifyLessonPlanDirektur = async (payload: Types.VERIFY_LESSON_PLAN
   return response.data;
 };
 
+// RPC: Verify Lesson Plan Detail (Per Pertemuan) — Kepala Sekolah
+export const verifyLessonPlanDetailKepsek = async (payload: Types.VERIFY_LESSON_PLAN_DETAIL_KEPSEK_REQUEST) => {
+  const response = await restClient.post('/rpc/verify_lesson_plan_detail_kepsek', payload);
+  return response.data;
+};
+
+// RPC: Verify Lesson Plan Detail (Per Pertemuan) — Direktur
+export const verifyLessonPlanDetailDirektur = async (payload: Types.VERIFY_LESSON_PLAN_DETAIL_DIREKTUR_REQUEST) => {
+  const response = await restClient.post('/rpc/verify_lesson_plan_detail_direktur', payload);
+  return response.data;
+};
+
 // RPC: Verify Activity Plan — Direktur
 export const verifyActivityPlan = async (payload: Types.VERIFY_ACTIVITY_PLAN_REQUEST) => {
   const response = await restClient.post('/rpc/verify_activity_plan', payload);

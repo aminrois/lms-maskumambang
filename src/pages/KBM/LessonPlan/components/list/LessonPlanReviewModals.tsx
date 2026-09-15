@@ -19,6 +19,17 @@ interface LessonPlanReviewModalsProps {
   setRevisiNote: (note: string) => void;
   isPending: boolean;
   onVerify: (action: "Disetujui" | "Revisi") => void;
+
+  // Per-Meeting Verification Modals
+  isDetailApproveOpen?: boolean;
+  onDetailApproveOpenChange?: (open: boolean) => void;
+  isDetailRevisiOpen?: boolean;
+  onDetailRevisiOpenChange?: (open: boolean) => void;
+  selectedDetailForVerify?: { plan: any; detail: any } | null;
+  detailRevisiNote?: string;
+  setDetailRevisiNote?: (note: string) => void;
+  isDetailPending?: boolean;
+  onVerifyDetail?: (action: "Disetujui" | "Revisi") => void;
 }
 
 export function LessonPlanReviewModals({
@@ -35,7 +46,18 @@ export function LessonPlanReviewModals({
   revisiNote,
   setRevisiNote,
   isPending,
-  onVerify
+  onVerify,
+
+  // Detail props
+  isDetailApproveOpen = false,
+  onDetailApproveOpenChange,
+  isDetailRevisiOpen = false,
+  onDetailRevisiOpenChange,
+  selectedDetailForVerify,
+  detailRevisiNote = "",
+  setDetailRevisiNote,
+  isDetailPending = false,
+  onVerifyDetail,
 }: LessonPlanReviewModalsProps) {
   return (
     <>
@@ -74,17 +96,18 @@ export function LessonPlanReviewModals({
           </DialogContent>
         </Dialog>
       )}
-      {/* Modal Approve */}
+
+      {/* Modal Approve Seluruh Plan */}
       <Dialog open={isApproveOpen} onOpenChange={onApproveOpenChange}>
         <DialogContent className="sm:max-w-md p-6 rounded-[24px] border-none shadow-xl bg-white">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-emerald-600 text-xl font-semibold">
               <CheckCircle2 className="w-5 h-5" />
-              Setujui RPP / Lesson Plan
+              Setujui RPP (Semua Pertemuan)
             </DialogTitle>
           </DialogHeader>
           <div className="py-2 text-gray-700 text-sm leading-relaxed">
-            Apakah Anda yakin ingin menyetujui RPP <span className="font-bold">{selectedPlan?.judul_rpp}</span>? Setelah disetujui, RPP ini dapat digunakan untuk pengisian jurnal mengajar dan absensi siswa.
+            Apakah Anda yakin ingin menyetujui seluruh pertemuan RPP <span className="font-bold">{selectedPlan?.judul_rpp}</span>? Setelah disetujui, RPP ini dapat digunakan untuk pengisian jurnal mengajar dan absensi siswa.
           </div>
           <div className="flex justify-end gap-3 mt-4">
             <Button
@@ -108,7 +131,7 @@ export function LessonPlanReviewModals({
         </DialogContent>
       </Dialog>
 
-      {/* Modal Revisi */}
+      {/* Modal Revisi Seluruh Plan */}
       <Dialog open={isRevisiOpen} onOpenChange={onRevisiOpenChange}>
         <DialogContent className="sm:max-w-md p-6 rounded-[24px] border-none shadow-xl bg-white">
           <DialogHeader>
@@ -152,6 +175,97 @@ export function LessonPlanReviewModals({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* MODAL APPROVE PERTEMUAN TERTENTU (PER-MEETING) */}
+      {onDetailApproveOpenChange && onVerifyDetail && (
+        <Dialog open={isDetailApproveOpen} onOpenChange={onDetailApproveOpenChange}>
+          <DialogContent className="sm:max-w-md p-6 rounded-[24px] border-none shadow-xl bg-white">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-emerald-600 text-xl font-semibold">
+                <CheckCircle2 className="w-5 h-5" />
+                Setujui Pertemuan Ke-{selectedDetailForVerify?.detail?.pertemuan_ke}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-2 text-gray-700 text-sm leading-relaxed space-y-2">
+              <p>
+                Apakah Anda yakin ingin menyetujui <span className="font-bold text-slate-800">Pertemuan Ke-{selectedDetailForVerify?.detail?.pertemuan_ke}</span> pada RPP <span className="font-semibold text-indigo-700">{selectedDetailForVerify?.plan?.judul_rpp}</span>?
+              </p>
+              {selectedDetailForVerify?.detail?.materi && (
+                <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700">
+                  <span className="font-semibold text-slate-500 block">Materi:</span>
+                  <span className="font-medium text-slate-800">{selectedDetailForVerify.detail.materi}</span>
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end gap-3 mt-4">
+              <Button
+                variant="outline"
+                onClick={() => onDetailApproveOpenChange(false)}
+                className="rounded-xl border-slate-200"
+              >
+                Batal
+              </Button>
+              <Button
+                onClick={() => onVerifyDetail("Disetujui")}
+                disabled={isDetailPending}
+                className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+              >
+                {isDetailPending && (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                )}
+                Setujui Pertemuan Ini
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* MODAL REVISI PERTEMUAN TERTENTU (PER-MEETING) */}
+      {onDetailRevisiOpenChange && onVerifyDetail && setDetailRevisiNote && (
+        <Dialog open={isDetailRevisiOpen} onOpenChange={onDetailRevisiOpenChange}>
+          <DialogContent className="sm:max-w-md p-6 rounded-[24px] border-none shadow-xl bg-white">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-red-600 text-xl font-semibold">
+                <XCircle className="w-5 h-5" />
+                Minta Revisi Pertemuan Ke-{selectedDetailForVerify?.detail?.pertemuan_ke}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-2 space-y-4 text-gray-700 text-sm">
+              <p className="leading-relaxed">
+                <span className="font-bold text-slate-800">Pertemuan Ke-{selectedDetailForVerify?.detail?.pertemuan_ke}</span> pada RPP <span className="font-semibold text-indigo-700">{selectedDetailForVerify?.plan?.judul_rpp}</span> akan dikembalikan kepada guru untuk diperbaiki.
+              </p>
+              <div className="space-y-2">
+                <Label className="font-medium text-slate-600">Catatan Masukan / Perbaikan Pertemuan *</Label>
+                <Textarea
+                  placeholder="cth: Materi pada pertemuan ini perlu dilengkapi referensi buku pegangan..."
+                  value={detailRevisiNote}
+                  onChange={(e) => setDetailRevisiNote(e.target.value)}
+                  className="rounded-xl border-slate-200"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-4">
+              <Button
+                variant="outline"
+                onClick={() => onDetailRevisiOpenChange(false)}
+                className="rounded-xl border-slate-200"
+              >
+                Batal
+              </Button>
+              <Button
+                onClick={() => onVerifyDetail("Revisi")}
+                disabled={isDetailPending || !detailRevisiNote.trim()}
+                className="rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold"
+              >
+                {isDetailPending && (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                )}
+                Tolak & Minta Revisi
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }

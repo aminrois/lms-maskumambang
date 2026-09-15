@@ -513,6 +513,12 @@ export interface LESSON_PLAN_DETAIL {
   pelaksanaan_kbm?: string; // Diisi dinamis di client dari jadwal_pelajaran
   rencana_pelaksanaan_kbm?: string | null;
   isi?: string | null;
+  status_verifikasi_kepsek?: 'Menunggu Verifikasi' | 'Disetujui' | 'Revisi';
+  verified_by_kepsek?: number | null;
+  catatan_revisi_kepsek?: string | null;
+  status_verifikasi_direktur?: 'Menunggu Verifikasi' | 'Disetujui' | 'Revisi';
+  verified_by_direktur?: number | null;
+  catatan_revisi_direktur?: string | null;
 }
 
 export interface LESSON_PLAN_DETAIL_CREATE {
@@ -522,6 +528,12 @@ export interface LESSON_PLAN_DETAIL_CREATE {
   topik_materi?: string;
   rencana_pelaksanaan_kbm?: string | null;
   isi?: string | null;
+  status_verifikasi_kepsek?: 'Menunggu Verifikasi' | 'Disetujui' | 'Revisi';
+  verified_by_kepsek?: number | null;
+  catatan_revisi_kepsek?: string | null;
+  status_verifikasi_direktur?: 'Menunggu Verifikasi' | 'Disetujui' | 'Revisi';
+  verified_by_direktur?: number | null;
+  catatan_revisi_direktur?: string | null;
 }
 
 export interface LESSON_PLAN_DETAIL_UPDATE {
@@ -531,6 +543,26 @@ export interface LESSON_PLAN_DETAIL_UPDATE {
   topik_materi?: string;
   rencana_pelaksanaan_kbm?: string | null;
   isi?: string | null;
+  status_verifikasi_kepsek?: 'Menunggu Verifikasi' | 'Disetujui' | 'Revisi';
+  verified_by_kepsek?: number | null;
+  catatan_revisi_kepsek?: string | null;
+  status_verifikasi_direktur?: 'Menunggu Verifikasi' | 'Disetujui' | 'Revisi';
+  verified_by_direktur?: number | null;
+  catatan_revisi_direktur?: string | null;
+}
+
+export interface VERIFY_LESSON_PLAN_DETAIL_KEPSEK_REQUEST {
+  p_detail_id: number;
+  p_action: 'Disetujui' | 'Revisi';
+  p_catatan_revisi?: string;
+  p_verified_by?: number;
+}
+
+export interface VERIFY_LESSON_PLAN_DETAIL_DIREKTUR_REQUEST {
+  p_detail_id: number;
+  p_action: 'Disetujui' | 'Revisi';
+  p_catatan_revisi?: string;
+  p_verified_by?: number;
 }
 
 export interface JURNAL_MENGAJAR {

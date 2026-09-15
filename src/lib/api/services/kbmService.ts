@@ -298,20 +298,66 @@ export const verifyActivityPlan = async (
   await restClient.post("/rpc/verify_activity_plan", rpcPayload);
 };
 
+export const verifyLessonPlanDetailKepsek = async (
+  payload: Types.VERIFY_LESSON_PLAN_DETAIL_KEPSEK_REQUEST,
+): Promise<void> => {
+  if (payload.p_action === "Disetujui") {
+    await restClient.patch(`/lesson_plan_detail?detail_id=eq.${payload.p_detail_id}`, {
+      status_verifikasi_kepsek: "Disetujui",
+      catatan_revisi_kepsek: "",
+      status_verifikasi_direktur: "Menunggu Verifikasi",
+      catatan_revisi_direktur: "",
+      verified_by_kepsek: payload.p_verified_by || null,
+    });
+  } else if (payload.p_action === "Revisi") {
+    await restClient.patch(`/lesson_plan_detail?detail_id=eq.${payload.p_detail_id}`, {
+      status_verifikasi_kepsek: "Revisi",
+      catatan_revisi_kepsek: payload.p_catatan_revisi || "",
+      verified_by_kepsek: payload.p_verified_by || null,
+    });
+  }
+};
+
+export const verifyLessonPlanDetailDirektur = async (
+  payload: Types.VERIFY_LESSON_PLAN_DETAIL_DIREKTUR_REQUEST,
+): Promise<void> => {
+  if (payload.p_action === "Disetujui") {
+    await restClient.patch(`/lesson_plan_detail?detail_id=eq.${payload.p_detail_id}`, {
+      status_verifikasi_direktur: "Disetujui",
+      catatan_revisi_direktur: "",
+      verified_by_direktur: payload.p_verified_by || null,
+    });
+  } else if (payload.p_action === "Revisi") {
+    await restClient.patch(`/lesson_plan_detail?detail_id=eq.${payload.p_detail_id}`, {
+      status_verifikasi_direktur: "Revisi",
+      catatan_revisi_direktur: payload.p_catatan_revisi || "",
+      verified_by_direktur: payload.p_verified_by || null,
+    });
+  }
+};
+
 export const verifyLessonPlanKepsek = async (
   payload: Types.VERIFY_LESSON_PLAN_KEPSEK_REQUEST,
 ): Promise<void> => {
-  // Langsung PATCH — tidak menggunakan RPC untuk menghindari
-  // "current transaction is aborted" error akibat RPC gagal lalu
-  // PATCH dieksekusi pada koneksi yang sama (aborted transaction state).
   if (payload.p_action === "Disetujui") {
     await restClient.patch(`/lesson_plan?lesson_plan_id=eq.${payload.p_lesson_plan_id}`, {
       status_verifikasi_kepsek: "Disetujui",
       catatan_revisi_kepsek: "",
       status_verifikasi_direktur: "Menunggu Verifikasi",
     });
+    // Juga setujui semua detail pertemuan untuk RPP ini
+    await restClient.patch(`/lesson_plan_detail?lesson_plan_id=eq.${payload.p_lesson_plan_id}`, {
+      status_verifikasi_kepsek: "Disetujui",
+      catatan_revisi_kepsek: "",
+      status_verifikasi_direktur: "Menunggu Verifikasi",
+      catatan_revisi_direktur: "",
+    });
   } else if (payload.p_action === "Revisi") {
     await restClient.patch(`/lesson_plan?lesson_plan_id=eq.${payload.p_lesson_plan_id}`, {
+      status_verifikasi_kepsek: "Revisi",
+      catatan_revisi_kepsek: payload.p_catatan_revisi || "",
+    });
+    await restClient.patch(`/lesson_plan_detail?lesson_plan_id=eq.${payload.p_lesson_plan_id}`, {
       status_verifikasi_kepsek: "Revisi",
       catatan_revisi_kepsek: payload.p_catatan_revisi || "",
     });
@@ -321,16 +367,22 @@ export const verifyLessonPlanKepsek = async (
 export const verifyLessonPlanDirektur = async (
   payload: Types.VERIFY_LESSON_PLAN_DIREKTUR_REQUEST,
 ): Promise<void> => {
-  // Langsung PATCH — tidak menggunakan RPC untuk menghindari
-  // "current transaction is aborted" error akibat RPC gagal lalu
-  // PATCH dieksekusi pada koneksi yang sama (aborted transaction state).
   if (payload.p_action === "Disetujui") {
     await restClient.patch(`/lesson_plan?lesson_plan_id=eq.${payload.p_lesson_plan_id}`, {
       status_verifikasi_direktur: "Disetujui",
       catatan_revisi_direktur: "",
     });
+    // Juga setujui semua detail pertemuan yang sudah disetujui kepsek
+    await restClient.patch(`/lesson_plan_detail?lesson_plan_id=eq.${payload.p_lesson_plan_id}&status_verifikasi_kepsek=eq.Disetujui`, {
+      status_verifikasi_direktur: "Disetujui",
+      catatan_revisi_direktur: "",
+    });
   } else if (payload.p_action === "Revisi") {
     await restClient.patch(`/lesson_plan?lesson_plan_id=eq.${payload.p_lesson_plan_id}`, {
+      status_verifikasi_direktur: "Revisi",
+      catatan_revisi_direktur: payload.p_catatan_revisi || "",
+    });
+    await restClient.patch(`/lesson_plan_detail?lesson_plan_id=eq.${payload.p_lesson_plan_id}&status_verifikasi_kepsek=eq.Disetujui`, {
       status_verifikasi_direktur: "Revisi",
       catatan_revisi_direktur: payload.p_catatan_revisi || "",
     });

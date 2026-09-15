@@ -41,6 +41,17 @@ export default function LessonPlanGuru() {
     handleVerifyAction,
     executeDelete,
     executeVerify,
+    // Per-Meeting Verification
+    selectedDetailForVerify,
+    isDetailApproveModalOpen,
+    setIsDetailApproveModalOpen,
+    isDetailRevisiModalOpen,
+    setIsDetailRevisiModalOpen,
+    detailRevisiNote,
+    setDetailRevisiNote,
+    isVerifyingDetail,
+    handleVerifyDetailAction,
+    executeVerifyDetail,
     handleExport,
     handleImportClick,
     processImport,
@@ -254,6 +265,7 @@ export default function LessonPlanGuru() {
         canVerify={canVerify}
         role={role}
         onVerifyAction={handleVerifyAction}
+        onVerifyDetailAction={handleVerifyDetailAction}
         onOpenPertemuan={handleOpenPertemuan}
         onKirimVerifikasi={executeKirimVerifikasi}
         isSendingVerification={isSendingVerification}
@@ -367,6 +379,16 @@ export default function LessonPlanGuru() {
         setRevisiNote={setRevisiNote}
         isPending={isVerifying}
         onVerify={executeVerify}
+        // Detail Modals
+        isDetailApproveOpen={isDetailApproveModalOpen}
+        onDetailApproveOpenChange={setIsDetailApproveModalOpen}
+        isDetailRevisiOpen={isDetailRevisiModalOpen}
+        onDetailRevisiOpenChange={setIsDetailRevisiModalOpen}
+        selectedDetailForVerify={selectedDetailForVerify}
+        detailRevisiNote={detailRevisiNote}
+        setDetailRevisiNote={setDetailRevisiNote}
+        isDetailPending={isVerifyingDetail}
+        onVerifyDetail={executeVerifyDetail}
       />
     </div>
   );

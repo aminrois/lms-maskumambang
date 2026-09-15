@@ -1,9 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Loader2, Download, CheckCircle2, XCircle, ChevronUp, ChevronDown, Pencil, Send, Upload, Eye, Clock, Calendar
+  Loader2, Download, CheckCircle2, XCircle, ChevronUp, ChevronDown, Pencil, Send, Upload, Eye, Clock, Calendar, Check, AlertCircle
 } from "lucide-react";
-import { resolveStatus, type LessonPlanSummary } from "../../hooks/useLessonPlanList";
+import { resolveStatus, resolveDetailStatus, type LessonPlanSummary } from "../../hooks/useLessonPlanList";
 import type { LESSON_PLAN_DETAIL } from "@/types/database";
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -17,6 +17,7 @@ interface LessonPlanListProps {
   canVerify: boolean;
   role: string | null;
   onVerifyAction: (plan: LessonPlanSummary, action: "Disetujui" | "Revisi") => void;
+  onVerifyDetailAction?: (plan: LessonPlanSummary, detail: LESSON_PLAN_DETAIL, action: "Disetujui" | "Revisi") => void;
   onOpenPertemuan: (plan: LessonPlanSummary, detail: LESSON_PLAN_DETAIL) => void;
   onKirimVerifikasi?: (plan: LessonPlanSummary) => void;
   isSendingVerification?: boolean;
@@ -33,6 +34,7 @@ export function LessonPlanList({
   canVerify,
   role,
   onVerifyAction,
+  onVerifyDetailAction,
   onOpenPertemuan,
   onKirimVerifikasi,
   isSendingVerification,
@@ -71,7 +73,7 @@ export function LessonPlanList({
           const detailsMap = new Map<number, LESSON_PLAN_DETAIL>();
           (plan.details || []).forEach(d => detailsMap.set(d.pertemuan_ke, d));
 
-          const all32Details: LESSON_PLAN_DETAIL[] = Array.from({ length: 16 }, (_, idx) => {
+          const all16Details: LESSON_PLAN_DETAIL[] = Array.from({ length: 16 }, (_, idx) => {
             const pKe = idx + 1;
             return detailsMap.get(pKe) || {
               detail_id: 0,
@@ -79,9 +81,14 @@ export function LessonPlanList({
               pertemuan_ke: pKe,
               materi: "",
               topik_materi: "",
+              status_verifikasi_kepsek: "Menunggu Verifikasi",
+              status_verifikasi_direktur: "Menunggu Verifikasi",
             };
           });
 
+          const approvedMeetingsCount = (plan.details || []).filter(
+            d => d.status_verifikasi_kepsek === "Disetujui" && d.status_verifikasi_direktur === "Disetujui"
+          ).length;
 
           return (
             <Card
@@ -101,7 +108,7 @@ export function LessonPlanList({
                   onClick={() => onToggleExpand(plan.lesson_plan_id)}
                 >
                   <div className="flex items-start space-x-4">
-                    <div className={`w-10 h-10 shrink-0 rounded-2xl flex items-center justify-center font-bold text-xs ${statusRingkas === "Disetujui"
+                    <div className={`w-12 h-10 shrink-0 rounded-2xl flex flex-col items-center justify-center font-bold text-xs ${statusRingkas === "Disetujui"
                       ? "bg-green-100 text-green-700"
                       : statusRingkas.includes("Revisi")
                         ? "bg-red-100 text-red-700"
@@ -109,7 +116,8 @@ export function LessonPlanList({
                           ? "bg-purple-100 text-purple-700"
                           : "bg-amber-100 text-amber-700"
                       }`}>
-                      16/16
+                      <span>{approvedMeetingsCount}/16</span>
+                      <span className="text-[9px] font-medium leading-none">Disetujui</span>
                     </div>
                     <div>
                       <div className="flex items-center space-x-2 flex-wrap gap-y-1">
@@ -152,18 +160,6 @@ export function LessonPlanList({
                           </div>
                         );
                       })()}
-                      {plan.status_verifikasi_kepsek === "Revisi" && plan.catatan_revisi_kepsek && (
-                        <div className="text-xs text-red-700 mt-2 bg-red-50/80 px-2.5 py-1.5 rounded-lg border border-red-100 flex flex-wrap gap-1 items-center">
-                          <span className="font-bold shrink-0">Kepala Sekolah:</span>
-                          <span className="italic">"{plan.catatan_revisi_kepsek}"</span>
-                        </div>
-                      )}
-                      {plan.status_verifikasi_direktur === "Revisi" && plan.catatan_revisi_direktur && (
-                        <div className="text-xs text-red-700 mt-2 bg-red-50/80 px-2.5 py-1.5 rounded-lg border border-red-100 flex flex-wrap gap-1 items-center">
-                          <span className="font-bold shrink-0">Direktur:</span>
-                          <span className="italic">"{plan.catatan_revisi_direktur}"</span>
-                        </div>
-                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2 text-gray-400 flex-wrap justify-end sm:justify-start">
@@ -209,30 +205,20 @@ export function LessonPlanList({
                       </Button>
                     )}
 
-                    {/* ALUR VERIFIKASI SEKUENSIAL: Kepala Sekolah -> Direktur */}
+                    {/* OPSI SETUJUI SEMUA PERTEMUAN (KEPSEK / DIREKTUR) */}
                     {canVerify && (
                       (role === "Kepala Sekolah" && plan.status_verifikasi_kepsek !== "Disetujui" && plan.status_verifikasi_kepsek !== "Revisi") ||
                       (role === "Direktur" && plan.status_verifikasi_kepsek === "Disetujui" && plan.status_verifikasi_direktur !== "Disetujui" && plan.status_verifikasi_direktur !== "Revisi") ||
                       (role === "Super Admin" && (plan.status_verifikasi_kepsek !== "Disetujui" || plan.status_verifikasi_direktur !== "Disetujui"))
                     ) && (
-                        <>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); onVerifyAction(plan, "Disetujui"); }}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-300 rounded-lg font-bold text-xs shadow-2xs transition-colors cursor-pointer"
-                            title="Setuju"
-                          >
-                            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
-                            <span>Setujui</span>
-                          </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); onVerifyAction(plan, "Revisi"); }}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-300 rounded-lg font-bold text-xs shadow-2xs transition-colors cursor-pointer"
-                            title="Tolak / Revisi"
-                          >
-                            <XCircle className="w-4 h-4 shrink-0 text-rose-600" />
-                            <span>Revisi</span>
-                          </button>
-                        </>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onVerifyAction(plan, "Disetujui"); }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-300 rounded-lg font-bold text-xs shadow-2xs transition-colors cursor-pointer"
+                          title="Setujui Semua Pertemuan RPP Ini Sekaligus"
+                        >
+                          <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+                          <span>Setujui Semua (16)</span>
+                        </button>
                       )}
                     <div className="pl-2 border-l border-slate-200 shrink-0">
                       {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
@@ -249,33 +235,76 @@ export function LessonPlanList({
                         </h4>
                       </div>
                       <span className="text-[11px] text-slate-500 font-medium">
-                        {isReadOnlyRole ? "Klik tombol Lihat Pertemuan pada card di bawah untuk membuka detail" : "Klik tombol Edit Pertemuan pada card di bawah untuk membuka halaman edit"}
+                        {isReadOnlyRole ? "Verifikasi dapat dilakukan per pertemuan pada setiap card di bawah" : "Status verifikasi ditampilkan pada setiap card pertemuan"}
                       </span>
                     </div>
 
-                    {/* CARD BESAR PERTEMUAN GRID */}
+                    {/* CARD PERTEMUAN GRID */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-                      {all32Details.map((dt) => {
+                      {all16Details.map((dt) => {
+                        const dtStatus = resolveDetailStatus(dt);
+                        const dtBadgeClass =
+                          dtStatus === "Disetujui"
+                            ? "bg-emerald-100 text-emerald-800 border-emerald-200"
+                            : dtStatus.includes("Revisi")
+                              ? "bg-rose-100 text-rose-800 border-rose-200"
+                              : dtStatus === "Menunggu Verifikasi Direktur"
+                                ? "bg-purple-100 text-purple-800 border-purple-200"
+                                : "bg-amber-100 text-amber-800 border-amber-200";
+
+                        const isKepsekCanVerify =
+                          canVerify &&
+                          role === "Kepala Sekolah" &&
+                          dt.status_verifikasi_kepsek !== "Disetujui" &&
+                          dt.status_verifikasi_kepsek !== "Revisi";
+
+                        const isDirekturCanVerify =
+                          canVerify &&
+                          role === "Direktur" &&
+                          dt.status_verifikasi_kepsek === "Disetujui" &&
+                          dt.status_verifikasi_direktur !== "Disetujui" &&
+                          dt.status_verifikasi_direktur !== "Revisi";
+
+                        const isSuperAdminCanVerify =
+                          canVerify &&
+                          role === "Super Admin" &&
+                          (dt.status_verifikasi_kepsek !== "Disetujui" || dt.status_verifikasi_direktur !== "Disetujui");
+
                         return (
                           <div
                             key={dt.pertemuan_ke}
-                            className="p-4 rounded-2xl border transition-all flex flex-col justify-between space-y-3 bg-white shadow-2xs border-slate-200/80 hover:border-indigo-300 hover:shadow-xs"
+                            className={`p-4 rounded-2xl border transition-all flex flex-col justify-between space-y-3 bg-white shadow-2xs ${
+                              dtStatus === "Disetujui"
+                                ? "border-emerald-200 hover:border-emerald-300"
+                                : dtStatus.includes("Revisi")
+                                  ? "border-rose-200 hover:border-rose-300"
+                                  : "border-slate-200/80 hover:border-indigo-300 hover:shadow-xs"
+                            }`}
                           >
-                            <div className="space-y-2">
-                              {/* Header Card Pertemuan */}
+                            <div className="space-y-2.5">
+                              {/* Header Card Pertemuan: Pertemuan Ke-X + Badge Status Pertemuan */}
                               <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
                                 <div className="flex items-center gap-2">
-                                  <div className="w-7 h-7 rounded-lg font-bold text-xs flex items-center justify-center bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                  <div className={`w-7 h-7 rounded-lg font-bold text-xs flex items-center justify-center border ${
+                                    dtStatus === "Disetujui"
+                                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                      : dtStatus.includes("Revisi")
+                                        ? "bg-rose-50 text-rose-700 border-rose-200"
+                                        : "bg-indigo-50 text-indigo-700 border-indigo-200"
+                                  }`}>
                                     {dt.pertemuan_ke}
                                   </div>
                                   <span className="font-bold text-xs text-slate-800">
                                     Pertemuan Ke-{dt.pertemuan_ke}
                                   </span>
                                 </div>
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border shrink-0 ${dtBadgeClass}`}>
+                                  {dtStatus}
+                                </span>
                               </div>
 
                               {/* Info Content Card */}
-                              <div className="space-y-1.5 pt-1 text-xs">
+                              <div className="space-y-1.5 pt-0.5 text-xs">
                                 <div>
                                   <span className="text-[10px] font-semibold uppercase text-slate-400 block">Materi Pembelajaran</span>
                                   <p className="font-semibold text-slate-700 line-clamp-1">
@@ -288,33 +317,92 @@ export function LessonPlanList({
                                     {dt.topik_materi || <span className="text-slate-400 italic font-normal">-</span>}
                                   </p>
                                 </div>
-                                <div className="flex items-center gap-2 text-[11px] text-slate-500 pt-1">
+                                <div className="flex items-center gap-2 text-[11px] text-slate-500 pt-0.5">
                                   <span className="bg-slate-100 px-2 py-0.5 rounded font-medium text-slate-600">
                                     {dt.pelaksanaan_kbm || "Senin"}
                                   </span>
                                 </div>
+
+                                {/* Catatan Revisi Kepsek */}
+                                {dt.status_verifikasi_kepsek === "Revisi" && dt.catatan_revisi_kepsek && (
+                                  <div className="text-[11px] text-rose-700 mt-2 bg-rose-50 px-2.5 py-1.5 rounded-lg border border-rose-200 flex flex-col gap-0.5">
+                                    <span className="font-bold flex items-center gap-1">
+                                      <AlertCircle className="w-3 h-3 shrink-0" />
+                                      Revisi Kepala Sekolah:
+                                    </span>
+                                    <span className="italic">"{dt.catatan_revisi_kepsek}"</span>
+                                  </div>
+                                )}
+
+                                {/* Catatan Revisi Direktur */}
+                                {dt.status_verifikasi_direktur === "Revisi" && dt.catatan_revisi_direktur && (
+                                  <div className="text-[11px] text-rose-700 mt-2 bg-rose-50 px-2.5 py-1.5 rounded-lg border border-rose-200 flex flex-col gap-0.5">
+                                    <span className="font-bold flex items-center gap-1">
+                                      <AlertCircle className="w-3 h-3 shrink-0" />
+                                      Revisi Direktur:
+                                    </span>
+                                    <span className="italic">"{dt.catatan_revisi_direktur}"</span>
+                                  </div>
+                                )}
+
+                                {/* Keterangan untuk Direktur jika Kepsek belum verifikasi */}
+                                {role === "Direktur" && dt.status_verifikasi_kepsek !== "Disetujui" && (
+                                  <div className="text-[10px] text-amber-700 bg-amber-50/80 px-2 py-1 rounded-md border border-amber-200">
+                                    ⏳ Menunggu persetujuan Kepala Sekolah terlebih dahulu
+                                  </div>
+                                )}
                               </div>
                             </div>
 
-                            {/* Tombol Lihat / Edit Pertemuan */}
-                            <Button
-                              type="button"
-                              onClick={() => onOpenPertemuan(plan, dt)}
-                              className={`w-full rounded-xl font-bold h-9 text-xs transition-all shadow-2xs cursor-pointer border ${isReadOnlyRole
-                                ? "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300"
-                                : "bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200"
-                              }`}
-                            >
-                              {isReadOnlyRole ? (
-                                <>
-                                  <Eye className="w-3.5 h-3.5 mr-1.5 text-slate-600" /> Lihat Pertemuan Ke-{dt.pertemuan_ke}
-                                </>
-                              ) : (
-                                <>
-                                  <Pencil className="w-3.5 h-3.5 mr-1.5" /> Edit Pertemuan Ke-{dt.pertemuan_ke}
-                                </>
+                            {/* Tombol Aksi: Lihat/Edit Pertemuan + Tombol Verifikasi Per Pertemuan */}
+                            <div className="space-y-2 pt-2 border-t border-slate-100">
+                              {/* Tombol Verifikasi Per-Pertemuan (Kepsek / Direktur / Super Admin) */}
+                              {onVerifyDetailAction && (isKepsekCanVerify || isDirekturCanVerify || isSuperAdminCanVerify) && (
+                                <div className="grid grid-cols-2 gap-1.5">
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={() => onVerifyDetailAction(plan, dt, "Disetujui")}
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] h-8 rounded-lg shadow-2xs cursor-pointer flex items-center justify-center gap-1"
+                                    title="Setujui Pertemuan Ini"
+                                  >
+                                    <Check className="w-3.5 h-3.5" />
+                                    <span>Setujui</span>
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => onVerifyDetailAction(plan, dt, "Revisi")}
+                                    className="border-rose-300 text-rose-700 hover:bg-rose-50 hover:text-rose-800 font-bold text-[11px] h-8 rounded-lg shadow-2xs cursor-pointer flex items-center justify-center gap-1"
+                                    title="Tolak / Minta Revisi Pertemuan Ini"
+                                  >
+                                    <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                                    <span>Revisi</span>
+                                  </Button>
+                                </div>
                               )}
-                            </Button>
+
+                              {/* Tombol Lihat / Edit Pertemuan */}
+                              <Button
+                                type="button"
+                                onClick={() => onOpenPertemuan(plan, dt)}
+                                className={`w-full rounded-xl font-bold h-8 text-xs transition-all shadow-2xs cursor-pointer border ${isReadOnlyRole
+                                  ? "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300"
+                                  : "bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200"
+                                }`}
+                              >
+                                {isReadOnlyRole ? (
+                                  <>
+                                    <Eye className="w-3.5 h-3.5 mr-1.5 text-slate-600" /> Lihat Pertemuan Ke-{dt.pertemuan_ke}
+                                  </>
+                                ) : (
+                                  <>
+                                    <Pencil className="w-3.5 h-3.5 mr-1.5" /> Edit Pertemuan Ke-{dt.pertemuan_ke}
+                                  </>
+                                )}
+                              </Button>
+                            </div>
                           </div>
                         );
                       })}
