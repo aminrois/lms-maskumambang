@@ -38,7 +38,7 @@ export const JadwalGuruDirektur: React.FC = () => {
 
   const hariOrder = ["Sabtu", "Ahad", "Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
 
-  // Group selected teacher's schedules by day
+  // Group selected teacher's schedules by day and sort chronologically
   const groupedModalJadwals = React.useMemo(() => {
     if (!selectedTeacher || !selectedTeacher.jadwals) return {};
     const acc: Record<string, typeof selectedTeacher.jadwals> = {};
@@ -47,6 +47,19 @@ export const JadwalGuruDirektur: React.FC = () => {
       if (!acc[h]) acc[h] = [];
       acc[h].push(j);
     });
+
+    // Sort each day's sessions chronologically by time and urutan_jam
+    Object.keys(acc).forEach((h) => {
+      acc[h].sort((a, b) => {
+        const timeA = a.jam_mulai_display || "";
+        const timeB = b.jam_mulai_display || "";
+        if (timeA && timeB && timeA !== timeB) {
+          return timeA.localeCompare(timeB);
+        }
+        return (a.urutan_jam || 0) - (b.urutan_jam || 0);
+      });
+    });
+
     return acc;
   }, [selectedTeacher]);
 
@@ -128,7 +141,7 @@ export const JadwalGuruDirektur: React.FC = () => {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-1.5">
                             <span className="font-extrabold text-xs bg-indigo-100/80 text-indigo-700 px-2 py-0.5 rounded-md border border-indigo-200/50">
-                              Jam {i + 1}
+                              Jam {j.urutan_jam ? j.urutan_jam : (i + 1)}
                             </span>
                             <span className="font-mono text-xs font-bold text-blue-600">
                               {j.jam_mulai_display}–{j.jam_selesai_display}

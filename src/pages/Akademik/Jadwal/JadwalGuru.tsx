@@ -68,12 +68,10 @@ const JadwalGuru: React.FC = () => {
           </div>
         ) : (
           sortedHari.map((hari) => {
-            let jamCounter = 0;
             const jamNumbersMap = new Map<string, number | null>();
             groupedData[hari].forEach((row) => {
               if (isCountedCategory(row.tipe)) {
-                jamCounter += 1;
-                jamNumbersMap.set(row.key, jamCounter);
+                jamNumbersMap.set(row.key, row.urutan_jam || null);
               } else {
                 jamNumbersMap.set(row.key, null);
               }
