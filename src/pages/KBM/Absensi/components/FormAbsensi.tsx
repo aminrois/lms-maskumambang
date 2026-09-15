@@ -56,16 +56,16 @@ export default function FormAbsensi({ selections, setCurrentStep }: FormAbsensiP
             </div>
 
 
-            <div className="border rounded-xl overflow-hidden shadow-sm">
-                <table className="w-full text-sm text-left text-gray-600">
-                    <thead className="bg-gray-50 border-b text-gray-700">
+            <div className="border border-slate-200 rounded-xl overflow-x-auto overflow-y-auto max-h-[65vh] shadow-xs relative bg-white">
+                <table className="w-full text-sm text-left text-gray-600 border-collapse">
+                    <thead className="sticky top-0 z-20 bg-slate-100 text-slate-800 border-b border-slate-200 shadow-xs">
                         <tr>
-                            <th className="px-6 py-4 font-semibold">Nama Siswa</th>
-                            <th className="px-6 py-4 font-semibold text-center">Hadir</th>
-                            <th className="px-6 py-4 font-semibold text-center">Sakit</th>
-                            <th className="px-6 py-4 font-semibold text-center">Izin</th>
-                            <th className="px-6 py-4 font-semibold text-center">Alpha</th>
-                            <th className="px-6 py-4 font-semibold text-center">Dispen</th>
+                            <th className="px-6 py-3.5 font-bold bg-slate-100 sticky top-0">Nama Siswa</th>
+                            <th className="px-6 py-3.5 font-bold text-center bg-slate-100 sticky top-0">Hadir</th>
+                            <th className="px-6 py-3.5 font-bold text-center bg-slate-100 sticky top-0">Sakit</th>
+                            <th className="px-6 py-3.5 font-bold text-center bg-slate-100 sticky top-0">Izin</th>
+                            <th className="px-6 py-3.5 font-bold text-center bg-slate-100 sticky top-0">Alpha</th>
+                            <th className="px-6 py-3.5 font-bold text-center bg-slate-100 sticky top-0">Dispen</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y bg-white">

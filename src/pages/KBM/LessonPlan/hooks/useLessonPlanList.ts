@@ -243,6 +243,29 @@ export function useLessonPlanList() {
         );
       }
 
+      // Deduplikasi baris: jika ada lebih dari 1 RPP dengan guru, jadwal, dan judul yang sama,
+      // prioritaskan yang berstatus disetujui / memiliki detail pertemuan terbanyak.
+      const dedupMap = new Map<string, LessonPlanSummary>();
+      for (const row of nextRows) {
+        const normJudul = (row.judul_rpp || "").trim().toLowerCase();
+        const key = `${row.pegawai_id}_${row.jadwal_id || 'null'}_${normJudul}`;
+        const existing = dedupMap.get(key);
+        if (!existing) {
+          dedupMap.set(key, row);
+        } else {
+          const scoreRow = (row.status_verifikasi_direktur === 'Disetujui' ? 4 : 0) +
+                           (row.status_verifikasi_kepsek === 'Disetujui' ? 2 : 0) +
+                           ((row.details?.length || 0) > 0 ? 1 : 0);
+          const scoreExisting = (existing.status_verifikasi_direktur === 'Disetujui' ? 4 : 0) +
+                                (existing.status_verifikasi_kepsek === 'Disetujui' ? 2 : 0) +
+                                ((existing.details?.length || 0) > 0 ? 1 : 0);
+          if (scoreRow > scoreExisting) {
+            dedupMap.set(key, row);
+          }
+        }
+      }
+      nextRows = Array.from(dedupMap.values());
+
       return nextRows;
     }
   });

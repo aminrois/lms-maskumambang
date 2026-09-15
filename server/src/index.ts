@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import routes from './routes';
 import { errorHandler } from './middlewares/errorHandler';
+import { deduplicateLessonPlans } from './scripts/cleanDuplicateLessonPlans';
 
 dotenv.config();
 
@@ -67,6 +68,11 @@ const server = app.listen(PORT, () => {
   console.log(`🚀 LMS Backend Server running on http://localhost:${PORT}`);
   console.log(`📡 API Endpoints available at http://localhost:${PORT}/api/v1`);
   console.log(`🌍 Environment: ${NODE_ENV}`);
+
+  // Run initial cleanup for duplicates in background
+  deduplicateLessonPlans().catch((err) => {
+    console.error('Initial deduplication error:', err);
+  });
 });
 
 // Graceful Shutdown
