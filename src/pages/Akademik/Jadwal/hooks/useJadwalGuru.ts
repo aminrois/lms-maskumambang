@@ -17,7 +17,6 @@ export type JadwalGuruResponse = {
 export type MergedJadwalGuru = {
   key: string;
   jadwal_id: number;
-  jadwal_ids: number[];
   jam_mulai_display: string;
   jam_selesai_display: string;
   kelas_nama: string;
@@ -25,9 +24,6 @@ export type MergedJadwalGuru = {
   ruangan?: string | null;
   tipe?: string;
   urutan_jam: number;
-  start_jam: number | null;
-  end_jam: number | null;
-  jumlah_jam: number;
 };
 
 export const useJadwalGuru = () => {
@@ -119,13 +115,7 @@ export const useJadwalGuru = () => {
     fetchLessonPlans();
   }, [jadwalGuru]);
 
-  // Helper to check if category is counted as academic lesson
-  const isCountedCategory = (tipe?: string): boolean => {
-    if (!tipe) return true;
-    return tipe.trim().toLowerCase() === "belajar";
-  };
-
-  // Group by hari, merge parallel classes, and merge consecutive periods
+  // Group by hari and merge parallel classes taught at the same time slot
   const groupedData = useMemo(() => {
     const acc: Record<string, MergedJadwalGuru[]> = {};
 
@@ -136,12 +126,11 @@ export const useJadwalGuru = () => {
       rawGrouped[row.hari].push(row);
     });
 
-    // For each hari, first merge parallel slots, then merge consecutive slots
+    // For each hari, merge parallel slots
     Object.keys(rawGrouped).forEach((hari) => {
       const rows = rawGrouped[hari];
       const slotMap = new Map<string, {
         jadwal_id: number;
-        jadwal_ids: number[];
         jam_mulai_display: string;
         jam_selesai_display: string;
         mapel_nama: string;
@@ -163,7 +152,6 @@ export const useJadwalGuru = () => {
         if (!slotMap.has(slotKey)) {
           slotMap.set(slotKey, {
             jadwal_id: row.jadwal_id,
-            jadwal_ids: [row.jadwal_id],
             jam_mulai_display: jamMulai,
             jam_selesai_display: jamSelesai,
             mapel_nama: mapelNama,
@@ -172,8 +160,6 @@ export const useJadwalGuru = () => {
             urutan_jam: urutanJam,
             kelases: new Set<string>()
           });
-        } else {
-          slotMap.get(slotKey)!.jadwal_ids.push(row.jadwal_id);
         }
 
         const slot = slotMap.get(slotKey)!;
@@ -182,109 +168,23 @@ export const useJadwalGuru = () => {
         }
       });
 
-      // Sort individual slots chronologically
-      const sortedSlots = Array.from(slotMap.values()).sort((a, b) => {
-        if (a.urutan_jam !== b.urutan_jam) return a.urutan_jam - b.urutan_jam;
-        return a.jam_mulai_display.localeCompare(b.jam_mulai_display);
-      });
-
-      // Assign sequential jam numbers to individual slots (1, 2, 3...)
-      let jamCounter = 0;
-      const slotsWithJamNum = sortedSlots.map((slot) => {
+      const mergedList: MergedJadwalGuru[] = Array.from(slotMap.values()).map((slot) => {
         const sortedKelas = Array.from(slot.kelases).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-        const isBelajar = isCountedCategory(slot.tipe);
-        if (isBelajar) {
-          jamCounter += 1;
-        }
         return {
-          ...slot,
+          key: `${slot.jadwal_id}_${slot.jam_mulai_display}`,
+          jadwal_id: slot.jadwal_id,
+          jam_mulai_display: slot.jam_mulai_display,
+          jam_selesai_display: slot.jam_selesai_display,
           kelas_nama: sortedKelas.join(", ") || "—",
-          jamNum: isBelajar ? jamCounter : null,
+          mapel_nama: slot.mapel_nama,
+          ruangan: slot.ruangan,
+          tipe: slot.tipe,
+          urutan_jam: slot.urutan_jam
         };
       });
 
-      // Merge consecutive periods with the same class, mapel, and ruangan
-      const mergedList: MergedJadwalGuru[] = [];
-      let currentGroup: any = null;
-
-      for (const slot of slotsWithJamNum) {
-        const canMergeWithCurrent =
-          currentGroup &&
-          currentGroup.mapel_nama === slot.mapel_nama &&
-          currentGroup.kelas_nama === slot.kelas_nama &&
-          currentGroup.ruangan === slot.ruangan &&
-          (
-            currentGroup.jam_selesai_display === slot.jam_mulai_display ||
-            (currentGroup.last_urutan !== undefined && currentGroup.last_urutan + 1 === slot.urutan_jam) ||
-            (currentGroup.last_jamNum !== null && slot.jamNum !== null && currentGroup.last_jamNum + 1 === slot.jamNum)
-          );
-
-        if (canMergeWithCurrent) {
-          currentGroup.jam_selesai_display = slot.jam_selesai_display;
-          currentGroup.last_urutan = slot.urutan_jam;
-          if (slot.jamNum !== null) {
-            currentGroup.last_jamNum = slot.jamNum;
-            currentGroup.end_jam = slot.jamNum;
-          }
-          currentGroup.jumlah_jam += 1;
-          currentGroup.jadwal_ids.push(...slot.jadwal_ids);
-        } else {
-          if (currentGroup) {
-            mergedList.push({
-              key: `${currentGroup.jadwal_id}_${currentGroup.jam_mulai_display}`,
-              jadwal_id: currentGroup.jadwal_id,
-              jadwal_ids: currentGroup.jadwal_ids,
-              jam_mulai_display: currentGroup.jam_mulai_display,
-              jam_selesai_display: currentGroup.jam_selesai_display,
-              kelas_nama: currentGroup.kelas_nama,
-              mapel_nama: currentGroup.mapel_nama,
-              ruangan: currentGroup.ruangan,
-              tipe: currentGroup.tipe,
-              urutan_jam: currentGroup.urutan_jam,
-              start_jam: currentGroup.start_jam,
-              end_jam: currentGroup.end_jam,
-              jumlah_jam: currentGroup.jumlah_jam,
-            });
-          }
-
-          currentGroup = {
-            jadwal_id: slot.jadwal_id,
-            jadwal_ids: [...slot.jadwal_ids],
-            jam_mulai_display: slot.jam_mulai_display,
-            jam_selesai_display: slot.jam_selesai_display,
-            kelas_nama: slot.kelas_nama,
-            mapel_nama: slot.mapel_nama,
-            ruangan: slot.ruangan,
-            tipe: slot.tipe,
-            urutan_jam: slot.urutan_jam,
-            last_urutan: slot.urutan_jam,
-            start_jam: slot.jamNum,
-            end_jam: slot.jamNum,
-            last_jamNum: slot.jamNum,
-            jumlah_jam: 1,
-          };
-        }
-      }
-
-      if (currentGroup) {
-        mergedList.push({
-          key: `${currentGroup.jadwal_id}_${currentGroup.jam_mulai_display}`,
-          jadwal_id: currentGroup.jadwal_id,
-          jadwal_ids: currentGroup.jadwal_ids,
-          jam_mulai_display: currentGroup.jam_mulai_display,
-          jam_selesai_display: currentGroup.jam_selesai_display,
-          kelas_nama: currentGroup.kelas_nama,
-          mapel_nama: currentGroup.mapel_nama,
-          ruangan: currentGroup.ruangan,
-          tipe: currentGroup.tipe,
-          urutan_jam: currentGroup.urutan_jam,
-          start_jam: currentGroup.start_jam,
-          end_jam: currentGroup.end_jam,
-          jumlah_jam: currentGroup.jumlah_jam,
-        });
-      }
-
-      acc[hari] = mergedList;
+      // Sort mergedList by urutan_jam
+      acc[hari] = mergedList.sort((a, b) => a.urutan_jam - b.urutan_jam);
     });
 
     return acc;

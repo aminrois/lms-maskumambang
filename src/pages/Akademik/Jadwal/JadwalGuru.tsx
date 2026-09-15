@@ -15,6 +15,10 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { JadwalGuruDirektur } from "./JadwalGuruDirektur";
 import { UnverifiedLessonPlanWarning } from "./components/UnverifiedLessonPlanWarning";
 
+const isCountedCategory = (tipe?: string): boolean => {
+  if (!tipe) return true;
+  return tipe.trim().toLowerCase() === "belajar";
+};
 
 const JadwalGuru: React.FC = () => {
   const role = useAuthStore((state) => state.role);
@@ -64,7 +68,16 @@ const JadwalGuru: React.FC = () => {
           </div>
         ) : (
           sortedHari.map((hari) => {
-            const totalJamHari = groupedData[hari].reduce((sum, r) => sum + (r.jumlah_jam || 1), 0);
+            let jamCounter = 0;
+            const jamNumbersMap = new Map<string, number | null>();
+            groupedData[hari].forEach((row) => {
+              if (isCountedCategory(row.tipe)) {
+                jamCounter += 1;
+                jamNumbersMap.set(row.key, jamCounter);
+              } else {
+                jamNumbersMap.set(row.key, null);
+              }
+            });
 
             return (
               <Card key={hari} className="rounded-[16px] shadow-sm border-slate-200 bg-white overflow-hidden">
@@ -75,7 +88,7 @@ const JadwalGuru: React.FC = () => {
                   </div>
                   <span className="font-bold text-slate-700 text-[15px] tracking-tight">{hari}</span>
                   <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-600 text-[11px] font-bold border border-blue-100/50">
-                    {groupedData[hari].length} sesi{totalJamHari > groupedData[hari].length ? ` (${totalJamHari} jam pelajaran)` : ''}
+                    {groupedData[hari].length} sesi
                   </span>
                 </div>
                 
@@ -84,37 +97,32 @@ const JadwalGuru: React.FC = () => {
                   <Table>
                     <TableHeader className="bg-white">
                       <TableRow className="hover:bg-transparent border-b-slate-100">
-                        <TableHead className="font-semibold text-slate-400 text-[10px] tracking-widest h-10 pl-5 w-20 text-center uppercase">JAM</TableHead>
-                        <TableHead className="font-semibold text-slate-400 text-[10px] tracking-widest h-10 w-[24%] uppercase">WAKTU</TableHead>
-                        <TableHead className="font-semibold text-slate-400 text-[10px] tracking-widest h-10 w-[24%] uppercase">KELAS</TableHead>
-                        <TableHead className="font-semibold text-slate-400 text-[10px] tracking-widest h-10 w-[28%] uppercase">MATA PELAJARAN</TableHead>
-                        <TableHead className="font-semibold text-slate-400 text-[10px] tracking-widest h-10 pr-5 w-[16%] uppercase">RUANGAN</TableHead>
+                        <TableHead className="font-semibold text-slate-400 text-[10px] tracking-widest h-10 pl-5 w-16 text-center uppercase">JAM</TableHead>
+                        <TableHead className="font-semibold text-slate-400 text-[10px] tracking-widest h-10 w-[20%] uppercase">WAKTU</TableHead>
+                        <TableHead className="font-semibold text-slate-400 text-[10px] tracking-widest h-10 w-[25%] uppercase">KELAS</TableHead>
+                        <TableHead className="font-semibold text-slate-400 text-[10px] tracking-widest h-10 w-[30%] uppercase">MATA PELAJARAN</TableHead>
+                        <TableHead className="font-semibold text-slate-400 text-[10px] tracking-widest h-10 pr-5 w-[20%] uppercase">RUANGAN</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {groupedData[hari].map((row) => {
+                        const jamNum = jamNumbersMap.get(row.key);
+
                         return (
                           <TableRow key={row.key} className="hover:bg-slate-50/60 border-b border-slate-50 transition-colors">
                             <TableCell className="pl-5 py-3 text-center">
-                              {row.start_jam !== null && row.start_jam !== undefined ? (
-                                <span className={`inline-flex items-center justify-center ${row.start_jam !== row.end_jam ? 'px-2 min-w-8' : 'w-7'} h-7 rounded-lg bg-indigo-50 text-indigo-700 font-extrabold text-xs border border-indigo-100/60 shadow-2xs`}>
-                                  {row.start_jam === row.end_jam ? row.start_jam : `${row.start_jam}–${row.end_jam}`}
+                              {jamNum !== null && jamNum !== undefined ? (
+                                <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-indigo-50 text-indigo-700 font-extrabold text-xs border border-indigo-100/60 shadow-2xs">
+                                  {jamNum}
                                 </span>
                               ) : (
                                 <span className="text-slate-300 text-xs">—</span>
                               )}
                             </TableCell>
                             <TableCell className="py-3">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span className="font-mono text-[13px] font-bold text-slate-600 tracking-tight">
-                                  {row.jam_mulai_display}–{row.jam_selesai_display}
-                                </span>
-                                {row.jumlah_jam > 1 && (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100">
-                                    {row.jumlah_jam} jam pelajaran
-                                  </span>
-                                )}
-                              </div>
+                              <span className="font-mono text-[13px] font-bold text-slate-600 tracking-tight">
+                                {row.jam_mulai_display}–{row.jam_selesai_display}
+                              </span>
                             </TableCell>
                             <TableCell className="py-3">
                               <span className="font-bold text-[#2B3674] text-[13px]">
@@ -123,7 +131,7 @@ const JadwalGuru: React.FC = () => {
                             </TableCell>
                             <TableCell className="py-3">
                               {(() => {
-                                const isUnverified = lessonPlanVerifikasiMap && row.jadwal_ids && row.jadwal_ids.some(id => lessonPlanVerifikasiMap.has(id) && !lessonPlanVerifikasiMap.get(id)!.isVerified);
+                                const isUnverified = lessonPlanVerifikasiMap && row.jadwal_id && lessonPlanVerifikasiMap.has(row.jadwal_id) && !lessonPlanVerifikasiMap.get(row.jadwal_id)!.isVerified;
                                 return (
                                   <span className={`inline-flex items-center px-2.5 py-1 rounded font-bold text-xs border ${
                                     isUnverified
