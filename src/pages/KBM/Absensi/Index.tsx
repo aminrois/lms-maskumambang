@@ -1,9 +1,10 @@
 // src/pages/KBM/Absensi/Index.tsx
 
 import React, { useState } from "react";
-import { Clipboard, CheckCircle2, Info, ChevronUp, ChevronDown, Calendar, BookOpen } from "lucide-react";
+import { Clipboard, CheckCircle2, Info, ChevronUp, ChevronDown, Calendar, BookOpen, ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import WizardMenu from "./components/WizardMenu";
 import FormAbsensi from "./components/FormAbsensi";
 
@@ -18,6 +19,7 @@ export interface AbsensiState {
 }
 
 export default function AbsensiMapelIndex() {
+    const navigate = useNavigate();
     const location = useLocation();
     const updateContext = location.state?.jurnalUpdateContext;
 
@@ -39,15 +41,47 @@ export default function AbsensiMapelIndex() {
         { id: 3, label: "Isi Absensi" },
     ];
 
+    const handleBack = () => {
+        if (currentStep === 3) {
+            setCurrentStep(2);
+        } else if (currentStep === 2) {
+            setCurrentStep(1);
+        } else {
+            navigate(-1);
+        }
+    };
+
     return (
         <div className="p-4 md:p-6 max-w-7xl mx-auto w-full space-y-6 relative">
-            <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 shrink-0">
-                    <Clipboard className="w-6 h-6 text-[#243B7A]" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={handleBack}
+                        className="rounded-2xl border-slate-200 text-slate-700 hover:bg-slate-100 shrink-0 cursor-pointer shadow-2xs h-11 w-11"
+                        title="Kembali"
+                    >
+                        <ArrowLeft className="w-5 h-5" />
+                    </Button>
+                    <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 shrink-0">
+                        <Clipboard className="w-6 h-6 text-[#243B7A]" />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-bold text-[#2B3674] uppercase">ABSENSI MATA PELAJARAN</h1>
+                        <p className="text-[#A3AED0] text-sm mt-1">Input kehadiran siswa per pertemuan</p>
+                    </div>
                 </div>
-                <div>
-                    <h1 className="text-2xl font-bold text-[#2B3674] uppercase">ABSENSI MATA PELAJARAN</h1>
-                    <p className="text-[#A3AED0] text-sm mt-1">Input kehadiran siswa per pertemuan</p>
+
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        onClick={handleBack}
+                        className="rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 text-xs font-bold cursor-pointer shadow-2xs"
+                    >
+                        <ArrowLeft className="w-4 h-4" />
+                        {currentStep === 1 ? "Kembali ke Dashboard" : currentStep === 2 ? "Kembali ke Jadwal" : "Kembali ke Pertemuan"}
+                    </Button>
                 </div>
             </div>
 

@@ -10,6 +10,7 @@ import { utils, writeFile } from "xlsx";
 import { formatDateIndo } from "@/lib/utils";
 import type { KELAS } from "@/types/database";
 import type { MonitoringKBMResponse } from "../../Universal";
+import { MonitoringCharts } from "./MonitoringCharts";
 
 export function renderStatusBadge(status: string) {
   switch (status) {
@@ -211,6 +212,9 @@ export function UniversalResultView({
           </CardContent>
         </Card>
       </div>
+
+      {/* Grafik Analisis KBM Interaktif */}
+      <MonitoringCharts data={filteredRows} summary={summary} />
 
       {/* Filter Date & Status Info */}
       <Card className="rounded-2xl border-slate-100 shadow-xs overflow-hidden bg-white">
