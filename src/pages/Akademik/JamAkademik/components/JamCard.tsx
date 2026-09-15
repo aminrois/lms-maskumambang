@@ -80,7 +80,7 @@ export const JamCard: React.FC<JamCardProps> = ({
             {jam.jamMulai}–{jam.jamSelesai} WIB
           </p>
           <span className="inline-block mt-2 text-xs font-semibold px-2 py-0.5 rounded bg-gray-100 text-gray-600 border border-gray-200">
-            {jam.lembaga}
+            {jam.lembagaSingkatan && jam.lembaga !== jam.lembagaSingkatan ? `${jam.lembaga} (${jam.lembagaSingkatan})` : jam.lembaga}
           </span>
         </div>
       </div>

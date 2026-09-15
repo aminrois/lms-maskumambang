@@ -16,6 +16,7 @@ export interface JamAkademikUI {
   draftId?: string;
   id: number;
   lembaga: string;
+  lembagaSingkatan?: string;
   urutanJam: number;
   jamMulai: string;
   jamSelesai: string;
@@ -82,6 +83,7 @@ export const useJamAkademik = () => {
       return data.map((item: any) => ({
         id: item.jam_id,
         lembaga: item.lembaga?.nama_lembaga || "—",
+        lembagaSingkatan: item.lembaga?.singkatan || item.lembaga?.nama_lembaga || "—",
         urutanJam: item.urutan_jam,
         jamMulai: item.jam_mulai.substring(0, 5), // Format HH:mm
         jamSelesai: item.jam_selesai.substring(0, 5),
@@ -556,14 +558,26 @@ export const useJamAkademik = () => {
       .map((l: any) => l.singkatan || l.nama_lembaga);
 
   const filteredData = useMemo(() => {
-    return isDirector
-      ? (activeTab === "Semua"
-        ? activeLocalDrafts
-        : activeLocalDrafts.filter(j => j.lembaga === activeTab || j.lembaga.includes(activeTab)))
-      : (userLembagaId
+    if (!isDirector) {
+      return userLembagaId
         ? activeLocalDrafts.filter(j => j.raw.lembaga_id === userLembagaId)
-        : activeLocalDrafts);
-  }, [isDirector, activeTab, activeLocalDrafts, userLembagaId]);
+        : activeLocalDrafts;
+    }
+
+    if (activeTab === "Semua") {
+      return activeLocalDrafts;
+    }
+
+    const targetLembaga = dataLembagaList.find((l: any) =>
+      l.singkatan === activeTab || l.nama_lembaga === activeTab
+    );
+
+    if (targetLembaga) {
+      return activeLocalDrafts.filter(j => j.raw.lembaga_id === targetLembaga.lembaga_id);
+    }
+
+    return activeLocalDrafts.filter(j => j.lembaga === activeTab || j.lembaga.includes(activeTab));
+  }, [isDirector, activeTab, activeLocalDrafts, userLembagaId, dataLembagaList]);
 
 
   const getNextJamInfo = (lembagaId: number) => {
