@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { CheckCircle2, Loader2, XCircle } from "lucide-react";
+import { CheckCircle2, Loader2, XCircle, RotateCcw, AlertTriangle, KeyRound } from "lucide-react";
 
 interface LessonPlanReviewModalsProps {
   isApproveOpen: boolean;
@@ -19,6 +21,12 @@ interface LessonPlanReviewModalsProps {
   setRevisiNote: (note: string) => void;
   isPending: boolean;
   onVerify: (action: "Disetujui" | "Revisi") => void;
+
+  // Reset Verification Modal (Direktur / Super Admin)
+  isResetVerifikasiOpen?: boolean;
+  onResetVerifikasiOpenChange?: (open: boolean) => void;
+  isResettingVerifikasi?: boolean;
+  onResetVerifikasi?: (target: 'kepsek' | 'direktur' | 'both', pin: string) => Promise<void>;
 
   // Per-Meeting Verification Modals
   isDetailApproveOpen?: boolean;
@@ -48,6 +56,12 @@ export function LessonPlanReviewModals({
   isPending,
   onVerify,
 
+  // Reset Verifikasi props
+  isResetVerifikasiOpen = false,
+  onResetVerifikasiOpenChange,
+  isResettingVerifikasi = false,
+  onResetVerifikasi,
+
   // Detail props
   isDetailApproveOpen = false,
   onDetailApproveOpenChange,
@@ -59,6 +73,26 @@ export function LessonPlanReviewModals({
   isDetailPending = false,
   onVerifyDetail,
 }: LessonPlanReviewModalsProps) {
+  const [resetTarget, setResetTarget] = useState<'kepsek' | 'direktur' | 'both'>('both');
+  const [resetPin, setResetPin] = useState("");
+  const [resetPinError, setResetPinError] = useState("");
+
+  const handleExecuteReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (resetPin.trim() !== "1859") {
+      setResetPinError("PIN konfirmasi salah! Masukkan PIN 1859.");
+      return;
+    }
+    setResetPinError("");
+    if (onResetVerifikasi) {
+      try {
+        await onResetVerifikasi(resetTarget, resetPin.trim());
+        setResetPin("");
+      } catch (err: any) {
+        setResetPinError(err?.message || "Gagal melakukan reset.");
+      }
+    }
+  };
   return (
     <>
       {/* Modal Approve All */}
@@ -263,6 +297,113 @@ export function LessonPlanReviewModals({
                 Tolak & Minta Revisi
               </Button>
             </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* MODAL RESET VERIFIKASI LESSON PLAN (DIREKTUR / SUPER ADMIN) */}
+      {onResetVerifikasiOpenChange && onResetVerifikasi && (
+        <Dialog open={isResetVerifikasiOpen} onOpenChange={onResetVerifikasiOpenChange}>
+          <DialogContent className="sm:max-w-md p-6 rounded-[24px] border-none shadow-xl bg-white">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-rose-600 text-xl font-bold">
+                <RotateCcw className="w-5 h-5" />
+                Reset Verifikasi Lesson Plan
+              </DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleExecuteReset} className="space-y-4 pt-2">
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-950 flex items-start gap-2.5">
+                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                <span className="leading-relaxed">
+                  Tindakan ini akan mengembalikan status persetujuan Lesson Plan menjadi <strong>Menunggu Verifikasi</strong>.
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="font-bold text-xs text-slate-700">Pilih Pihak yang Direset *</Label>
+                <div className="grid grid-cols-1 gap-2">
+                  <label className={`p-2.5 rounded-xl border text-xs flex items-center gap-2 cursor-pointer transition-all ${resetTarget === 'both' ? 'border-rose-500 bg-rose-50 font-bold text-rose-900 ring-1 ring-rose-500' : 'border-slate-200 hover:bg-slate-50 text-slate-700'}`}>
+                    <input
+                      type="radio"
+                      name="resetTarget"
+                      value="both"
+                      checked={resetTarget === 'both'}
+                      onChange={() => setResetTarget('both')}
+                      className="accent-rose-600"
+                    />
+                    <span>Reset Semua Pihak (Kepala Sekolah & Direktur)</span>
+                  </label>
+
+                  <label className={`p-2.5 rounded-xl border text-xs flex items-center gap-2 cursor-pointer transition-all ${resetTarget === 'direktur' ? 'border-rose-500 bg-rose-50 font-bold text-rose-900 ring-1 ring-rose-500' : 'border-slate-200 hover:bg-slate-50 text-slate-700'}`}>
+                    <input
+                      type="radio"
+                      name="resetTarget"
+                      value="direktur"
+                      checked={resetTarget === 'direktur'}
+                      onChange={() => setResetTarget('direktur')}
+                      className="accent-rose-600"
+                    />
+                    <span>Hanya Reset Verifikasi Direktur</span>
+                  </label>
+
+                  <label className={`p-2.5 rounded-xl border text-xs flex items-center gap-2 cursor-pointer transition-all ${resetTarget === 'kepsek' ? 'border-rose-500 bg-rose-50 font-bold text-rose-900 ring-1 ring-rose-500' : 'border-slate-200 hover:bg-slate-50 text-slate-700'}`}>
+                    <input
+                      type="radio"
+                      name="resetTarget"
+                      value="kepsek"
+                      checked={resetTarget === 'kepsek'}
+                      onChange={() => setResetTarget('kepsek')}
+                      className="accent-rose-600"
+                    />
+                    <span>Hanya Reset Verifikasi Kepala Sekolah</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="space-y-1.5 pt-1">
+                <Label className="font-bold text-xs text-slate-700 flex items-center gap-1.5">
+                  <KeyRound className="w-3.5 h-3.5 text-indigo-600" />
+                  PIN Konfirmasi Keamanan (1859) *
+                </Label>
+                <Input
+                  type="password"
+                  placeholder="Masukkan PIN 1859"
+                  value={resetPin}
+                  onChange={(e) => { setResetPin(e.target.value); setResetPinError(""); }}
+                  className="rounded-xl border-slate-200 text-center font-mono font-bold tracking-widest text-lg h-11"
+                  maxLength={6}
+                />
+                {resetPinError && (
+                  <p className="text-xs text-rose-600 font-semibold">{resetPinError}</p>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    onResetVerifikasiOpenChange(false);
+                    setResetPin("");
+                    setResetPinError("");
+                  }}
+                  className="rounded-xl border-slate-200"
+                  disabled={isResettingVerifikasi}
+                >
+                  Batal
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isResettingVerifikasi || !resetPin}
+                  className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold"
+                >
+                  {isResettingVerifikasi && (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  )}
+                  Eksekusi Reset Verifikasi
+                </Button>
+              </div>
+            </form>
           </DialogContent>
         </Dialog>
       )}

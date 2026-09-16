@@ -88,9 +88,12 @@ export default function ResetAbsensi() {
     onSuccess: (data) => {
       setResetResult(data);
       toast.success("Reset absensi berhasil dieksekusi!");
-      // Invalidate queries yang berhubungan dengan absensi dan jurnal
+      // Invalidate queries yang berhubungan dengan absensi, jurnal, rekap, dan monitoring
       queryClient.invalidateQueries({ queryKey: ["kbm"] });
       queryClient.invalidateQueries({ queryKey: ["monitoring"] });
+      queryClient.invalidateQueries({ queryKey: ["absensi"] });
+      queryClient.invalidateQueries({ queryKey: ["master-data"] });
+      queryClient.invalidateQueries();
       setIsModalOpen(false);
       setPinInput("");
       setPinError("");
@@ -316,10 +319,10 @@ export default function ResetAbsensi() {
                         onChange={(e) => setSelectedPertemuan(e.target.value)}
                         className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 focus:ring-2 focus:ring-rose-500 focus:outline-none"
                       >
-                        <option value="">Semua Pertemuan (1 - 16)</option>
+                        <option value="">Semua Pertemuan (1 - 16) — Reset Total Mulai dari 0</option>
                         {Array.from({ length: 16 }, (_, i) => i + 1).map((num) => (
                           <option key={num} value={num}>
-                            Pertemuan {num}
+                            Pertemuan {num} Saja
                           </option>
                         ))}
                       </select>

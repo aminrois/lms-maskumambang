@@ -35,6 +35,10 @@ export default function LessonPlanGuru() {
     eligiblePlansToApprove,
     handleOpenSetujuiSemua,
     executeVerifyAll,
+    isResetVerifikasiModalOpen,
+    setIsResetVerifikasiModalOpen,
+    isResettingVerifikasi,
+    executeResetVerifikasi,
     revisiNote,
     setRevisiNote,
     isVerifying,
@@ -145,6 +149,15 @@ export default function LessonPlanGuru() {
             ? () => setIsTemplateConfigOpen(true)
             : undefined
         }
+        onOpenResetVerifikasi={
+          (role === "Direktur" || role === "Super Admin")
+            ? () => setIsResetVerifikasiModalOpen(true)
+            : undefined
+        }
+        canVerify={canVerify}
+        onSetujuiSemua={handleOpenSetujuiSemua}
+        eligibleApproveCount={eligiblePlansToApprove.length}
+        isApprovingAll={isApprovingAll}
       />
 
       {/* BANNER INFORMASI PANDUAN LESSON PLAN */}
@@ -384,6 +397,11 @@ export default function LessonPlanGuru() {
         setRevisiNote={setRevisiNote}
         isPending={isVerifying}
         onVerify={executeVerify}
+        // Reset Verifikasi
+        isResetVerifikasiOpen={isResetVerifikasiModalOpen}
+        onResetVerifikasiOpenChange={setIsResetVerifikasiModalOpen}
+        isResettingVerifikasi={isResettingVerifikasi}
+        onResetVerifikasi={executeResetVerifikasi}
         // Detail Modals
         isDetailApproveOpen={isDetailApproveModalOpen}
         onDetailApproveOpenChange={setIsDetailApproveModalOpen}

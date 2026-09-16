@@ -13,6 +13,31 @@ export const verifyLessonPlanDirektur = async (payload: Types.VERIFY_LESSON_PLAN
   return response.data;
 };
 
+// RPC: Bulk Verify Lesson Plans (Kepsek / Direktur / Super Admin)
+export interface BulkVerifyLessonPlansPayload {
+  role?: string;
+  lembaga_id?: number | null;
+  lesson_plan_ids?: number[];
+}
+
+export const bulkVerifyLessonPlans = async (payload: BulkVerifyLessonPlansPayload) => {
+  const response = await restClient.post('/rpc/bulk_verify_lesson_plans', payload);
+  return response.data;
+};
+
+// RPC: Reset Verification Lesson Plans (Direktur / Super Admin PIN 1859)
+export interface ResetVerificationLessonPlansPayload {
+  pin: string;
+  target?: 'kepsek' | 'direktur' | 'both';
+  lembaga_id?: number | null;
+  lesson_plan_ids?: number[];
+}
+
+export const resetVerificationLessonPlans = async (payload: ResetVerificationLessonPlansPayload) => {
+  const response = await restClient.post('/rpc/reset_verification_lesson_plans', payload);
+  return response.data;
+};
+
 // RPC: Verify Lesson Plan Detail (Per Pertemuan) — Kepala Sekolah
 export const verifyLessonPlanDetailKepsek = async (payload: Types.VERIFY_LESSON_PLAN_DETAIL_KEPSEK_REQUEST) => {
   const response = await restClient.post('/rpc/verify_lesson_plan_detail_kepsek', payload);

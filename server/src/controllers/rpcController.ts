@@ -363,6 +363,188 @@ export const absensiHarianSummary = async (req: Request, res: Response, next: Ne
   }
 };
 
+// Bulk Verify Lesson Plans (Kepala Sekolah, Direktur, Super Admin)
+export const bulkVerifyLessonPlans = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { role: requestedRole, lembaga_id, lesson_plan_ids } = req.body;
+    const userRoles = req.user?.roles || [];
+    const effectiveRole = requestedRole || (userRoles.includes('Direktur') ? 'Direktur' : userRoles.includes('Super Admin') ? 'Super Admin' : userRoles.includes('Kepala Sekolah') ? 'Kepala Sekolah' : null);
+
+    if (!effectiveRole || (!userRoles.includes('Direktur') && !userRoles.includes('Super Admin') && !userRoles.includes('Kepala Sekolah'))) {
+      res.status(403).json({ error: 'Akses ditolak. Hanya Kepala Sekolah, Direktur, atau Super Admin yang berwenang.' });
+      return;
+    }
+
+    const pegawaiId = await getPegawaiIdFromReq(req);
+
+    // Build filter for lesson plans to verify
+    const planWhere: any = {};
+    if (lesson_plan_ids && Array.isArray(lesson_plan_ids) && lesson_plan_ids.length > 0) {
+      planWhere.lesson_plan_id = { in: lesson_plan_ids.map(Number) };
+    }
+    if (lembaga_id && Number(lembaga_id) > 0) {
+      planWhere.jadwal = {
+        kelas: { lembaga_id: Number(lembaga_id) }
+      };
+    }
+
+    if (effectiveRole === 'Kepala Sekolah') {
+      // Kepala Sekolah menyetujui semua RPP dan pertemuannya
+      const plans = await prisma.lessonPlan.findMany({
+        where: planWhere,
+        select: { lesson_plan_id: true }
+      });
+      const planIds = plans.map(p => p.lesson_plan_id);
+
+      if (planIds.length > 0) {
+        await prisma.lessonPlanDetail.updateMany({
+          where: { lesson_plan_id: { in: planIds } },
+          data: {
+            status_verifikasi_kepsek: 'Disetujui',
+            catatan_revisi_kepsek: '',
+            verified_by_kepsek: pegawaiId,
+          }
+        });
+
+        await prisma.lessonPlan.updateMany({
+          where: { lesson_plan_id: { in: planIds } },
+          data: {
+            status_verifikasi_kepsek: 'Disetujui',
+            catatan_revisi_kepsek: '',
+            verified_by_kepsek: pegawaiId,
+          }
+        });
+      }
+
+      res.json({
+        success: true,
+        message: `Berhasil menyetujui ${planIds.length} Lesson Plan dari sisi Kepala Sekolah.`,
+        verifiedCount: planIds.length
+      });
+    } else {
+      // Direktur atau Super Admin menyetujui RPP (dan memastikan status kepsek & direktur Disetujui)
+      const plans = await prisma.lessonPlan.findMany({
+        where: planWhere,
+        select: { lesson_plan_id: true }
+      });
+      const planIds = plans.map(p => p.lesson_plan_id);
+
+      if (planIds.length > 0) {
+        await prisma.lessonPlanDetail.updateMany({
+          where: { lesson_plan_id: { in: planIds } },
+          data: {
+            status_verifikasi_kepsek: 'Disetujui',
+            status_verifikasi_direktur: 'Disetujui',
+            catatan_revisi_direktur: '',
+            verified_by_direktur: pegawaiId,
+          }
+        });
+
+        await prisma.lessonPlan.updateMany({
+          where: { lesson_plan_id: { in: planIds } },
+          data: {
+            status_verifikasi_kepsek: 'Disetujui',
+            status_verifikasi_direktur: 'Disetujui',
+            catatan_revisi_direktur: '',
+            verified_by_direktur: pegawaiId,
+          }
+        });
+      }
+
+      res.json({
+        success: true,
+        message: `Berhasil menyetujui ${planIds.length} Lesson Plan dari sisi Direktur.`,
+        verifiedCount: planIds.length
+      });
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Reset Verification Lesson Plans (Khusus Direktur & Super Admin dengan PIN 1859)
+export const resetVerificationLessonPlans = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { pin, target = 'both', lembaga_id, lesson_plan_ids } = req.body;
+
+    if (String(pin).trim() !== '1859') {
+      res.status(400).json({ error: 'PIN konfirmasi salah! Reset verifikasi dibatalkan.' });
+      return;
+    }
+
+    const userRoles = req.user?.roles || [];
+    const hasAuthority = userRoles.includes('Direktur') || userRoles.includes('Super Admin');
+    if (req.user && !hasAuthority) {
+      res.status(403).json({ error: 'Akses ditolak. Hanya Direktur atau Super Admin yang berwenang.' });
+      return;
+    }
+
+    const planWhere: any = {};
+    if (lesson_plan_ids && Array.isArray(lesson_plan_ids) && lesson_plan_ids.length > 0) {
+      planWhere.lesson_plan_id = { in: lesson_plan_ids.map(Number) };
+    }
+    if (lembaga_id && Number(lembaga_id) > 0) {
+      planWhere.jadwal = {
+        kelas: { lembaga_id: Number(lembaga_id) }
+      };
+    }
+
+    const plans = await prisma.lessonPlan.findMany({
+      where: planWhere,
+      select: { lesson_plan_id: true }
+    });
+    const planIds = plans.map(p => p.lesson_plan_id);
+
+    if (planIds.length === 0) {
+      res.json({ success: true, message: 'Tidak ada Lesson Plan yang cocok untuk direset.', resetCount: 0 });
+      return;
+    }
+
+    const updateDetailData: any = {};
+    const updatePlanData: any = {};
+
+    if (target === 'direktur' || target === 'both') {
+      updateDetailData.status_verifikasi_direktur = 'Menunggu Verifikasi';
+      updateDetailData.catatan_revisi_direktur = '';
+      updateDetailData.verified_by_direktur = null;
+
+      updatePlanData.status_verifikasi_direktur = 'Menunggu Verifikasi';
+      updatePlanData.catatan_revisi_direktur = '';
+      updatePlanData.verified_by_direktur = null;
+    }
+
+    if (target === 'kepsek' || target === 'both') {
+      updateDetailData.status_verifikasi_kepsek = 'Menunggu Verifikasi';
+      updateDetailData.catatan_revisi_kepsek = '';
+      updateDetailData.verified_by_kepsek = null;
+
+      updatePlanData.status_verifikasi_kepsek = 'Menunggu Verifikasi';
+      updatePlanData.catatan_revisi_kepsek = '';
+      updatePlanData.verified_by_kepsek = null;
+    }
+
+    await prisma.lessonPlanDetail.updateMany({
+      where: { lesson_plan_id: { in: planIds } },
+      data: updateDetailData
+    });
+
+    await prisma.lessonPlan.updateMany({
+      where: { lesson_plan_id: { in: planIds } },
+      data: updatePlanData
+    });
+
+    const targetLabel = target === 'both' ? 'Kepala Sekolah dan Direktur' : target === 'direktur' ? 'Direktur' : 'Kepala Sekolah';
+
+    res.json({
+      success: true,
+      message: `Status verifikasi ${planIds.length} Lesson Plan berhasil direset ke 'Menunggu Verifikasi' (${targetLabel}).`,
+      resetCount: planIds.length
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Reset Absensi (Khusus Direktur & Super Admin dengan PIN 1859)
 export const resetAbsensi = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -429,12 +611,28 @@ export const resetAbsensi = async (req: AuthRequest, res: Response, next: NextFu
         const absensiPelRes = await prisma.absensiPelajaran.deleteMany({
           where: { jurnal_id: { in: jurnalIds } }
         });
-        deletedAbsensiPelajaranCount = absensiPelRes.count;
+        deletedAbsensiPelajaranCount += absensiPelRes.count;
 
         const jurnalRes = await prisma.jurnalMengajar.deleteMany({
           where: { jurnal_id: { in: jurnalIds } }
         });
-        deletedJurnalCount = jurnalRes.count;
+        deletedJurnalCount += jurnalRes.count;
+      }
+
+      // Jika mereset per kelas atau semua (tanpa filter pertemuan khusus), pastikan tidak ada absensi pelajaran tersisa
+      if (kelas_id && (!pertemuan_ke || Number(pertemuan_ke) === 0)) {
+        const extraAbsensi = await prisma.absensiPelajaran.deleteMany({
+          where: {
+            siswa: { kelas_id: Number(kelas_id) }
+          }
+        });
+        deletedAbsensiPelajaranCount += extraAbsensi.count;
+      } else if (!kelas_id && !pertemuan_ke && !mapel_id && !lembaga_id && !tanggal) {
+        // Reset ALL Mapel
+        const allAbsPel = await prisma.absensiPelajaran.deleteMany({});
+        deletedAbsensiPelajaranCount += allAbsPel.count;
+        const allJurnal = await prisma.jurnalMengajar.deleteMany({});
+        deletedJurnalCount += allJurnal.count;
       }
     }
 
@@ -467,7 +665,7 @@ export const resetAbsensi = async (req: AuthRequest, res: Response, next: NextFu
 
     res.json({
       success: true,
-      message: `Reset absensi berhasil dilakukan. Data yang dihapus: ${deletedJurnalCount} sesi jurnal mapel (${deletedAbsensiPelajaranCount} data absensi siswa) dan ${deletedAbsensiHarianCount} data absensi harian.`,
+      message: `Reset absensi berhasil dilakukan. Data yang dihapus: ${deletedJurnalCount} sesi jurnal mapel (${deletedAbsensiPelajaranCount} data absensi siswa) dan ${deletedAbsensiHarianCount} data absensi harian. Seluruh rekap telah kembali ke 0.`,
       deletedJurnalCount,
       deletedAbsensiPelajaranCount,
       deletedAbsensiHarianCount

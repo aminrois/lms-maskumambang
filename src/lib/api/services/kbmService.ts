@@ -467,3 +467,8 @@ export const upsertAbsensiHarian = async (
   );
   return response.data;
 };
+
+export {
+  bulkVerifyLessonPlans,
+  resetVerificationLessonPlans
+} from "./rpcService";

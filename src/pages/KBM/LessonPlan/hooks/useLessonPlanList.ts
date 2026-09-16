@@ -12,6 +12,8 @@ import {
   verifyLessonPlanDirektur,
   verifyLessonPlanDetailKepsek,
   verifyLessonPlanDetailDirektur,
+  bulkVerifyLessonPlans,
+  resetVerificationLessonPlans,
   deleteJurnalMengajarByDetailIds
 } from "@/lib/api/services/kbmService";
 import { restClient } from "@/lib/api/axios";
@@ -222,6 +224,9 @@ export function useLessonPlanList() {
       // Filter berdasarkan lembaga: gunakan jalur jadwal_id → kelas → lembaga_id
       // agar konsisten dengan Satuan Pendidikan yang ditampilkan di halaman edit pertemuan.
       // Berlaku untuk semua role yang memiliki lembaga_id (kecuali Direktur & Super Admin).
+      // Filter berdasarkan lembaga: gunakan jalur jadwal_id → kelas → lembaga_id
+      // agar konsisten dengan Satuan Pendidikan yang ditampilkan di halaman edit pertemuan.
+      // Berlaku untuk semua role yang memiliki lembaga_id (kecuali Direktur & Super Admin).
       const rolesFilterByLembaga = ['Kepala Sekolah', 'WaKa Kurikulum', 'Guru', 'Wali Kelas'];
       if (lembaga_id && rolesFilterByLembaga.includes(role ?? '')) {
         nextRows = nextRows.filter((plan) => {
@@ -233,14 +238,6 @@ export function useLessonPlanList() {
           }
           return jadwalToLembagaMap.get(jadwalId) === lembaga_id;
         });
-      }
-
-      // Direktur hanya melihat RPP yang minimal memiliki pertemuan disetujui Kepala Sekolah atau berstatus disetujui Kepsek
-      if (role === 'Direktur') {
-        nextRows = nextRows.filter((plan) =>
-          plan.status_verifikasi_kepsek === 'Disetujui' ||
-          (plan.details && plan.details.some((d: any) => d.status_verifikasi_kepsek === 'Disetujui'))
-        );
       }
 
       // Deduplikasi baris: jika ada lebih dari 1 RPP dengan guru, jadwal, dan judul yang sama,
@@ -384,17 +381,16 @@ export function useLessonPlanList() {
     }
   };
 
+  const [isResetVerifikasiModalOpen, setIsResetVerifikasiModalOpen] = useState(false);
+  const [isResettingVerifikasi, setIsResettingVerifikasi] = useState(false);
+
   const eligiblePlansToApprove = useMemo(() => {
     if (!canVerify) return [];
     return lessonPlans.filter((plan) => {
       if (role === "Kepala Sekolah") {
-        return plan.status_verifikasi_kepsek !== "Disetujui" && plan.status_verifikasi_kepsek !== "Revisi";
+        return plan.status_verifikasi_kepsek !== "Disetujui";
       }
-      if (role === "Direktur") {
-        // Direktur hanya bisa memverifikasi RPP yang sudah disetujui Kepala Sekolah
-        return plan.status_verifikasi_kepsek === "Disetujui" && plan.status_verifikasi_direktur !== "Disetujui" && plan.status_verifikasi_direktur !== "Revisi";
-      }
-      if (role === "Super Admin") {
+      if (role === "Direktur" || role === "Super Admin") {
         return plan.status_verifikasi_direktur !== "Disetujui" || plan.status_verifikasi_kepsek !== "Disetujui";
       }
       return false;
@@ -403,7 +399,7 @@ export function useLessonPlanList() {
 
   const handleOpenSetujuiSemua = () => {
     if (eligiblePlansToApprove.length === 0) {
-      toast.info("Tidak ada Lesson Plan (RPP) yang memerlukan persetujuan saat ini.");
+      toast.info("Seluruh Lesson Plan (RPP) sudah berstatus Disetujui.");
       return;
     }
     setIsApproveAllModalOpen(true);
@@ -413,32 +409,44 @@ export function useLessonPlanList() {
     if (eligiblePlansToApprove.length === 0) return;
     setIsApprovingAll(true);
     try {
-      const promises = eligiblePlansToApprove.map((plan) => {
-        if (role === "Kepala Sekolah") {
-          return verifyLessonPlanKepsek({
-            p_lesson_plan_id: plan.lesson_plan_id,
-            p_action: "Disetujui",
-            p_catatan_revisi: "",
-          });
-        } else if (role === "Direktur" || role === "Super Admin") {
-          return verifyLessonPlanDirektur({
-            p_lesson_plan_id: plan.lesson_plan_id,
-            p_action: "Disetujui",
-            p_catatan_revisi: "",
-          });
-        }
-        return Promise.resolve();
+      const planIds = eligiblePlansToApprove.map(p => p.lesson_plan_id);
+      const res = await bulkVerifyLessonPlans({
+        role: role || undefined,
+        lembaga_id: role === "Kepala Sekolah" ? (lembaga_id || null) : null,
+        lesson_plan_ids: planIds,
       });
 
-      await Promise.all(promises);
-      toast.success(`Berhasil menyetujui ${eligiblePlansToApprove.length} Lesson Plan!`);
+      toast.success(res.message || `Berhasil menyetujui ${planIds.length} Lesson Plan beserta seluruh pertemuannya!`);
       queryClient.invalidateQueries({ queryKey: Array.from(QUERY_KEY) });
       setIsApproveAllModalOpen(false);
     } catch (error: any) {
       console.error("Gagal menyetujui semua RPP:", error);
-      toast.error("Gagal memproses persetujuan massal. Silakan coba lagi.");
+      const msg = error?.response?.data?.error || error?.message || "Gagal memproses persetujuan massal. Silakan coba lagi.";
+      toast.error(msg);
     } finally {
       setIsApprovingAll(false);
+    }
+  };
+
+  const executeResetVerifikasi = async (target: 'kepsek' | 'direktur' | 'both', pin: string) => {
+    setIsResettingVerifikasi(true);
+    try {
+      const res = await resetVerificationLessonPlans({
+        pin,
+        target,
+        lembaga_id: lembaga_id || null,
+      });
+
+      toast.success(res.message || "Reset verifikasi Lesson Plan berhasil!");
+      queryClient.invalidateQueries({ queryKey: Array.from(QUERY_KEY) });
+      setIsResetVerifikasiModalOpen(false);
+    } catch (error: any) {
+      console.error("Gagal reset verifikasi RPP:", error);
+      const msg = error?.response?.data?.error || error?.message || "Gagal melakukan reset verifikasi. Pastikan PIN benar.";
+      toast.error(msg);
+      throw error;
+    } finally {
+      setIsResettingVerifikasi(false);
     }
   };
 
@@ -1048,6 +1056,10 @@ export function useLessonPlanList() {
     eligiblePlansToApprove,
     handleOpenSetujuiSemua,
     executeVerifyAll,
+    isResetVerifikasiModalOpen,
+    setIsResetVerifikasiModalOpen,
+    isResettingVerifikasi,
+    executeResetVerifikasi,
     revisiNote,
     setRevisiNote,
     isVerifying,
