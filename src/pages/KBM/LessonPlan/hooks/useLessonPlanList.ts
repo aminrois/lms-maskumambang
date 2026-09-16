@@ -428,13 +428,21 @@ export function useLessonPlanList() {
     }
   };
 
-  const executeResetVerifikasi = async (target: 'kepsek' | 'direktur' | 'both', pin: string) => {
+  const executeResetVerifikasi = async (payload: {
+    target: 'kepsek' | 'direktur' | 'both';
+    pin: string;
+    lembaga_id?: number | null;
+    kelas_id?: number | null;
+    pegawai_id?: number | null;
+  }) => {
     setIsResettingVerifikasi(true);
     try {
       const res = await resetVerificationLessonPlans({
-        pin,
-        target,
-        lembaga_id: lembaga_id || null,
+        pin: payload.pin,
+        target: payload.target,
+        lembaga_id: payload.lembaga_id !== undefined ? payload.lembaga_id : (lembaga_id || null),
+        kelas_id: payload.kelas_id || null,
+        pegawai_id: payload.pegawai_id || null,
       });
 
       toast.success(res.message || "Reset verifikasi Lesson Plan berhasil!");

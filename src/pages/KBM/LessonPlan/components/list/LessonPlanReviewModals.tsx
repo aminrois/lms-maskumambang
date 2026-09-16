@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { CheckCircle2, Loader2, XCircle, RotateCcw, AlertTriangle, KeyRound } from "lucide-react";
+import { CheckCircle2, Loader2, XCircle, RotateCcw, AlertTriangle, KeyRound, Search, Filter } from "lucide-react";
+import { getLembagas, getKelas, getPegawais } from "@/lib/api/services/masterService";
 
 interface LessonPlanReviewModalsProps {
   isApproveOpen: boolean;
@@ -26,7 +28,13 @@ interface LessonPlanReviewModalsProps {
   isResetVerifikasiOpen?: boolean;
   onResetVerifikasiOpenChange?: (open: boolean) => void;
   isResettingVerifikasi?: boolean;
-  onResetVerifikasi?: (target: 'kepsek' | 'direktur' | 'both', pin: string) => Promise<void>;
+  onResetVerifikasi?: (payload: {
+    target: 'kepsek' | 'direktur' | 'both';
+    pin: string;
+    lembaga_id?: number | null;
+    kelas_id?: number | null;
+    pegawai_id?: number | null;
+  }) => Promise<void>;
 
   // Per-Meeting Verification Modals
   isDetailApproveOpen?: boolean;
@@ -74,8 +82,43 @@ export function LessonPlanReviewModals({
   onVerifyDetail,
 }: LessonPlanReviewModalsProps) {
   const [resetTarget, setResetTarget] = useState<'kepsek' | 'direktur' | 'both'>('both');
+  const [resetLembagaId, setResetLembagaId] = useState<string>("");
+  const [resetKelasId, setResetKelasId] = useState<string>("");
+  const [resetPegawaiId, setResetPegawaiId] = useState<string>("");
+  const [searchGuru, setSearchGuru] = useState<string>("");
   const [resetPin, setResetPin] = useState("");
   const [resetPinError, setResetPinError] = useState("");
+
+  // Query master data untuk filter modal reset verifikasi
+  const { data: lembagas = [] } = useQuery({
+    queryKey: ["master", "lembagas-reset-modal"],
+    queryFn: async () => await getLembagas({ order: "nama_lembaga.asc" }),
+    enabled: isResetVerifikasiOpen
+  });
+
+  const { data: allKelas = [] } = useQuery({
+    queryKey: ["master", "kelas-reset-modal", resetLembagaId],
+    queryFn: async () => {
+      const params: Record<string, any> = { order: "nama_kelas.asc" };
+      if (resetLembagaId) {
+        params.lembaga_id = `eq.${resetLembagaId}`;
+      }
+      return await getKelas(params);
+    },
+    enabled: isResetVerifikasiOpen
+  });
+
+  const { data: allPegawai = [] } = useQuery({
+    queryKey: ["master", "pegawai-reset-modal"],
+    queryFn: async () => await getPegawais({ order: "nama.asc" }),
+    enabled: isResetVerifikasiOpen
+  });
+
+  const filteredPegawai = useMemo(() => {
+    if (!searchGuru.trim()) return allPegawai;
+    const q = searchGuru.toLowerCase();
+    return allPegawai.filter((p: any) => p.nama?.toLowerCase().includes(q) || p.nip?.toLowerCase().includes(q));
+  }, [allPegawai, searchGuru]);
 
   const handleExecuteReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,8 +129,18 @@ export function LessonPlanReviewModals({
     setResetPinError("");
     if (onResetVerifikasi) {
       try {
-        await onResetVerifikasi(resetTarget, resetPin.trim());
+        await onResetVerifikasi({
+          target: resetTarget,
+          pin: resetPin.trim(),
+          lembaga_id: resetLembagaId ? Number(resetLembagaId) : null,
+          kelas_id: resetKelasId ? Number(resetKelasId) : null,
+          pegawai_id: resetPegawaiId ? Number(resetPegawaiId) : null,
+        });
         setResetPin("");
+        setResetLembagaId("");
+        setResetKelasId("");
+        setResetPegawaiId("");
+        setSearchGuru("");
       } catch (err: any) {
         setResetPinError(err?.message || "Gagal melakukan reset.");
       }
@@ -304,7 +357,7 @@ export function LessonPlanReviewModals({
       {/* MODAL RESET VERIFIKASI LESSON PLAN (DIREKTUR / SUPER ADMIN) */}
       {onResetVerifikasiOpenChange && onResetVerifikasi && (
         <Dialog open={isResetVerifikasiOpen} onOpenChange={onResetVerifikasiOpenChange}>
-          <DialogContent className="sm:max-w-md p-6 rounded-[24px] border-none shadow-xl bg-white">
+          <DialogContent className="sm:max-w-lg p-6 rounded-[24px] border-none shadow-xl bg-white max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-rose-600 text-xl font-bold">
                 <RotateCcw className="w-5 h-5" />
@@ -319,8 +372,9 @@ export function LessonPlanReviewModals({
                 </span>
               </div>
 
+              {/* 1. Pilih Pihak */}
               <div className="space-y-2">
-                <Label className="font-bold text-xs text-slate-700">Pilih Pihak yang Direset *</Label>
+                <Label className="font-bold text-xs text-slate-700">1. Pilih Pihak yang Direset *</Label>
                 <div className="grid grid-cols-1 gap-2">
                   <label className={`p-2.5 rounded-xl border text-xs flex items-center gap-2 cursor-pointer transition-all ${resetTarget === 'both' ? 'border-rose-500 bg-rose-50 font-bold text-rose-900 ring-1 ring-rose-500' : 'border-slate-200 hover:bg-slate-50 text-slate-700'}`}>
                     <input
@@ -360,10 +414,94 @@ export function LessonPlanReviewModals({
                 </div>
               </div>
 
-              <div className="space-y-1.5 pt-1">
+              {/* 2. Filter Sasaran Reset */}
+              <div className="space-y-3 pt-2 border-t border-slate-100">
+                <Label className="font-bold text-xs text-slate-700 flex items-center gap-1.5">
+                  <Filter className="w-3.5 h-3.5 text-indigo-600" />
+                  2. Filter Sasaran Reset (Opsional)
+                </Label>
+                <p className="text-[11px] text-slate-500">
+                  Kosongkan filter (Semua) jika ingin mereset seluruh Lesson Plan, atau tentukan filter spesifik:
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Lembaga */}
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      Lembaga
+                    </label>
+                    <select
+                      value={resetLembagaId}
+                      onChange={(e) => {
+                        setResetLembagaId(e.target.value);
+                        setResetKelasId("");
+                      }}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                    >
+                      <option value="">Semua Lembaga</option>
+                      {lembagas.map((l: any) => (
+                        <option key={l.lembaga_id} value={l.lembaga_id}>
+                          {l.nama_lembaga}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Kelas */}
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      Kelas
+                    </label>
+                    <select
+                      value={resetKelasId}
+                      onChange={(e) => setResetKelasId(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                    >
+                      <option value="">Semua Kelas</option>
+                      {allKelas.map((k: any) => (
+                        <option key={k.kelas_id} value={k.kelas_id}>
+                          {k.nama_kelas}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Cari & Pilih Guru */}
+                <div className="space-y-2 pt-1">
+                  <label className="block text-[11px] font-semibold text-slate-600">
+                    Guru Pengajar (Cari / Pilih)
+                  </label>
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <Input
+                      type="text"
+                      placeholder="Ketik nama guru untuk memfilter list..."
+                      value={searchGuru}
+                      onChange={(e) => setSearchGuru(e.target.value)}
+                      className="pl-8 bg-white border-slate-200 rounded-xl text-xs h-9"
+                    />
+                  </div>
+                  <select
+                    value={resetPegawaiId}
+                    onChange={(e) => setResetPegawaiId(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                  >
+                    <option value="">Semua Guru</option>
+                    {filteredPegawai.map((p: any) => (
+                      <option key={p.pegawai_id} value={p.pegawai_id}>
+                        {p.nama} {p.nip ? `(${p.nip})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* 3. PIN Keamanan */}
+              <div className="space-y-1.5 pt-2 border-t border-slate-100">
                 <Label className="font-bold text-xs text-slate-700 flex items-center gap-1.5">
                   <KeyRound className="w-3.5 h-3.5 text-indigo-600" />
-                  PIN Konfirmasi Keamanan (1859) *
+                  3. PIN Konfirmasi Keamanan (1859) *
                 </Label>
                 <Input
                   type="password"
@@ -386,6 +524,10 @@ export function LessonPlanReviewModals({
                     onResetVerifikasiOpenChange(false);
                     setResetPin("");
                     setResetPinError("");
+                    setResetLembagaId("");
+                    setResetKelasId("");
+                    setResetPegawaiId("");
+                    setSearchGuru("");
                   }}
                   className="rounded-xl border-slate-200"
                   disabled={isResettingVerifikasi}
@@ -395,7 +537,7 @@ export function LessonPlanReviewModals({
                 <Button
                   type="submit"
                   disabled={isResettingVerifikasi || !resetPin}
-                  className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold"
+                  className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold cursor-pointer"
                 >
                   {isResettingVerifikasi && (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />

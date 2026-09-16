@@ -30,6 +30,8 @@ export interface ResetVerificationLessonPlansPayload {
   pin: string;
   target?: 'kepsek' | 'direktur' | 'both';
   lembaga_id?: number | null;
+  kelas_id?: number | null;
+  pegawai_id?: number | null;
   lesson_plan_ids?: number[];
 }
 
@@ -83,6 +85,8 @@ export interface ResetAbsensiPayload {
   mapel_id?: number | null;
   pertemuan_ke?: number | null;
   tanggal?: string | null;
+  tanggal_mulai?: string | null;
+  tanggal_akhir?: string | null;
 }
 
 export const resetAbsensi = async (payload: ResetAbsensiPayload) => {

@@ -465,7 +465,7 @@ export const bulkVerifyLessonPlans = async (req: AuthRequest, res: Response, nex
 // Reset Verification Lesson Plans (Khusus Direktur & Super Admin dengan PIN 1859)
 export const resetVerificationLessonPlans = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { pin, target = 'both', lembaga_id, lesson_plan_ids } = req.body;
+    const { pin, target = 'both', lembaga_id, kelas_id, pegawai_id, lesson_plan_ids } = req.body;
 
     if (String(pin).trim() !== '1859') {
       res.status(400).json({ error: 'PIN konfirmasi salah! Reset verifikasi dibatalkan.' });
@@ -483,8 +483,18 @@ export const resetVerificationLessonPlans = async (req: AuthRequest, res: Respon
     if (lesson_plan_ids && Array.isArray(lesson_plan_ids) && lesson_plan_ids.length > 0) {
       planWhere.lesson_plan_id = { in: lesson_plan_ids.map(Number) };
     }
+    if (pegawai_id && Number(pegawai_id) > 0) {
+      planWhere.pegawai_id = Number(pegawai_id);
+    }
+    if (kelas_id && Number(kelas_id) > 0) {
+      planWhere.jadwal = {
+        ...planWhere.jadwal,
+        kelas_id: Number(kelas_id)
+      };
+    }
     if (lembaga_id && Number(lembaga_id) > 0) {
       planWhere.jadwal = {
+        ...planWhere.jadwal,
         kelas: { lembaga_id: Number(lembaga_id) }
       };
     }
@@ -548,7 +558,7 @@ export const resetVerificationLessonPlans = async (req: AuthRequest, res: Respon
 // Reset Absensi (Khusus Direktur & Super Admin dengan PIN 1859)
 export const resetAbsensi = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { pin, type, lembaga_id, kelas_id, mapel_id, pertemuan_ke, tanggal } = req.body;
+    const { pin, type, lembaga_id, kelas_id, mapel_id, pertemuan_ke, tanggal, tanggal_mulai, tanggal_akhir } = req.body;
 
     // 1. Validasi PIN konfirmasi (1859)
     if (String(pin).trim() !== '1859') {
@@ -577,8 +587,13 @@ export const resetAbsensi = async (req: AuthRequest, res: Response, next: NextFu
       if (pertemuan_ke && Number(pertemuan_ke) > 0) {
         jurnalWhere.pertemuan_ke = Number(pertemuan_ke);
       }
-      if (tanggal) {
-        jurnalWhere.tanggal = tanggal;
+      if (tanggal_mulai && tanggal_akhir) {
+        jurnalWhere.tanggal = {
+          gte: String(tanggal_mulai),
+          lte: String(tanggal_akhir)
+        };
+      } else if (tanggal) {
+        jurnalWhere.tanggal = String(tanggal);
       }
 
       // Filter jadwal berdasarkan kelas, mapel, lembaga
@@ -619,15 +634,15 @@ export const resetAbsensi = async (req: AuthRequest, res: Response, next: NextFu
         deletedJurnalCount += jurnalRes.count;
       }
 
-      // Jika mereset per kelas atau semua (tanpa filter pertemuan khusus), pastikan tidak ada absensi pelajaran tersisa
-      if (kelas_id && (!pertemuan_ke || Number(pertemuan_ke) === 0)) {
+      // Jika mereset per kelas atau semua (tanpa filter pertemuan khusus dan tanpa filter tanggal), pastikan tidak ada absensi pelajaran tersisa
+      if (kelas_id && (!pertemuan_ke || Number(pertemuan_ke) === 0) && !tanggal && !tanggal_mulai) {
         const extraAbsensi = await prisma.absensiPelajaran.deleteMany({
           where: {
             siswa: { kelas_id: Number(kelas_id) }
           }
         });
         deletedAbsensiPelajaranCount += extraAbsensi.count;
-      } else if (!kelas_id && !pertemuan_ke && !mapel_id && !lembaga_id && !tanggal) {
+      } else if (!kelas_id && !pertemuan_ke && !mapel_id && !lembaga_id && !tanggal && !tanggal_mulai) {
         // Reset ALL Mapel
         const allAbsPel = await prisma.absensiPelajaran.deleteMany({});
         deletedAbsensiPelajaranCount += allAbsPel.count;
@@ -639,8 +654,13 @@ export const resetAbsensi = async (req: AuthRequest, res: Response, next: NextFu
     // Reset Absensi Harian
     if (resetHarian) {
       const harianWhere: any = {};
-      if (tanggal) {
-        harianWhere.tanggal = tanggal;
+      if (tanggal_mulai && tanggal_akhir) {
+        harianWhere.tanggal = {
+          gte: String(tanggal_mulai),
+          lte: String(tanggal_akhir)
+        };
+      } else if (tanggal) {
+        harianWhere.tanggal = String(tanggal);
       }
 
       const siswaWhere: any = {};

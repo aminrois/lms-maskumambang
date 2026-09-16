@@ -32,7 +32,10 @@ export default function ResetAbsensi() {
   const [selectedKelas, setSelectedKelas] = useState<string>("");
   const [selectedMapel, setSelectedMapel] = useState<string>("");
   const [selectedPertemuan, setSelectedPertemuan] = useState<string>("");
+  const [tanggalMode, setTanggalMode] = useState<"all" | "single" | "range">("all");
   const [selectedTanggal, setSelectedTanggal] = useState<string>("");
+  const [selectedTanggalMulai, setSelectedTanggalMulai] = useState<string>("");
+  const [selectedTanggalAkhir, setSelectedTanggalAkhir] = useState<string>("");
 
   // State Modal Konfirmasi PIN
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -82,7 +85,9 @@ export default function ResetAbsensi() {
         kelas_id: selectedKelas ? Number(selectedKelas) : null,
         mapel_id: selectedMapel ? Number(selectedMapel) : null,
         pertemuan_ke: selectedPertemuan ? Number(selectedPertemuan) : null,
-        tanggal: selectedTanggal ? selectedTanggal : null
+        tanggal: tanggalMode === "single" && selectedTanggal ? selectedTanggal : null,
+        tanggal_mulai: tanggalMode === "range" && selectedTanggalMulai ? selectedTanggalMulai : null,
+        tanggal_akhir: tanggalMode === "range" && selectedTanggalAkhir ? selectedTanggalAkhir : null,
       });
     },
     onSuccess: (data) => {
@@ -329,17 +334,91 @@ export default function ResetAbsensi() {
                     </div>
                   )}
 
-                  {/* Tanggal */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      Tanggal Spesifik (Opsional)
+                  {/* Mode & Pilihan Tanggal */}
+                  <div className="sm:col-span-2 space-y-3 pt-1 border-t border-slate-100">
+                    <label className="block text-xs font-bold text-slate-700">
+                      Cakupan Tanggal Reset
                     </label>
-                    <Input
-                      type="date"
-                      value={selectedTanggal}
-                      onChange={(e) => setSelectedTanggal(e.target.value)}
-                      className="bg-white border-slate-200 rounded-xl text-xs"
-                    />
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                      <label className={`p-2.5 rounded-xl border text-xs flex items-center gap-2 cursor-pointer transition-all ${tanggalMode === 'all' ? 'border-rose-500 bg-rose-50/70 font-bold text-rose-900 ring-1 ring-rose-500' : 'border-slate-200 hover:bg-slate-50 text-slate-700'}`}>
+                        <input
+                          type="radio"
+                          name="tanggalMode"
+                          value="all"
+                          checked={tanggalMode === 'all'}
+                          onChange={() => setTanggalMode('all')}
+                          className="accent-rose-600"
+                        />
+                        <span>Semua Tanggal</span>
+                      </label>
+
+                      <label className={`p-2.5 rounded-xl border text-xs flex items-center gap-2 cursor-pointer transition-all ${tanggalMode === 'single' ? 'border-rose-500 bg-rose-50/70 font-bold text-rose-900 ring-1 ring-rose-500' : 'border-slate-200 hover:bg-slate-50 text-slate-700'}`}>
+                        <input
+                          type="radio"
+                          name="tanggalMode"
+                          value="single"
+                          checked={tanggalMode === 'single'}
+                          onChange={() => setTanggalMode('single')}
+                          className="accent-rose-600"
+                        />
+                        <span>Tanggal Spesifik</span>
+                      </label>
+
+                      <label className={`p-2.5 rounded-xl border text-xs flex items-center gap-2 cursor-pointer transition-all ${tanggalMode === 'range' ? 'border-rose-500 bg-rose-50/70 font-bold text-rose-900 ring-1 ring-rose-500' : 'border-slate-200 hover:bg-slate-50 text-slate-700'}`}>
+                        <input
+                          type="radio"
+                          name="tanggalMode"
+                          value="range"
+                          checked={tanggalMode === 'range'}
+                          onChange={() => setTanggalMode('range')}
+                          className="accent-rose-600"
+                        />
+                        <span>Rentang Tanggal (A s/d B)</span>
+                      </label>
+                    </div>
+
+                    {/* Single Date Input */}
+                    {tanggalMode === 'single' && (
+                      <div className="pt-1">
+                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                          Pilih Tanggal:
+                        </label>
+                        <Input
+                          type="date"
+                          value={selectedTanggal}
+                          onChange={(e) => setSelectedTanggal(e.target.value)}
+                          className="bg-white border-slate-200 rounded-xl text-xs max-w-xs"
+                        />
+                      </div>
+                    )}
+
+                    {/* Date Range Inputs */}
+                    {tanggalMode === 'range' && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                            Dari Tanggal (Tanggal Mulai / A):
+                          </label>
+                          <Input
+                            type="date"
+                            value={selectedTanggalMulai}
+                            onChange={(e) => setSelectedTanggalMulai(e.target.value)}
+                            className="bg-white border-slate-200 rounded-xl text-xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                            Sampai Tanggal (Tanggal Akhir / B):
+                          </label>
+                          <Input
+                            type="date"
+                            value={selectedTanggalAkhir}
+                            onChange={(e) => setSelectedTanggalAkhir(e.target.value)}
+                            className="bg-white border-slate-200 rounded-xl text-xs"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -419,7 +498,11 @@ export default function ResetAbsensi() {
                 <div className="flex justify-between py-1.5">
                   <span className="text-slate-500">Tanggal:</span>
                   <strong className="text-slate-800">
-                    {selectedTanggal || "Semua Tanggal"}
+                    {tanggalMode === "all"
+                      ? "Semua Tanggal"
+                      : tanggalMode === "single"
+                      ? (selectedTanggal || "Tanggal belum dipilih")
+                      : `${selectedTanggalMulai || "..."} s/d ${selectedTanggalAkhir || "..."}`}
                   </strong>
                 </div>
               </div>
