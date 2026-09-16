@@ -6,24 +6,41 @@ import { getJadwalPelajarans } from "@/lib/api/services/akademikService";
 import { restClient } from "@/lib/api/axios";
 import type { AbsensiState } from "../Index";
 
+function normalizeText(text: string): string {
+    return (text || '')
+        .toLowerCase()
+        .replace(/['’`]/g, "'")
+        .replace(/&/g, 'dan')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function cleanRomanNumeral(str: string): string {
+    return str.replace(/\b(iv|iii|ii|i)\b/gi, '').replace(/\s+/g, ' ').trim();
+}
+
 export function isLPForSubjectAndClass(lpTitleRaw: string, mapelNamaRaw: string, kelasNamaRaw: string): boolean {
     if (!lpTitleRaw || !mapelNamaRaw || !kelasNamaRaw) return false;
 
-    const lpTitle = lpTitleRaw.trim().toLowerCase();
-    const mapelNama = mapelNamaRaw.trim().toLowerCase();
-    const kelasNama = kelasNamaRaw.trim().toLowerCase();
+    const lpTitle = normalizeText(lpTitleRaw);
+    const mapelNama = normalizeText(mapelNamaRaw);
+    const kelasNama = normalizeText(kelasNamaRaw);
+
+    const baseLPTitle = cleanRomanNumeral(lpTitle);
+    const baseMapelNama = cleanRomanNumeral(mapelNama);
 
     // 1. Must contain/match subject name
-    if (!lpTitle.includes(mapelNama)) return false;
+    const matchMapel = lpTitle.includes(mapelNama) || baseLPTitle.includes(baseMapelNama) || baseMapelNama.includes(baseLPTitle);
+    if (!matchMapel) return false;
 
     // 2. Check for class specification after dash (- or –)
-    const dashParts = lpTitle.split(/[-–]/);
+    const dashParts = lpTitleRaw.split(/[-–]/);
     if (dashParts.length > 1) {
-        const classPart = dashParts.slice(1).join(" ").trim();
+        const classPart = normalizeText(dashParts.slice(1).join(" "));
         if (!classPart) return true;
 
-        const specifiedClasses = classPart.split(',').map(c => c.trim().toLowerCase());
-        return specifiedClasses.some(c => c === kelasNama || c.includes(kelasNama));
+        const specifiedClasses = classPart.split(/[,/]/).map(c => c.trim());
+        return specifiedClasses.some(c => c === kelasNama || c.includes(kelasNama) || kelasNama.includes(c));
     }
 
     // 3. Generic LP title without class specification, matches all classes for this mapel
@@ -45,28 +62,31 @@ export function useWizardMenu({ currentStep, setCurrentStep, selections }: UseWi
 
     // 1. Fetch Jadwal Mengajar & validasi lesson plan guru lain (Rule 1)
     const { data: sesiList = [], isLoading: isLoadingJadwal } = useQuery({
-        queryKey: ['kbm', 'absensi', 'jadwals_v5', role, pegawai_id, lembaga_id],
+        queryKey: ['kbm', 'absensi', 'jadwals_v6', role, pegawai_id, lembaga_id],
         queryFn: async () => {
+            const isGlobalRole = ['Super Admin', 'Direktur', 'Admin Lembaga', 'WaKa Kurikulum'].includes(role || '');
             const params: Record<string, string> = { select: "jadwal_id,hari,pegawai_id,kelas:kelas_id(kelas_id,nama_kelas,lembaga_id),mapel:mapel_id(mapel_id,nama_mapel),jam_mulai:jam_akademik!jam_mulai_id(urutan_jam,jam_mulai)" };
             
-            const isGlobalRole = ['Super Admin', 'Direktur', 'Admin Lembaga', 'WaKa Kurikulum'].includes(role || '');
             if (!isGlobalRole && pegawai_id) {
-                // Filter pegawai di DB level agar data yang ditarik lebih kecil
                 params['pegawai_id'] = `eq.${pegawai_id}`;
+            }
+
+            const lpParams: Record<string, any> = {
+                select: "lesson_plan_id,pegawai_id,jadwal_id,judul_rpp,status_verifikasi_kepsek,status_verifikasi_direktur,lesson_plan_detail(detail_id,pertemuan_ke)",
+                limit: 5000
+            };
+            if (!isGlobalRole && pegawai_id) {
+                lpParams['pegawai_id'] = `eq.${pegawai_id}`;
             }
 
             const [res, allLPs] = await Promise.all([
                 getJadwalPelajarans(params),
-                getLessonPlans({
-                    select: "lesson_plan_id,pegawai_id,jadwal_id,judul_rpp,status_verifikasi_kepsek,status_verifikasi_direktur",
-                    limit: 1000
-                })
+                getLessonPlans(lpParams)
             ]);
 
             // Filter berdasarkan lembaga_id dan status validitas Lesson Plan mapel & kelas tersebut
             let filtered = res.map((j: any) => {
                 const matchedForJ = (allLPs || []).filter((lp: any) => {
-                    const isGlobalRole = ['Super Admin', 'Direktur', 'Admin Lembaga', 'WaKa Kurikulum'].includes(role || '');
                     if (!isGlobalRole && Number(lp.pegawai_id) !== Number(pegawai_id)) return false;
 
                     if (lp.jadwal_id && Number(lp.jadwal_id) === Number(j.jadwal_id)) {
@@ -77,7 +97,7 @@ export function useWizardMenu({ currentStep, setCurrentStep, selections }: UseWi
                 });
 
                 const userHasVerified = matchedForJ.some((lp: any) =>
-                    (role && ['Super Admin', 'Direktur', 'Admin Lembaga', 'WaKa Kurikulum'].includes(role) || Number(lp.pegawai_id) === Number(pegawai_id)) &&
+                    (isGlobalRole || Number(lp.pegawai_id) === Number(pegawai_id)) &&
                     lp.status_verifikasi_kepsek === 'Disetujui' && lp.status_verifikasi_direktur === 'Disetujui'
                 );
 
@@ -106,8 +126,7 @@ export function useWizardMenu({ currentStep, setCurrentStep, selections }: UseWi
                 const matchLembaga = !lembaga_id || Number(j.kelas?.lembaga_id) === Number(lembaga_id);
                 if (!matchLembaga) return false;
 
-                // Double-check pegawai untuk global role
-                const isGlobalRole = ['Super Admin', 'Direktur', 'Admin Lembaga', 'WaKa Kurikulum'].includes(role || '');
+                // Double-check pegawai untuk non-global role
                 if (!isGlobalRole && Number(j.pegawai_id) !== Number(pegawai_id)) return false;
 
                 return true;
@@ -150,12 +169,11 @@ export function useWizardMenu({ currentStep, setCurrentStep, selections }: UseWi
                     label_jam = `Jam ${urutanList.join(', ')}`;
                 }
 
-                // Gunakan allLPs dari closure query di atas (tidak perlu fetch ulang)
+                // Gunakan allLPs dari closure query di atas
                 const matchedLPs = (allLPs || []).filter((lp: any) => {
                     const isDisetujui = lp.status_verifikasi_kepsek === 'Disetujui' && lp.status_verifikasi_direktur === 'Disetujui';
                     if (!isDisetujui) return false;
 
-                    const isGlobalRole = ['Super Admin', 'Direktur', 'Admin Lembaga', 'WaKa Kurikulum'].includes(role || '');
                     if (!isGlobalRole && Number(lp.pegawai_id) !== Number(pegawai_id)) return false;
 
                     const groupJadwalIds = groupJadwals.map((s: any) => Number(s.jadwal_id));

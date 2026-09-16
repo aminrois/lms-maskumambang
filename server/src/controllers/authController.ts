@@ -79,9 +79,8 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
     }
 
     const isMatch = await bcrypt.compare(cleanPassword, user.password_hash);
-    const isTrialFallback = (cleanPassword === 'password123' || cleanPassword === 'admin123');
 
-    if (!isMatch && !isTrialFallback) {
+    if (!isMatch) {
       res.status(401).json({ success: false, message: 'Kata sandi yang Anda masukkan salah.' });
       return;
     }

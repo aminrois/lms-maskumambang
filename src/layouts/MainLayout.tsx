@@ -95,30 +95,26 @@ const MainLayout: React.FC = () => {
     if (allLembagas.length === 0) return [];
     if (isGlobalRole) return allLembagas;
 
-    // Filter by active role's assigned lembaga_id
+    // Filter strictly by active role's assigned lembaga_id from userRoles
     const roleAssignedIds = userRoles
       .filter(r => r.role === userRole && r.lembaga_id !== null)
-      .map(r => Number(r.lembaga_id));
+      .map(r => Number(r.lembaga_id))
+      .filter(id => !isNaN(id) && id > 0);
 
-    // Also include lembaga_id from pegawai_lembaga relations
+    if (roleAssignedIds.length > 0) {
+      return allLembagas.filter((l: any) => roleAssignedIds.includes(Number(l.lembaga_id)));
+    }
+
+    // Fallback: only if active role has no specific lembaga_id in user_roles
     const pegawaiAssignedIds = ((pegawaiData as any)?.pegawai_lembaga || [])
       .map((pl: any) => Number(pl.lembaga_id))
       .filter((id: number) => !isNaN(id) && id > 0);
 
-    const allAssignedIds = Array.from(new Set([...roleAssignedIds, ...pegawaiAssignedIds]));
-
-    if (allAssignedIds.length === 0) {
-      // Fallback: any lembaga in userRoles
-      const fallbackIds = userRoles
-        .map(r => (r.lembaga_id !== null ? Number(r.lembaga_id) : null))
-        .filter((id): id is number => id !== null && !isNaN(id));
-      if (fallbackIds.length > 0) {
-        return allLembagas.filter((l: any) => fallbackIds.includes(Number(l.lembaga_id)));
-      }
-      return allLembagas;
+    if (pegawaiAssignedIds.length > 0) {
+      return allLembagas.filter((l: any) => pegawaiAssignedIds.includes(Number(l.lembaga_id)));
     }
 
-    return allLembagas.filter((l: any) => allAssignedIds.includes(Number(l.lembaga_id)));
+    return allLembagas;
   }, [lembagas, isGlobalRole, userRoles, userRole, pegawaiData]);
 
   // Keep active lembaga strictly within allowedLembagas for non-global roles
@@ -137,18 +133,30 @@ const MainLayout: React.FC = () => {
   }, [isGlobalRole, allowedLembagas, userLembaga, userRole, setActiveRole]);
 
   const handleRoleChange = (newRole: string) => {
-    let targetContext = userRoles.find(r => r.role === newRole && r.lembaga_id !== null);
-    if (!targetContext) {
-      const defaultLembagaId = (allowedLembagas.length > 0 && !['Super Admin', 'Direktur'].includes(newRole))
-        ? allowedLembagas[0].lembaga_id
-        : null;
-      targetContext = {
-        role: newRole as any,
-        lembaga_id: defaultLembagaId,
-        lembaga_name: allowedLembagas.find((l: any) => l.lembaga_id === defaultLembagaId)?.singkatan || null,
-      };
+    // Cari daftar lembaga yang dimiliki oleh role baru di userRoles
+    const newRoleEntries = userRoles.filter(r => r.role === newRole && r.lembaga_id !== null);
+    let targetLembagaId: number | null = null;
+    let targetLembagaName: string | null = null;
+
+    if (newRoleEntries.length > 0) {
+      // Jika userLembaga saat ini ada di role baru, pertahankan
+      const currentMatch = newRoleEntries.find(r => Number(r.lembaga_id) === Number(userLembaga));
+      const chosen = currentMatch || newRoleEntries[0];
+      targetLembagaId = chosen.lembaga_id;
+      targetLembagaName = chosen.lembaga_name || lembagas.find((l: any) => l.lembaga_id === chosen.lembaga_id)?.singkatan || null;
+    } else if (['Super Admin', 'Direktur'].includes(newRole)) {
+      targetLembagaId = null;
+      targetLembagaName = null;
+    } else if (allowedLembagas.length > 0) {
+      targetLembagaId = allowedLembagas[0].lembaga_id;
+      targetLembagaName = allowedLembagas[0].singkatan || allowedLembagas[0].nama_lembaga;
     }
-    setActiveRole(targetContext);
+
+    setActiveRole({
+      role: newRole as any,
+      lembaga_id: targetLembagaId,
+      lembaga_name: targetLembagaName,
+    });
     queryClient.invalidateQueries();
     navigate('/dashboard');
   };
