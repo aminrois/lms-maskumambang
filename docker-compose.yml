@@ -35,7 +35,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 5000
-      DATABASE_URL: postgresql://${POSTGRES_USER:-lmsuser}:${POSTGRES_PASSWORD:-changeme}@db:5432/${POSTGRES_DB:-lmsdb}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-lmsuser}:${POSTGRES_PASSWORD:-changeme}@db:5432/${POSTGRES_DB:-lmsdb}?connection_limit=25&pool_timeout=20
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
       CORS_ORIGIN: ${CORS_ORIGIN:-https://lms2.maskumambang.ac.id}
     networks:

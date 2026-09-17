@@ -21,7 +21,7 @@ const getApiBaseUrl = (): string => {
 // Satu axios instance untuk semua request REST API
 export const apiClient = axios.create({
     baseURL: getApiBaseUrl(),
-    timeout: 15000,
+    timeout: 30000,
     headers: {
         'Content-Type': 'application/json',
     },

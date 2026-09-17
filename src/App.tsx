@@ -67,18 +67,13 @@ const PageLoader = () => (
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // staleTime: 2 menit — data dianggap fresh selama 2 menit.
-      // Data tetap up-to-date via useRealtimeSync yang melakukan invalidate
-      // otomatis saat ada perubahan di database.
-      // staleTime: 0 menyebabkan refetch di SETIAP mount & window focus
-      // → request storm → HTTP 500 (Supabase kehabisan koneksi).
-      staleTime: 2 * 60 * 1000,
-      // Nonaktifkan refetch saat user kembali ke tab — sudah ditangani realtime.
+      // staleTime: 30 detik agar data selalu responsif dan fresh
+      staleTime: 30 * 1000,
       refetchOnWindowFocus: false,
       refetchOnMount: true,
-      // Retry hanya 1x untuk mengurangi beban saat DB sedang bermasalah
-      retry: 1,
-      retryDelay: 1000,
+      // Retry otomatis 2x dengan jeda singkat untuk mengatasi transient network error
+      retry: 2,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 3000),
     },
   },
   mutationCache: new MutationCache({
