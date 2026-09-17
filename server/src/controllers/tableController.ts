@@ -13,6 +13,11 @@ const TABLE_CONFIGS: Record<string, ModelConfig> = {
     model: 'lembaga',
     idField: 'lembaga_id',
     defaultInclude: {
+      kelas: {
+        include: {
+          siswa: true,
+        },
+      },
       pegawai_lembaga: true,
     },
   },
@@ -48,6 +53,9 @@ const TABLE_CONFIGS: Record<string, ModelConfig> = {
   wali_murid: {
     model: 'waliMurid',
     idField: 'wali_id',
+    defaultInclude: {
+      siswa: true,
+    },
   },
   siswa: {
     model: 'siswa',
@@ -74,6 +82,7 @@ const TABLE_CONFIGS: Record<string, ModelConfig> = {
     defaultInclude: {
       lembaga: true,
       tahun_ajaran: true,
+      siswa: true,
       wali_kelas: true,
       kelas_mapel: {
         include: {
@@ -87,6 +96,11 @@ const TABLE_CONFIGS: Record<string, ModelConfig> = {
     idField: 'mapel_id',
     defaultInclude: {
       lembaga: true,
+      kelas_mapel: {
+        include: {
+          kelas: true,
+        },
+      },
     },
   },
   kelas_mapel: {
@@ -165,6 +179,11 @@ const TABLE_CONFIGS: Record<string, ModelConfig> = {
         },
       },
       lesson_plan_detail: true,
+      absensi_pelajaran: {
+        include: {
+          siswa: true,
+        },
+      },
     },
   },
   absensi_pelajaran: {
@@ -508,56 +527,6 @@ function parseOrderBy(orderQuery?: string): any {
   return orderBy.length === 1 ? orderBy[0] : orderBy;
 }
 
-function parseSelectTree(selectStr?: string): any {
-  if (!selectStr || typeof selectStr !== 'string') return undefined;
-  const trimmed = selectStr.trim();
-  if (!trimmed || trimmed === '*') return undefined;
-
-  const result: any = {};
-  let current = '';
-  let depth = 0;
-  const tokens: string[] = [];
-
-  for (let i = 0; i < trimmed.length; i++) {
-    const char = trimmed[i];
-    if (char === '(') depth++;
-    else if (char === ')') depth--;
-
-    if (char === ',' && depth === 0) {
-      if (current.trim()) tokens.push(current.trim());
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-  if (current.trim()) tokens.push(current.trim());
-
-  for (const token of tokens) {
-    const parenIndex = token.indexOf('(');
-    if (parenIndex !== -1 && token.endsWith(')')) {
-      let relName = token.substring(0, parenIndex).trim();
-      if (relName.includes(':')) {
-        relName = relName.split(':')[0].trim();
-      }
-      if (relName.endsWith('!inner')) {
-        relName = relName.replace('!inner', '').trim();
-      }
-      relName = normalizeRelationKey(relName);
-      const innerSelect = token.substring(parenIndex + 1, token.length - 1).trim();
-      
-      const parsedInner = parseSelectTree(innerSelect);
-      result[relName] = parsedInner ? { select: parsedInner } : true;
-    } else {
-      const field = normalizeRelationKey(token.trim());
-      if (field && field !== '*') {
-        result[field] = true;
-      }
-    }
-  }
-
-  return Object.keys(result).length > 0 ? result : undefined;
-}
-
 export const getTableRecords = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const tableName = String(req.params.table || '').toLowerCase();
@@ -588,10 +557,7 @@ export const getTableRecords = async (req: AuthRequest, res: Response, next: Nex
       where,
     };
 
-    const parsedSelect = parseSelectTree(req.query.select as string);
-    if (parsedSelect) {
-      queryOptions.select = parsedSelect;
-    } else if (config.defaultInclude) {
+    if (config.defaultInclude) {
       queryOptions.include = config.defaultInclude;
     }
     if (orderBy) {
