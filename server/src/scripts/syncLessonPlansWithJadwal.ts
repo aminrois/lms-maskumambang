@@ -88,15 +88,29 @@ export async function syncLessonPlansWithJadwal() {
       return matchPegawai && matchKelas && matchMapel;
     });
 
-    // If no candidate for targetPegawaiId, try matching by plan.jadwal.pegawai_id or any teacher teaching this mapel+kelas
+    // If no candidate for targetPegawaiId, try matching by plan.jadwal.pegawai_id
     if (candidateJadwals.length === 0 && plan.jadwal?.pegawai_id) {
       targetPegawaiId = plan.jadwal.pegawai_id;
       candidateJadwals = allJadwals.filter((j) => {
         const matchPegawai = j.pegawai_id === targetPegawaiId;
         const matchKelas = rawKelasStr ? j.kelas?.nama_kelas?.toLowerCase() === rawKelasStr.toLowerCase() : true;
         const mapelName = j.mapel?.nama_mapel?.toLowerCase() || "";
-        const matchMapel = baseMapelName ? mapelName.includes(baseMapelName.toLowerCase()) : true;
+        const matchMapel = baseMapelName 
+          ? (mapelName === baseMapelName.toLowerCase() || mapelName.includes(baseMapelName.toLowerCase()) || baseMapelName.toLowerCase().includes(mapelName))
+          : true;
         return matchPegawai && matchKelas && matchMapel;
+      });
+    }
+
+    // If STILL no candidate, find the actual teacher who teaches this Mapel + Kelas in jadwal_pelajaran
+    if (candidateJadwals.length === 0 && rawKelasStr && baseMapelName) {
+      candidateJadwals = allJadwals.filter((j) => {
+        const matchKelas = j.kelas?.nama_kelas?.toLowerCase() === rawKelasStr.toLowerCase();
+        const mapelName = j.mapel?.nama_mapel?.toLowerCase() || "";
+        const matchMapel = mapelName === baseMapelName.toLowerCase() || 
+                           mapelName.includes(baseMapelName.toLowerCase()) || 
+                           baseMapelName.toLowerCase().includes(mapelName);
+        return matchKelas && matchMapel;
       });
     }
 

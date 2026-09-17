@@ -1022,4 +1022,25 @@ export const jurnalMengajarMonitoring = async (req: AuthRequest, res: Response, 
   }
 };
 
+export const syncLessonPlansRpc = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { deduplicateLessonPlans } = await import('../scripts/cleanDuplicateLessonPlans');
+    const { syncLessonPlansWithJadwal } = await import('../scripts/syncLessonPlansWithJadwal');
+
+    const dedupResult = await deduplicateLessonPlans();
+    const syncResult = await syncLessonPlansWithJadwal();
+
+    res.json({
+      success: true,
+      message: 'Sinkronisasi Lesson Plan dengan Jadwal Pelajaran berhasil diselesaikan!',
+      details: {
+        dedup: dedupResult,
+        sync: syncResult,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 
