@@ -634,20 +634,44 @@ export const resetAbsensi = async (req: AuthRequest, res: Response, next: NextFu
         deletedJurnalCount += jurnalRes.count;
       }
 
-      // Jika mereset per kelas atau semua (tanpa filter pertemuan khusus dan tanpa filter tanggal), pastikan tidak ada absensi pelajaran tersisa
-      if (kelas_id && (!pertemuan_ke || Number(pertemuan_ke) === 0) && !tanggal && !tanggal_mulai) {
-        const extraAbsensi = await prisma.absensiPelajaran.deleteMany({
-          where: {
-            siswa: { kelas_id: Number(kelas_id) }
-          }
-        });
-        deletedAbsensiPelajaranCount += extraAbsensi.count;
-      } else if (!kelas_id && !pertemuan_ke && !mapel_id && !lembaga_id && !tanggal && !tanggal_mulai) {
-        // Reset ALL Mapel
-        const allAbsPel = await prisma.absensiPelajaran.deleteMany({});
-        deletedAbsensiPelajaranCount += allAbsPel.count;
-        const allJurnal = await prisma.jurnalMengajar.deleteMany({});
-        deletedJurnalCount += allJurnal.count;
+      // Jika mereset tanpa filter pertemuan khusus dan tanpa filter tanggal, pastikan tidak ada absensi pelajaran tersisa yang cocok
+      if (!pertemuan_ke && !tanggal && !tanggal_mulai) {
+        if (kelas_id && mapel_id) {
+          const extraAbs = await prisma.absensiPelajaran.deleteMany({
+            where: {
+              siswa: { kelas_id: Number(kelas_id) },
+              jurnal: { jadwal: { mapel_id: Number(mapel_id) } }
+            }
+          });
+          deletedAbsensiPelajaranCount += extraAbs.count;
+        } else if (kelas_id) {
+          const extraAbs = await prisma.absensiPelajaran.deleteMany({
+            where: {
+              siswa: { kelas_id: Number(kelas_id) }
+            }
+          });
+          deletedAbsensiPelajaranCount += extraAbs.count;
+        } else if (mapel_id) {
+          const extraAbs = await prisma.absensiPelajaran.deleteMany({
+            where: {
+              jurnal: { jadwal: { mapel_id: Number(mapel_id) } }
+            }
+          });
+          deletedAbsensiPelajaranCount += extraAbs.count;
+        } else if (lembaga_id) {
+          const extraAbs = await prisma.absensiPelajaran.deleteMany({
+            where: {
+              siswa: { kelas: { lembaga_id: Number(lembaga_id) } }
+            }
+          });
+          deletedAbsensiPelajaranCount += extraAbs.count;
+        } else {
+          // Reset ALL Mapel
+          const allAbsPel = await prisma.absensiPelajaran.deleteMany({});
+          deletedAbsensiPelajaranCount += allAbsPel.count;
+          const allJurnal = await prisma.jurnalMengajar.deleteMany({});
+          deletedJurnalCount += allJurnal.count;
+        }
       }
     }
 

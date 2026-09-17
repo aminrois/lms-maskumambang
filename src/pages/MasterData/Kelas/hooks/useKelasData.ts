@@ -80,27 +80,13 @@ export function useKelasData(selectedKelasId: number | null, kelasToDeleteId: nu
     queryKey: ['master-data', 'pegawai-wali'],
     staleTime: 10 * 60 * 1000, // 10 menit
     queryFn: async () => {
-      // Step 1: Ambil user_id dari user_role yang memiliki role Wali Kelas
-      const roleResponse = await restClient.get('/user_role', {
-        params: {
-          select: 'user_id,role!inner(nama_role)',
-          'role.nama_role': 'ilike.*wali kelas*'
-        }
-      });
-      const userIds = (roleResponse.data || []).map((ur: any) => ur.user_id).filter(Boolean);
-      
-      if (userIds.length === 0) {
-        return [];
-      }
-
-      // Step 2: Ambil pegawai yang memiliki user_id tersebut
       const response = await restClient.get('/pegawai', {
         params: {
-          select: 'pegawai_id,nama,pegawai_lembaga(lembaga_id)',
-          user_id: `in.(${userIds.join(',')})`
+          select: 'pegawai_id,nama,status,pegawai_lembaga(lembaga_id)',
+          order: 'nama.asc'
         }
       });
-      return response.data || [];
+      return (response.data || []).filter((p: any) => p.status === 'Aktif');
     }
   });
 

@@ -95,6 +95,8 @@ export const getKelass = async (req: Request, res: Response, next: NextFunction)
       include: {
         lembaga: true,
         tahun_ajaran: true,
+        siswa: true,
+        wali_kelas: true,
       },
       orderBy: { nama_kelas: 'asc' },
     });
@@ -109,7 +111,7 @@ export const getKelasById = async (req: Request, res: Response, next: NextFuncti
     const { id } = req.params;
     const item = await prisma.kelas.findUnique({
       where: { kelas_id: Number(id) },
-      include: { lembaga: true, tahun_ajaran: true, siswa: true },
+      include: { lembaga: true, tahun_ajaran: true, siswa: true, wali_kelas: true },
     });
     if (!item) {
       res.status(404).json({ success: false, message: 'Kelas tidak ditemukan' });

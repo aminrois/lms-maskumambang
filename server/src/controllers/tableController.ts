@@ -83,6 +83,7 @@ const TABLE_CONFIGS: Record<string, ModelConfig> = {
       lembaga: true,
       tahun_ajaran: true,
       siswa: true,
+      wali_kelas: true,
       kelas_mapel: {
         include: {
           mapel: true,

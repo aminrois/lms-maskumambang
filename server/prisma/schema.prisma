@@ -90,6 +90,7 @@ model Pegawai {
   pegawai_lembaga         PegawaiLembaga[]
   jadwal_pelajaran        JadwalPelajaran[]
   lesson_plans            LessonPlan[]
+  kelas_wali              Kelas[]          @relation("WaliKelasRel")
 
   @@index([user_id])
   @@index([status])
@@ -212,11 +213,13 @@ model Kelas {
 
   lembaga          Lembaga           @relation(fields: [lembaga_id], references: [lembaga_id], onDelete: Cascade)
   tahun_ajaran     TahunAjaran       @relation(fields: [tahun_id], references: [tahun_id], onDelete: Cascade)
+  wali_kelas       Pegawai?          @relation("WaliKelasRel", fields: [wali_kelas_id], references: [pegawai_id], onDelete: SetNull)
   siswa            Siswa[]
   kelas_mapel      KelasMapel[]
   jadwal_pelajaran JadwalPelajaran[]
 
   @@index([lembaga_id, tahun_id])
+  @@index([wali_kelas_id])
   @@map("kelas")
 }
 
