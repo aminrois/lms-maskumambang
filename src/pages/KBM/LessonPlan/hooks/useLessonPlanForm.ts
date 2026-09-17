@@ -193,11 +193,34 @@ export function useLessonPlanForm() {
         return;
       }
       try {
-        const params: any = { select: "mapel_id,nama_mapel,lembaga_id", order: "nama_mapel.asc" };
-        if (lembagaId) {
-          params.lembaga_id = `eq.${lembagaId}`;
+        // Query jadwal pelajaran yang diampu oleh guru ini
+        const { restClient } = await import('@/lib/api/axios');
+        const jadwalRes = await restClient.get('/jadwal_pelajaran', {
+          params: {
+            pegawai_id: `eq.${formData.pegawai_id}`,
+            select: 'mapel_id,mapel(mapel_id,nama_mapel,lembaga_id)'
+          }
+        });
+
+        const jadwalList = jadwalRes.data || [];
+        const mapelMap = new Map<number, MATA_PELAJARAN>();
+        for (const j of jadwalList) {
+          if (j.mapel && j.mapel.mapel_id) {
+            mapelMap.set(j.mapel.mapel_id, j.mapel);
+          }
         }
-        const mapelRows = await getMataPelajarans(params);
+
+        let mapelRows = Array.from(mapelMap.values()).sort((a, b) => a.nama_mapel.localeCompare(b.nama_mapel));
+
+        // Jika guru belum memiliki jadwal pelajaran, fallback ke seluruh mapel di lembaga
+        if (mapelRows.length === 0) {
+          const params: any = { select: "mapel_id,nama_mapel,lembaga_id", order: "nama_mapel.asc" };
+          if (lembagaId) {
+            params.lembaga_id = `eq.${lembagaId}`;
+          }
+          mapelRows = await getMataPelajarans(params);
+        }
+
         setMapels(mapelRows);
 
         if (mapelRows.length > 0) {
@@ -218,7 +241,7 @@ export function useLessonPlanForm() {
     };
 
     loadMapels();
-  }, [formData.pegawai_id]);
+  }, [formData.pegawai_id, lembagaId]);
 
   const tambahPertemuan = () => {
     // pertemuan_ke selalu otomatis = jumlah detail saat ini + 1
@@ -358,10 +381,26 @@ export function useLessonPlanForm() {
   const doSave = async () => {
     setIsSubmitting(true);
     try {
+      const { restClient } = await import('@/lib/api/axios');
+      let matchedJadwalId: number | undefined = undefined;
+      if (formData.mapel_id) {
+        const matchJadwalRes = await restClient.get('/jadwal_pelajaran', {
+          params: {
+            pegawai_id: `eq.${formData.pegawai_id}`,
+            mapel_id: `eq.${formData.mapel_id}`,
+            limit: 1,
+          },
+        });
+        if (matchJadwalRes.data && matchJadwalRes.data.length > 0) {
+          matchedJadwalId = matchJadwalRes.data[0].jadwal_id;
+        }
+      }
+
       if (id) {
         await updateLessonPlan(Number(id), {
           judul_rpp: formData.judul_rpp,
           pegawai_id: Number(formData.pegawai_id),
+          ...(matchedJadwalId ? { jadwal_id: matchedJadwalId } : {}),
           status_verifikasi_kepsek: "Menunggu Verifikasi",
           status_verifikasi_direktur: "Menunggu Verifikasi",
           catatan_revisi_kepsek: "",
@@ -403,6 +442,7 @@ export function useLessonPlanForm() {
         const createdPlan = await createLessonPlan({
           judul_rpp: formData.judul_rpp,
           pegawai_id: Number(formData.pegawai_id),
+          jadwal_id: matchedJadwalId,
           status_verifikasi_kepsek: "Menunggu Verifikasi",
           status_verifikasi_direktur: "Menunggu Verifikasi",
         });
