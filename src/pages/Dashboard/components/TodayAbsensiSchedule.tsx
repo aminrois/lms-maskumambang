@@ -210,7 +210,7 @@ export default function TodayAbsensiSchedule({
     }
 
     // Navigasi ke halaman Absensi Mapel dengan data sesi yang sudah terisi otomatis (langsung ke Step 2)
-    navigate("/kbm/absensi", {
+    navigate("/kbm/absensi/mata-pelajaran", {
       state: {
         preselected: {
           jadwal_ids: sesi.jadwalIds,

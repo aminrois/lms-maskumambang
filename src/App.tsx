@@ -1,6 +1,6 @@
 import React, { useEffect, Suspense } from "react";
 import { Toaster, toast } from "sonner";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider, MutationCache } from "@tanstack/react-query";
 import MainLayout from "./layouts/MainLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -389,6 +389,10 @@ const App: React.FC = () => {
                     />
                   }
                 >
+                  <Route
+                    path="absensi"
+                    element={<Navigate to="/kbm/absensi/mata-pelajaran" replace />}
+                  />
                   <Route
                     path="absensi/mata-pelajaran"
                     element={<AbsensiMataPelajaran />}
