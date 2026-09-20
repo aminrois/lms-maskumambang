@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { useDynamicQuickMenu } from "@/hooks/useDynamicQuickMenu";
 import { useFeatureRealtimeSync } from "@/hooks/useRealtimeSync";
 import React from "react";
+import TodayAbsensiSchedule from "./TodayAbsensiSchedule";
 
 
 export default function DashboardModel2() {
@@ -192,6 +193,15 @@ export default function DashboardModel2() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Daftar Absensi Mapel Siap Pakai Hari Ini */}
+      <TodayAbsensiSchedule
+        jadwalData={jadwalData}
+        lessonPlans={lessonPlans}
+        jurnalMengajar={jurnalMengajar}
+        isLoadingJadwal={isLoadingJadwal}
+        pegawaiNama={pegawaiData?.nama}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">

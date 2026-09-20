@@ -22,17 +22,25 @@ export default function AbsensiMapelIndex() {
     const navigate = useNavigate();
     const location = useLocation();
     const updateContext = location.state?.jurnalUpdateContext;
+    const preselected = location.state?.preselected;
 
     const [isInfoOpen, setIsInfoOpen] = useState(false);
-    const [currentStep, setCurrentStep] = useState<number>(updateContext ? 3 : 1);
+    const [currentStep, setCurrentStep] = useState<number>(
+        updateContext ? 3 : preselected?.step ? preselected.step : 1
+    );
     const [selections, setSelections] = useState<AbsensiState>({
-        jadwal_ids: updateContext?.jadwal_id ? [updateContext.jadwal_id] : [],
-        kelas_id: updateContext?.kelas_id || null,
-        mapel_id: updateContext?.mapel_id || null,
-        kelas_nama: updateContext?.kelas_nama || "",
-        mapel_nama: updateContext?.mapel_nama || "",
-        pertemuan: updateContext?.pertemuan || null,
-        lesson_plan_detail_id: updateContext?.lesson_plan_detail_id || null,
+        jadwal_ids: updateContext?.jadwal_id
+            ? [updateContext.jadwal_id]
+            : preselected?.jadwal_ids || [],
+        kelas_id: updateContext?.kelas_id || preselected?.kelas_id || null,
+        mapel_id: updateContext?.mapel_id || preselected?.mapel_id || null,
+        kelas_nama: updateContext?.kelas_nama || preselected?.kelas_nama || "",
+        mapel_nama: updateContext?.mapel_nama || preselected?.mapel_nama || "",
+        pertemuan: updateContext?.pertemuan || preselected?.pertemuan || null,
+        lesson_plan_detail_id:
+            updateContext?.lesson_plan_detail_id ||
+            preselected?.lesson_plan_detail_id ||
+            null,
     });
 
     const steps = [
