@@ -5,7 +5,8 @@ export interface SiswaItem {
   siswa_id: number;
   nisn: string;
   nis?: string;
-  nama_lengkap: string;
+  nama?: string;
+  nama_lengkap?: string;
   jenis_kelamin?: string;
   kelas_id?: number;
 }

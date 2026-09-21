@@ -237,9 +237,12 @@ export const AbsensiMapelScreen = () => {
                 </View>
                 <View style={styles.siswaInfo}>
                   <Text style={styles.siswaNama} numberOfLines={1}>
-                    {siswa.nama_lengkap}
+                    {siswa.nama || siswa.nama_lengkap || "Siswa"}
                   </Text>
-                  <Text style={styles.siswaNis}>NISN: {siswa.nisn || "-"}</Text>
+                  <Text style={styles.siswaNis}>
+                    NISN: {siswa.nisn || "-"}
+                    {siswa.nis ? ` • NIS: ${siswa.nis}` : ""}
+                  </Text>
                 </View>
 
                 {/* Status Toggle Buttons (H, S, I, A) */}
