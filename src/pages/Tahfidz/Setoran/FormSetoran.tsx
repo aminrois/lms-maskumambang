@@ -141,6 +141,7 @@ const FormSetoranTahfidz: React.FC = () => {
 
       let payload: any = {
         siswa_id: Number(selectedSiswaId),
+        pegawai_id: user?.pegawai_id || undefined,
         kategori,
         jenis_hafalan: jenisSetoran,
         tanggal,

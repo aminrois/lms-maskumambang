@@ -7,6 +7,26 @@ const getAuthInfo = (req: Request) => {
   return user;
 };
 
+// Helper to resolve pegawai_id from explicit value, JWT user_id, or database lookup
+const resolvePegawaiId = async (providedPegawaiId?: any, userId?: string): Promise<number | null> => {
+  if (providedPegawaiId && !isNaN(Number(providedPegawaiId))) {
+    return Number(providedPegawaiId);
+  }
+  if (userId) {
+    const p = await prisma.pegawai.findFirst({
+      where: { user_id: userId },
+      select: { pegawai_id: true },
+    });
+    if (p) return p.pegawai_id;
+  }
+  // Fallback to first active pegawai (for testing or superadmin)
+  const fallback = await prisma.pegawai.findFirst({
+    where: { status: 'Aktif' },
+    select: { pegawai_id: true },
+  });
+  return fallback?.pegawai_id || null;
+};
+
 // ==========================================
 // 1. PENUGASAN GURU TAHFIDZ (DIREKTUR / ADMIN)
 // ==========================================
@@ -120,12 +140,15 @@ export const getSantriTahfidz = async (req: Request, res: Response, next: NextFu
       const userRoles = authUser?.roles || [];
       const isGlobal = userRoles.includes('Super Admin') || userRoles.includes('Direktur') || userRoles.includes('Kepala Sekolah');
 
-      if (!isGlobal && authUser?.pegawai_id) {
-        const pengampuRows = await prisma.tahfidzPengampu.findMany({
-          where: { pegawai_id: authUser.pegawai_id },
-          select: { kelas_id: true },
-        });
-        targetKelasIds = pengampuRows.map(p => p.kelas_id);
+      if (!isGlobal && authUser?.user_id) {
+        const userPegawaiId = await resolvePegawaiId(authUser.pegawai_id, authUser.user_id);
+        if (userPegawaiId) {
+          const pengampuRows = await prisma.tahfidzPengampu.findMany({
+            where: { pegawai_id: userPegawaiId },
+            select: { kelas_id: true },
+          });
+          targetKelasIds = pengampuRows.map(p => p.kelas_id);
+        }
       }
     }
 
@@ -346,8 +369,8 @@ export const createSetoran = async (req: Request, res: Response, next: NextFunct
       total_bait,
     } = req.body;
 
-    // Fallback pegawai_id from authenticated user if not provided in body
-    const effectivePegawaiId = pegawai_id ? Number(pegawai_id) : (authUser?.pegawai_id || null);
+    // Resolve effective pegawai_id from payload or authenticated user
+    const effectivePegawaiId = await resolvePegawaiId(pegawai_id, authUser?.user_id);
 
     if (!siswa_id || !effectivePegawaiId || !kategori || !jenis_hafalan || !kelancaran) {
       res.status(400).json({
