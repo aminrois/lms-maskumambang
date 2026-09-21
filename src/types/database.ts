@@ -17,7 +17,7 @@ export interface USER_UPDATE {
 
 export interface ROLE {
   role_id: number;
-  nama_role: 'Super Admin' | 'Direktur' | 'Kepala Sekolah' | 'Admin Lembaga' | 'WaKa Kurikulum' | 'Wali Kelas' | 'Guru' | 'Wali Murid';
+  nama_role: 'Super Admin' | 'Direktur' | 'Kepala Sekolah' | 'Admin Lembaga' | 'WaKa Kurikulum' | 'Wali Kelas' | 'Guru' | 'Guru Tahfidz' | 'Wali Murid';
 }
 
 export interface USER_ROLE {

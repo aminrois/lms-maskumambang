@@ -4,6 +4,7 @@ import userRoutes from './userRoutes';
 import masterRoutes from './masterRoutes';
 import akademikRoutes from './akademikRoutes';
 import kbmRoutes from './kbmRoutes';
+import tahfidzRoutes from './tahfidzRoutes';
 import rpcRoutes from './rpcRoutes';
 import tableRoutes from './tableRoutes';
 import { authenticate } from '../middlewares/authMiddleware';
@@ -17,6 +18,7 @@ router.use('/users', userRoutes);
 router.use('/master', masterRoutes);
 router.use('/akademik', akademikRoutes);
 router.use('/kbm', kbmRoutes);
+router.use('/tahfidz', tahfidzRoutes);
 router.use('/rpc', rpcRoutes);
 
 // User Auth Management Actions

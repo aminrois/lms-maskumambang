@@ -1,7 +1,8 @@
 import {
   LayoutDashboard, Building, Book, GraduationCap, User,
   Calendar, BarChart, FileText, BookOpen, Clock,
-  PenTool, Clipboard, Eye, CalendarDays, BookMarked, RotateCcw
+  PenTool, Clipboard, Eye, CalendarDays, BookMarked, RotateCcw,
+  Sparkles, Target, History, UserCheck
 } from "lucide-react";
 
 export type MenuItem = {
@@ -22,6 +23,15 @@ export const allMenuGroups: MenuGroup[] = [
     category: "Umum",
     items: [
       { name: "Dashboard", icon: LayoutDashboard, path: "/dashboard", color: "blue" }
+    ]
+  },
+  {
+    category: "Tahfidz & Hafalan",
+    items: [
+      { name: "Input Setoran", icon: Sparkles, path: "/tahfidz/setoran", allowedRoles: ['Super Admin', 'Direktur', 'Guru Tahfidz'], color: "emerald" },
+      { name: "Target & Progres", icon: Target, path: "/tahfidz/target", allowedRoles: ['Super Admin', 'Direktur', 'Guru Tahfidz', 'Wali Kelas'], color: "blue" },
+      { name: "Riwayat Setoran", icon: History, path: "/tahfidz/riwayat", allowedRoles: ['Super Admin', 'Direktur', 'Guru Tahfidz', 'Wali Kelas', 'Wali Murid'], color: "purple" },
+      { name: "Penugasan Kelas", icon: UserCheck, path: "/tahfidz/penugasan", allowedRoles: ['Super Admin', 'Direktur'], color: "amber" },
     ]
   },
   {

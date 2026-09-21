@@ -84,6 +84,7 @@ const MainLayout: React.FC = () => {
         'WaKa Kurikulum',
         'Wali Kelas',
         'Guru',
+        'Guru Tahfidz',
       ]
     : (userRoles.length > 0 ? Array.from(new Set(userRoles.map(r => r.role))) : [userRole || 'Super Admin']);
 

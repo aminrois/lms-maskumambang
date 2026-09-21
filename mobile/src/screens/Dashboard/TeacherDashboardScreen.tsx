@@ -214,6 +214,27 @@ export const TeacherDashboardScreen = () => {
           </View>
         </View>
 
+        {/* Quick Action: Setoran Tahfidz Santri */}
+        <TouchableOpacity
+          onPress={() => navigation.navigate("TahfidzSetoran")}
+          style={styles.tahfidzBanner}
+          activeOpacity={0.8}
+        >
+          <View style={styles.tahfidzBannerContent}>
+            <View style={styles.tahfidzIconBox}>
+              <Sparkles size={20} color="#FFFFFF" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.tahfidzBannerTitle}>Setoran Hafalan Santri</Text>
+              <Text style={styles.tahfidzBannerSub}>Al-Qur'an, Hadits, & Matan Ilmu</Text>
+            </View>
+            <View style={styles.tahfidzActionBtn}>
+              <Text style={styles.tahfidzActionText}>Input</Text>
+              <ArrowRight size={14} color="#FFFFFF" />
+            </View>
+          </View>
+        </TouchableOpacity>
+
         {/* Filter Hari */}
         <View style={styles.daySelectorContainer}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dayScroll}>
@@ -489,5 +510,53 @@ const styles = StyleSheet.create({
   },
   actionRow: {
     flexDirection: "row",
+  },
+  tahfidzBanner: {
+    backgroundColor: "#103426",
+    borderRadius: 16,
+    marginBottom: 16,
+    padding: 14,
+    shadowColor: "#103426",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  tahfidzBannerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  tahfidzIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tahfidzBannerTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
+  tahfidzBannerSub: {
+    fontSize: 11,
+    color: "#A7F3D0",
+    marginTop: 2,
+  },
+  tahfidzActionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#059669",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  tahfidzActionText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#FFFFFF",
   },
 });

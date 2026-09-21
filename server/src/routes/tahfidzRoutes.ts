@@ -1,0 +1,34 @@
+// server/src/routes/tahfidzRoutes.ts
+import { Router } from 'express';
+import { authenticate } from '../middlewares/authMiddleware';
+import * as tahfidzController from '../controllers/tahfidzController';
+
+const router = Router();
+
+// Semua rute tahfidz membutuhkan otentikasi login
+router.use(authenticate);
+
+// 1. Penugasan Guru Tahfidz (Direktur / Superadmin)
+router.get('/pengampu', tahfidzController.getPengampu);
+router.post('/pengampu', tahfidzController.assignPengampu);
+router.delete('/pengampu/:id', tahfidzController.deletePengampu);
+
+// 2. Santri Binaan Guru Tahfidz
+router.get('/santri', tahfidzController.getSantriTahfidz);
+
+// 3. Target Hafalan
+router.get('/target/:siswa_id', tahfidzController.getTargetsBySiswa);
+router.post('/target', tahfidzController.createTarget);
+router.patch('/target/:id', tahfidzController.updateTarget);
+router.delete('/target/:id', tahfidzController.deleteTarget);
+
+// 4. Setoran Hafalan
+router.get('/setoran', tahfidzController.getSetoranList);
+router.post('/setoran', tahfidzController.createSetoran);
+router.delete('/setoran/:id', tahfidzController.deleteSetoran);
+
+// 5. Statistik & Progres
+router.get('/statistik/dashboard', tahfidzController.getTahfidzDashboardSummary);
+router.get('/statistik/siswa/:siswa_id', tahfidzController.getStatistikSiswa);
+
+export default router;

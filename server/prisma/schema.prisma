@@ -24,7 +24,7 @@ model User {
 
 model Role {
   role_id    Int        @id @default(autoincrement())
-  nama_role  String     @unique // 'Super Admin' | 'Direktur' | 'Kepala Sekolah' | 'Admin Lembaga' | 'WaKa Kurikulum' | 'Wali Kelas' | 'Guru' | 'Wali Murid'
+  nama_role  String     @unique // 'Super Admin' | 'Direktur' | 'Kepala Sekolah' | 'Admin Lembaga' | 'WaKa Kurikulum' | 'Wali Kelas' | 'Guru' | 'Guru Tahfidz' | 'Wali Murid'
   user_roles UserRole[]
 
   @@map("roles")
@@ -61,6 +61,7 @@ model Lembaga {
   jam_akademik      JamAkademik[]
   kalender_akademik KalenderAkademik[]
   activity_plan     ActivityPlan[]
+  tahfidz_pengampu  TahfidzPengampu[]
 
   @@map("lembaga")
 }
@@ -91,6 +92,8 @@ model Pegawai {
   jadwal_pelajaran        JadwalPelajaran[]
   lesson_plans            LessonPlan[]
   kelas_wali              Kelas[]          @relation("WaliKelasRel")
+  tahfidz_pengampu        TahfidzPengampu[]
+  tahfidz_setoran         TahfidzSetoran[]
 
   @@index([user_id])
   @@index([status])
@@ -181,6 +184,8 @@ model Siswa {
   kelas               Kelas?            @relation(fields: [kelas_id], references: [kelas_id], onDelete: SetNull)
   absensi_pelajaran   AbsensiPelajaran[]
   absensi_harian      AbsensiHarian[]
+  tahfidz_target      TahfidzTarget[]
+  tahfidz_setoran     TahfidzSetoran[]
 
   @@index([kelas_id])
   @@index([status])
@@ -217,6 +222,7 @@ model Kelas {
   siswa            Siswa[]
   kelas_mapel      KelasMapel[]
   jadwal_pelajaran JadwalPelajaran[]
+  tahfidz_pengampu TahfidzPengampu[]
 
   @@index([lembaga_id, tahun_id])
   @@index([wali_kelas_id])
@@ -410,4 +416,87 @@ model ActivityPlan {
   tahun_ajaran       TahunAjaran  @relation(fields: [tahun_id], references: [tahun_id], onDelete: Cascade)
 
   @@map("activity_plan")
+}
+
+model TahfidzPengampu {
+  pengampu_id   Int        @id @default(autoincrement())
+  pegawai_id    Int
+  lembaga_id    Int
+  kelas_id      Int
+  tahun_id      Int?
+  created_at    DateTime   @default(now())
+
+  pegawai       Pegawai    @relation(fields: [pegawai_id], references: [pegawai_id], onDelete: Cascade)
+  lembaga       Lembaga    @relation(fields: [lembaga_id], references: [lembaga_id], onDelete: Cascade)
+  kelas         Kelas      @relation(fields: [kelas_id], references: [kelas_id], onDelete: Cascade)
+
+  @@unique([pegawai_id, kelas_id])
+  @@index([pegawai_id])
+  @@index([kelas_id])
+  @@index([lembaga_id])
+  @@map("tahfidz_pengampu")
+}
+
+model TahfidzTarget {
+  target_id        Int       @id @default(autoincrement())
+  siswa_id         Int
+  kategori         String    // 'Al-Quran' | 'Hadits' | 'Matan Ilmu'
+  target_deskripsi String    // e.g. 'Target 5 Juz (Juz 1-5)', 'Hadits Arbain 42 Hadits'
+  target_nominal   Float     // numerical target e.g. 5 for 5 juz / 42 for 42 hadith / 100 for 100 bait
+  satuan           String    // 'Juz' | 'Surat' | 'Hadits' | 'Bait' | 'Halaman'
+  tanggal_mulai    String
+  tanggal_target   String?
+  status           String    @default("Aktif") // 'Aktif' | 'Tercapai' | 'Ditunda'
+  created_at       DateTime  @default(now())
+
+  siswa            Siswa     @relation(fields: [siswa_id], references: [siswa_id], onDelete: Cascade)
+
+  @@index([siswa_id])
+  @@index([kategori])
+  @@map("tahfidz_target")
+}
+
+model TahfidzSetoran {
+  setoran_id         Int       @id @default(autoincrement())
+  siswa_id           Int
+  pegawai_id         Int       // Guru Tahfidz yang menyimak
+  kategori           String    // 'Al-Quran' | 'Hadits' | 'Matan Ilmu'
+  jenis_hafalan      String    // 'Setoran Baru' | 'Setoran Ulang'
+  tanggal            String    // YYYY-MM-DD
+  durasi_menit       Int?      // Durasi setoran dalam menit
+  kelancaran         String    // 'Sangat Lancar' | 'Lancar' | 'Kurang Lancar' | 'Belum Lancar'
+  catatan_guru       String?
+
+  // --- Khusus Al-Qur'an ---
+  surat_mulai        Int?      // Nomor surat (1-114)
+  surat_mulai_nama   String?   // Nama surat mulai
+  ayat_mulai         Int?
+  surat_selesai      Int?      // Nomor surat (1-114)
+  surat_selesai_nama String?   // Nama surat selesai
+  ayat_selesai       Int?
+  juz                Int?
+  total_ayat         Int?
+
+  // --- Khusus Hadits ---
+  kitab_hadits       String?   // 'Hadits Arbain/Khamsin' | '150 Hadis Abu Hurairah Pilihan' | 'Hadits Bahjatul Qulub' | 'Hadits Bulughul Maram' | 'Hadits Riyadhush Shalihin' | 'Lainnya'
+  hadits_no_mulai    Int?
+  hadits_no_selesai  Int?
+  total_hadits       Int?
+
+  // --- Khusus Matan Ilmu ---
+  nama_matan         String?   // 'Matan Jazariyyah' | 'Tuhfatul Athfal' | 'Jurumiyyah' | 'Alfiyah Ibnu Malik' | 'Baiquniyyah' | etc
+  bait_mulai         Int?
+  bait_selesai       Int?
+  total_bait         Int?
+
+  created_at         DateTime  @default(now())
+
+  siswa              Siswa     @relation(fields: [siswa_id], references: [siswa_id], onDelete: Cascade)
+  pegawai            Pegawai   @relation(fields: [pegawai_id], references: [pegawai_id], onDelete: Cascade)
+
+  @@index([siswa_id])
+  @@index([pegawai_id])
+  @@index([kategori])
+  @@index([tanggal])
+  @@map("tahfidz_setoran")
 }

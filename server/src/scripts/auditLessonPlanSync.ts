@@ -7,50 +7,64 @@ async function runAudit() {
   console.log("🔍 AUDIT SINKRONISASI JADWAL PELAJARAN VS LESSON PLAN");
   console.log("==================================================");
 
-  // 1. Audit Kasus Spesifik: NUR HAYATI dan variasi namanya
-  const nurList = await prisma.pegawai.findMany({
+  // Cek jadwal hari Kamis di kelas 6B
+  console.log("\n=== JADWAL HARI KAMIS DI KELAS 6B ===");
+  const kamis6BJadwals = await prisma.jadwalPelajaran.findMany({
     where: {
-      OR: [
-        { nama: { contains: "NUR HAYATI", mode: "insensitive" } },
-        { nama: { contains: "HAYATI", mode: "insensitive" } },
-      ],
+      hari: "Kamis",
+      kelas: { nama_kelas: "6B" },
     },
     include: {
-      jadwal_pelajaran: {
-        include: {
-          mapel: true,
-          kelas: true,
-        },
-      },
+      mapel: true,
+      kelas: true,
+      pegawai: true,
+      jam_mulai: true,
+      jam_selesai: true,
       lesson_plans: {
         include: {
-          jadwal: {
-            include: {
-              mapel: true,
-              kelas: true,
-              pegawai: true,
-            },
-          },
+          pegawai: true,
         },
       },
     },
   });
 
-  for (const nur of nurList) {
-    console.log(`\n📌 GURU: ${nur.nama} (Pegawai ID: ${nur.pegawai_id})`);
-    console.log(`   Jadwal Pelajaran (${nur.jadwal_pelajaran.length} jadwal):`);
-    for (const j of nur.jadwal_pelajaran) {
-      console.log(`   - Jadwal #${j.jadwal_id} [Hari: ${j.hari}]: Mapel "${j.mapel?.nama_mapel}" (Mapel ID: ${j.mapel_id}) | Kelas "${j.kelas?.nama_kelas}" (Kelas ID: ${j.kelas_id})`);
+  for (const j of kamis6BJadwals) {
+    console.log(`Jadwal #${j.jadwal_id}: Hari: ${j.hari}, Jam: ${j.jam_mulai?.jam_mulai} - ${j.jam_selesai?.jam_selesai}, Mapel: "${j.mapel?.nama_mapel}" (ID: ${j.mapel_id}), Guru: "${j.pegawai?.nama}" (ID: ${j.pegawai_id})`);
+    for (const lp of j.lesson_plans) {
+      console.log(`   Linked LP #${lp.lesson_plan_id}: "${lp.judul_rpp}", Guru di LP: "${lp.pegawai?.nama}" (ID: ${lp.pegawai_id})`);
     }
+  }
 
-    console.log(`   Lesson Plans (${nur.lesson_plans.length} RPP):`);
-    for (const lp of nur.lesson_plans) {
-      const matchJadwal = nur.jadwal_pelajaran.find((j) => j.jadwal_id === lp.jadwal_id);
-      const isSynced = Boolean(matchJadwal);
-      console.log(`   - LP #${lp.lesson_plan_id}: "${lp.judul_rpp}"`);
-      console.log(`     → Linked Jadwal #${lp.jadwal_id}: Mapel "${lp.jadwal?.mapel?.nama_mapel}", Kelas "${lp.jadwal?.kelas?.nama_kelas}", Guru Jadwal "${lp.jadwal?.pegawai?.nama}" (ID: ${lp.jadwal?.pegawai_id})`);
-      console.log(`     → Status Sinkron: ${isSynced ? "✅ SINKRON" : "❌ TIDAK SINKRON DENGAN JADWAL GURU INI"}`);
-    }
+  // Cek LP Tajwid/Tahsin - 6B
+  console.log("\n=== LP TAJWID/TAHSIN - 6B ===");
+  const tajwid6b = await prisma.lessonPlan.findMany({
+    where: {
+      judul_rpp: { contains: "Tajwid", mode: "insensitive" },
+      AND: { judul_rpp: { contains: "6B", mode: "insensitive" } },
+    },
+    include: {
+      pegawai: true,
+      jadwal: {
+        include: {
+          mapel: true,
+          kelas: true,
+          pegawai: true,
+          jam_mulai: true,
+          jam_selesai: true,
+        },
+      },
+    },
+  });
+
+  for (const lp of tajwid6b) {
+    console.log(`LP #${lp.lesson_plan_id}: "${lp.judul_rpp}"`);
+    console.log(`- Guru LP: "${lp.pegawai?.nama}" (pegawai_id: ${lp.pegawai_id})`);
+    console.log(`- Linked Jadwal #${lp.jadwal_id}:`);
+    console.log(`  * Hari: ${lp.jadwal?.hari}`);
+    console.log(`  * Jam: ${lp.jadwal?.jam_mulai?.jam_mulai} - ${lp.jadwal?.jam_selesai?.jam_selesai}`);
+    console.log(`  * Mapel: "${lp.jadwal?.mapel?.nama_mapel}"`);
+    console.log(`  * Kelas: "${lp.jadwal?.kelas?.nama_kelas}"`);
+    console.log(`  * Guru di Jadwal: "${lp.jadwal?.pegawai?.nama}" (pegawai_id: ${lp.jadwal?.pegawai_id})`);
   }
 
   // 1b. Cek siapa yang punya LP Tajwid / Tahsin

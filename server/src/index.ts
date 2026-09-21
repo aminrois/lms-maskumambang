@@ -60,6 +60,7 @@ app.get('/health', (_req, res) => {
 
 // API Routes
 app.use('/api/v1', routes);
+app.use('/api', routes);
 
 // Global Error Handler
 app.use(errorHandler);

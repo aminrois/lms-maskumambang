@@ -53,6 +53,12 @@ const MonitoringUniversal   = React.lazy(() => import("./pages/KBM/Monitoring/Un
 const MonitoringWaliKelas   = React.lazy(() => import("./pages/KBM/Monitoring/WaliKelas"));
 const ActivityPlanIndex     = React.lazy(() => import("./pages/KBM/ActivityPlan/Index"));
 
+// Tahfidz & Hafalan
+const TahfidzPenugasan      = React.lazy(() => import("./pages/Tahfidz/Penugasan/Index"));
+const TahfidzSetoran        = React.lazy(() => import("./pages/Tahfidz/Setoran/FormSetoran"));
+const TahfidzTarget         = React.lazy(() => import("./pages/Tahfidz/Target/TargetSantri"));
+const TahfidzRiwayat        = React.lazy(() => import("./pages/Tahfidz/Riwayat/RiwayatSetoran"));
+
 // Fallback loading saat halaman sedang di-fetch (lazy chunk loading)
 const PageLoader = () => (
   <div className="flex items-center justify-center h-dvh bg-[#F4F7FE]">
@@ -517,6 +523,54 @@ const App: React.FC = () => {
                   }
                 >
                   <Route path="activity-plan" element={<ActivityPlanIndex />} />
+                </Route>
+              </Route>
+
+              {/* --- ROUTING LINK TAHFIDZ & HAFALAN --- */}
+              <Route path="/tahfidz">
+                {/* Penugasan Kelas: Super Admin, Direktur */}
+                <Route
+                  element={
+                    <ProtectedRoute
+                      allowedRoles={["Super Admin", "Direktur"]}
+                    />
+                  }
+                >
+                  <Route path="penugasan" element={<TahfidzPenugasan />} />
+                </Route>
+
+                {/* Input Setoran: Super Admin, Direktur, Guru Tahfidz */}
+                <Route
+                  element={
+                    <ProtectedRoute
+                      allowedRoles={["Super Admin", "Direktur", "Guru Tahfidz"]}
+                    />
+                  }
+                >
+                  <Route path="setoran" element={<TahfidzSetoran />} />
+                </Route>
+
+                {/* Target & Progres Santri */}
+                <Route
+                  element={
+                    <ProtectedRoute
+                      allowedRoles={["Super Admin", "Direktur", "Guru Tahfidz", "Wali Kelas"]}
+                    />
+                  }
+                >
+                  <Route path="target" element={<TahfidzTarget />} />
+                  <Route path="dashboard" element={<TahfidzTarget />} />
+                </Route>
+
+                {/* Riwayat Setoran */}
+                <Route
+                  element={
+                    <ProtectedRoute
+                      allowedRoles={["Super Admin", "Direktur", "Guru Tahfidz", "Wali Kelas", "Wali Murid"]}
+                    />
+                  }
+                >
+                  <Route path="riwayat" element={<TahfidzRiwayat />} />
                 </Route>
               </Route>
             </Route>
