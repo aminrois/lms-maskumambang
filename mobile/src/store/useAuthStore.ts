@@ -2,6 +2,7 @@
 import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authService, AuthResponse } from "../api/authService";
+import { apiClient } from "../api/client";
 import { STORAGE_KEYS, DEFAULT_API_BASE_URL } from "../constants/config";
 
 interface AuthState {
@@ -34,19 +35,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       ]);
 
       if (savedToken && savedUserData) {
+        const activeUrl = savedBaseUrl || DEFAULT_API_BASE_URL;
+        apiClient.defaults.baseURL = activeUrl;
         set({
           token: savedToken,
           user: JSON.parse(savedUserData),
           isAuthenticated: true,
-          apiBaseUrl: savedBaseUrl || DEFAULT_API_BASE_URL,
+          apiBaseUrl: activeUrl,
           isLoading: false,
         });
       } else {
+        const activeUrl = savedBaseUrl || DEFAULT_API_BASE_URL;
+        apiClient.defaults.baseURL = activeUrl;
         set({
           token: null,
           user: null,
           isAuthenticated: false,
-          apiBaseUrl: savedBaseUrl || DEFAULT_API_BASE_URL,
+          apiBaseUrl: activeUrl,
           isLoading: false,
         });
       }
@@ -99,6 +104,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setApiBaseUrl: async (url: string) => {
     const cleanUrl = url.trim();
     await AsyncStorage.setItem(STORAGE_KEYS.API_BASE_URL, cleanUrl);
+    apiClient.defaults.baseURL = cleanUrl;
     set({ apiBaseUrl: cleanUrl });
   },
 }));

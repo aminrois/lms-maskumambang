@@ -1,6 +1,6 @@
 // mobile/src/constants/config.ts
 
-export const DEFAULT_API_BASE_URL = "http://192.168.1.100:3000/api"; // Default Local Dev / Change to VPS
+export const DEFAULT_API_BASE_URL = "http://172.20.10.5:5001/api"; // Mac Local IP & Port Backend
 export const PROD_API_BASE_URL = "https://lms.maskumambang.sch.id/api";
 
 export const STORAGE_KEYS = {
