@@ -1,7 +1,9 @@
 // mobile/src/constants/config.ts
 
-export const DEFAULT_API_BASE_URL = "http://172.20.10.5:5001/api/v1"; // Mac Local IP & Port Backend
-export const PROD_API_BASE_URL = "https://lms.maskumambang.sch.id/api/v1";
+// ✅ Gunakan Production Server sebagai sumber data utama
+export const DEFAULT_API_BASE_URL = "https://lms2.maskumambang.ac.id/api/v1";
+export const PROD_API_BASE_URL = "https://lms2.maskumambang.ac.id/api/v1";
+export const LOCAL_API_BASE_URL = "http://172.20.10.5:5001/api/v1"; // Local Dev (opsional)
 
 export const STORAGE_KEYS = {
   AUTH_TOKEN: "@lms_auth_token",

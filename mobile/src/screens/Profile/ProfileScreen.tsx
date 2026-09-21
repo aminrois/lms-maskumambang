@@ -26,7 +26,7 @@ import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 import { Colors } from "../../constants/colors";
 import { useAuthStore } from "../../store/useAuthStore";
-import { APP_CONFIG, PROD_API_BASE_URL, DEFAULT_API_BASE_URL } from "../../constants/config";
+import { APP_CONFIG, PROD_API_BASE_URL, LOCAL_API_BASE_URL } from "../../constants/config";
 
 export const ProfileScreen = () => {
   const { user, logout, apiBaseUrl, setApiBaseUrl } = useAuthStore();
@@ -167,16 +167,16 @@ export const ProfileScreen = () => {
 
             <View style={styles.presetButtons}>
               <TouchableOpacity
-                style={styles.presetBtn}
+                style={[styles.presetBtn, { backgroundColor: "#E6FBF5" }]}
                 onPress={() => setCustomUrl(PROD_API_BASE_URL)}
               >
-                <Text style={styles.presetBtnText}>Production VPS</Text>
+                <Text style={[styles.presetBtnText, { color: Colors.success }]}>🌐 lms2.maskumambang.ac.id</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.presetBtn}
-                onPress={() => setCustomUrl(DEFAULT_API_BASE_URL)}
+                onPress={() => setCustomUrl(LOCAL_API_BASE_URL)}
               >
-                <Text style={styles.presetBtnText}>Local Dev</Text>
+                <Text style={styles.presetBtnText}>💻 Local Dev</Text>
               </TouchableOpacity>
             </View>
 
