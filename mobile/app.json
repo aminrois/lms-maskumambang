@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "LMS Maskumambang",
+    "slug": "lms-maskumambang",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#F4F7FE",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.maskumambang.lms"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#4318FF",
+        "foregroundImage": "./assets/android-icon-foreground.png"
+      },
+      "package": "com.maskumambang.lms",
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
