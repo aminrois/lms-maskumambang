@@ -64,13 +64,13 @@ export const ProfileScreen = () => {
             <User size={36} color="#FFFFFF" />
           </View>
           <Text style={styles.userName}>
-            {user?.pegawai?.nama || user?.nama_lengkap || "Pengguna LMS"}
+            {user?.pegawai?.nama || user?.username || "Pengguna LMS"}
           </Text>
-          <Text style={styles.userRole}>{user?.peran || "Guru"}</Text>
+          <Text style={styles.userRole}>{user?.roles?.[0]?.nama_role || "Guru"}</Text>
 
-          {user?.pegawai?.nip && (
+          {user?.pegawai?.nig && (
             <View style={styles.nipBadge}>
-              <Text style={styles.nipText}>NIP: {user.pegawai.nip}</Text>
+              <Text style={styles.nipText}>NIG: {user.pegawai.nig}</Text>
             </View>
           )}
         </Card>
@@ -93,7 +93,7 @@ export const ProfileScreen = () => {
             </View>
             <View style={styles.menuText}>
               <Text style={styles.menuLabel}>Hak Akses / Peran</Text>
-              <Text style={styles.menuValue}>{user?.peran || "-"}</Text>
+              <Text style={styles.menuValue}>{user?.roles?.map(r => r.nama_role).join(", ") || "-"}</Text>
             </View>
           </View>
         </Card>

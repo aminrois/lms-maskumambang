@@ -50,7 +50,7 @@ export const TeacherDashboardScreen = () => {
     HARI_MAP[new Date().getDay()] || "Senin"
   );
 
-  const teacherPegawaiId = user?.pegawai_id || user?.pegawai?.pegawai_id;
+  const teacherPegawaiId = user?.pegawai?.pegawai_id;
 
   const todayFormatted = useMemo(() => {
     const d = new Date();
@@ -186,10 +186,10 @@ export const TeacherDashboardScreen = () => {
           <View>
             <Text style={styles.greeting}>Assalamu'alaikum,</Text>
             <Text style={styles.teacherName}>
-              {user?.pegawai?.nama || user?.nama_lengkap || "Ustadz/Ustadzah"}
+              {user?.pegawai?.nama || user?.username || "Ustadz/Ustadzah"}
             </Text>
             <View style={styles.roleTag}>
-              <Text style={styles.roleText}>{user?.peran || "Guru Pengajar"}</Text>
+              <Text style={styles.roleText}>{user?.roles?.[0]?.nama_role || "Guru Pengajar"}</Text>
             </View>
           </View>
           <View style={styles.dateBox}>

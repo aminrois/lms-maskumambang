@@ -2,46 +2,52 @@
 import { apiClient } from "./client";
 
 export interface LoginPayload {
-  identifier: string; // email, username, nisn, atau nip
-  kata_sandi: string;
+  // Backend expects either 'username'/'email' + 'password' fields
+  // We send both to be safe
+  username?: string;
+  email?: string;
+  password?: string;
+  // identifier is mapped to username in the service
+}
+
+export interface AuthUser {
+  user_id: number;
+  username: string;
+  email: string;
+  roles: {
+    role_id: number;
+    nama_role: string;
+    lembaga_id?: number | null;
+    lembaga?: any;
+  }[];
+  pegawai?: {
+    pegawai_id: number;
+    nig?: string;
+    nip?: string;
+    nama: string;
+    jabatan?: string;
+  } | null;
 }
 
 export interface AuthResponse {
-  message: string;
-  token: string;
-  user: {
-    pengguna_id: number;
-    username: string;
-    nama_lengkap: string;
-    email: string;
-    peran: string;
-    pegawai_id?: number | null;
-    siswa_id?: number | null;
-    wali_id?: number | null;
-    pegawai?: {
-      pegawai_id: number;
-      nip?: string;
-      nama: string;
-      jabatan?: string;
-      gelar_depan?: string;
-      gelar_belakang?: string;
-    };
-    siswa?: {
-      siswa_id: number;
-      nisn: string;
-      nama_lengkap: string;
-      kelas?: {
-        kelas_id: number;
-        nama_kelas: string;
-      };
-    };
+  success: boolean;
+  data: {
+    token: string;
+    user: AuthUser;
   };
 }
 
 export const authService = {
-  login: async (payload: LoginPayload): Promise<AuthResponse> => {
-    const response = await apiClient.post<AuthResponse>("/auth/login", payload);
-    return response.data;
+  login: async (identifier: string, password: string): Promise<{ token: string; user: AuthUser }> => {
+    const response = await apiClient.post<AuthResponse>("/auth/login", {
+      username: identifier,
+      email: identifier,
+      password: password,
+    });
+    if (!response.data.success || !response.data.data) {
+      throw new Error((response.data as any).message || 'Login gagal');
+    }
+    return response.data.data;
   },
 
   getProfile: async () => {

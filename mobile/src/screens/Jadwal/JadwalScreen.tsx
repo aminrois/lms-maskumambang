@@ -25,7 +25,7 @@ export const JadwalScreen = () => {
   const [jadwalList, setJadwalList] = useState<JadwalItem[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const teacherPegawaiId = user?.pegawai_id || user?.pegawai?.pegawai_id;
+  const teacherPegawaiId = user?.pegawai?.pegawai_id;
 
   const fetchJadwal = async () => {
     if (!teacherPegawaiId) return;

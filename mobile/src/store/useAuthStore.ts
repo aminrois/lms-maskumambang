@@ -1,13 +1,13 @@
 // mobile/src/store/useAuthStore.ts
 import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { authService, AuthResponse } from "../api/authService";
+import { authService, AuthUser } from "../api/authService";
 import { apiClient } from "../api/client";
 import { STORAGE_KEYS, DEFAULT_API_BASE_URL } from "../constants/config";
 
 interface AuthState {
   token: string | null;
-  user: AuthResponse["user"] | null;
+  user: AuthUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   apiBaseUrl: string;
@@ -64,14 +64,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   login: async (identifier: string, kata_sandi: string) => {
     try {
       set({ isLoading: true });
-      const res = await authService.login({ identifier, kata_sandi });
+      const { token, user } = await authService.login(identifier, kata_sandi);
 
-      await AsyncStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, res.token);
-      await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(res.user));
+      await AsyncStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
+      await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(user));
 
       set({
-        token: res.token,
-        user: res.user,
+        token,
+        user,
         isAuthenticated: true,
         isLoading: false,
       });
