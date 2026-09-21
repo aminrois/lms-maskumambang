@@ -11,7 +11,15 @@ router.use(authenticate);
 // 1. Penugasan Guru Tahfidz (Direktur / Superadmin)
 router.get('/pengampu', tahfidzController.getPengampu);
 router.post('/pengampu', tahfidzController.assignPengampu);
+router.post('/pengampu/multi', tahfidzController.assignMultiKelas);
+router.patch('/pengampu/:id', tahfidzController.updatePengampu);
 router.delete('/pengampu/:id', tahfidzController.deletePengampu);
+
+// 1B. Kelola Data Guru Tahfidz (Direktur)
+router.get('/guru', tahfidzController.getGuruTahfidzList);
+router.post('/guru', tahfidzController.createGuruTahfidz);
+router.patch('/guru/:id', tahfidzController.updateGuruTahfidz);
+router.delete('/guru/:id', tahfidzController.deleteGuruTahfidz);
 
 // 2. Santri Binaan Guru Tahfidz
 router.get('/santri', tahfidzController.getSantriTahfidz);

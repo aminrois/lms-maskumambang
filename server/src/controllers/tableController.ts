@@ -419,7 +419,7 @@ function splitParenthesesList(content: string): string[] {
   return results;
 }
 
-function parseWhere(query: Record<string, any>, idField: string, idParam?: string): any {
+function parseWhere(query: Record<string, any>, idField: string, idParam?: string, tableName?: string): any {
   const andList: any[] = [];
 
   if (idParam !== undefined) {
@@ -436,7 +436,13 @@ function parseWhere(query: Record<string, any>, idField: string, idParam?: strin
         if (typeof item !== 'string') continue;
         const key = rawKey.trim();
         const val = item.trim();
-        if (key.includes('.')) {
+        if (tableName === 'pegawai' && key === 'lembaga_id') {
+          const condition = parseOpAndValue(val);
+          andList.push({ pegawai_lembaga: { some: { lembaga_id: condition } } });
+        } else if (tableName === 'siswa' && key === 'lembaga_id') {
+          const condition = parseOpAndValue(val);
+          andList.push({ kelas: { lembaga_id: condition } });
+        } else if (key.includes('.')) {
           const pathParts = key.split('.');
           const condition = parseOpAndValue(val);
           andList.push(buildNestedCondition(pathParts, condition));
@@ -453,6 +459,19 @@ function parseWhere(query: Record<string, any>, idField: string, idParam?: strin
 
     const key = rawKey.trim();
     const val = rawVal.trim();
+
+    // Special virtual relation field mappings
+    if (tableName === 'pegawai' && key === 'lembaga_id') {
+      const condition = parseOpAndValue(val);
+      andList.push({ pegawai_lembaga: { some: { lembaga_id: condition } } });
+      continue;
+    }
+
+    if (tableName === 'siswa' && key === 'lembaga_id') {
+      const condition = parseOpAndValue(val);
+      andList.push({ kelas: { lembaga_id: condition } });
+      continue;
+    }
 
     // 1. Handle global `or=(cond1,cond2,...)`
     if (key === 'or') {
@@ -538,7 +557,7 @@ export const getTableRecords = async (req: AuthRequest, res: Response, next: Nex
     }
 
     const idParam = req.params.id ? String(req.params.id) : undefined;
-    const where = parseWhere(req.query, config.idField, idParam);
+    const where = parseWhere(req.query, config.idField, idParam, tableName);
     const orderBy = parseOrderBy(req.query.order as string);
     const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
     const offset = req.query.offset ? parseInt(req.query.offset as string, 10) : undefined;
@@ -691,7 +710,7 @@ export const updateTableRecord = async (req: AuthRequest, res: Response, next: N
 
     const prismaModel = (prisma as any)[config.model];
     const idParam = req.params.id ? String(req.params.id) : undefined;
-    const where = parseWhere(req.query, config.idField, idParam);
+    const where = parseWhere(req.query, config.idField, idParam, tableName);
 
     const preferHeader = (req.headers['prefer'] as string) || '';
     const wantRepresentation = preferHeader.includes('return=representation');
@@ -747,7 +766,7 @@ export const deleteTableRecord = async (req: AuthRequest, res: Response, next: N
 
     const prismaModel = (prisma as any)[config.model];
     const idParam = req.params.id ? String(req.params.id) : undefined;
-    const where = parseWhere(req.query, config.idField, idParam);
+    const where = parseWhere(req.query, config.idField, idParam, tableName);
 
     const preferHeader = (req.headers['prefer'] as string) || '';
     const wantRepresentation = preferHeader.includes('return=representation');

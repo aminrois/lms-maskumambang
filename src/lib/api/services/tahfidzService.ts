@@ -89,6 +89,28 @@ export interface TahfidzSetoranItem {
   };
 }
 
+export interface GuruTahfidzItem {
+  pegawai_id: number;
+  nama: string;
+  nig?: string;
+  jabatan?: string;
+  jenis_kelamin?: string;
+  no_hp?: string;
+  status?: string;
+  user?: {
+    user_id: string;
+    username?: string;
+    email?: string;
+    user_roles?: { role: { nama_role: string }; lembaga?: { nama_lembaga: string } }[];
+  };
+  pegawai_lembaga?: { lembaga: { lembaga_id: number; nama_lembaga: string; singkatan?: string } }[];
+  tahfidz_pengampu?: {
+    pengampu_id: number;
+    kelas: { kelas_id: number; nama_kelas: string; siswa: { siswa_id: number }[] };
+    lembaga: { lembaga_id: number; nama_lembaga: string; singkatan?: string };
+  }[];
+}
+
 export const tahfidzService = {
   // 1. Penugasan Guru Tahfidz
   getPengampu: async (params?: { lembaga_id?: number; pegawai_id?: number; tahun_id?: number }) => {
@@ -101,8 +123,40 @@ export const tahfidzService = {
     return res.data;
   },
 
+  updatePengampu: async (id: number, payload: Partial<{ pegawai_id: number; lembaga_id: number; kelas_id: number; tahun_id?: number }>) => {
+    const res = await apiClient.patch(`/tahfidz/pengampu/${id}`, payload);
+    return res.data;
+  },
+
   deletePengampu: async (id: number) => {
     const res = await apiClient.delete(`/tahfidz/pengampu/${id}`);
+    return res.data;
+  },
+
+  // 1B. Kelola Data Guru Tahfidz
+  getGuruTahfidzList: async (params?: { lembaga_id?: number }) => {
+    const res = await apiClient.get('/tahfidz/guru', { params });
+    return res.data?.data || [];
+  },
+
+  createGuruTahfidz: async (payload: {
+    nama: string; nig: string; jenis_kelamin?: string; no_hp?: string;
+    jabatan?: string; lembaga_id?: number; username?: string; password?: string;
+  }) => {
+    const res = await apiClient.post('/tahfidz/guru', payload);
+    return res.data;
+  },
+
+  updateGuruTahfidz: async (id: number, payload: {
+    nama?: string; nig?: string; jenis_kelamin?: string; no_hp?: string;
+    jabatan?: string; status?: string; lembaga_id?: number; username?: string; password?: string;
+  }) => {
+    const res = await apiClient.patch(`/tahfidz/guru/${id}`, payload);
+    return res.data;
+  },
+
+  deleteGuruTahfidz: async (id: number) => {
+    const res = await apiClient.delete(`/tahfidz/guru/${id}`);
     return res.data;
   },
 

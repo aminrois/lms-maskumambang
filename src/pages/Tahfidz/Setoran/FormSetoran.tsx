@@ -218,11 +218,47 @@ const FormSetoranTahfidz: React.FC = () => {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Kolom Kiri: Pemilihan Santri & Informasi Sesi (4 Col) */}
-        <div className="lg:col-span-4 space-y-5">
+      {/* FLOATING STICKY SANTRI TERPILIH (Tampilan Mobile / HP) */}
+      {activeSiswa && (
+        <div className="sticky top-2 z-30 lg:hidden bg-white/95 backdrop-blur-md p-3 rounded-2xl border border-emerald-300 shadow-lg shadow-emerald-950/10 transition-all animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white flex items-center justify-center font-black text-sm shrink-0 shadow-xs">
+                {activeSiswa.nama.charAt(0)}
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="inline-block px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[9px] font-black uppercase tracking-wider">
+                    Santri Terpilih
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-semibold truncate">
+                    {activeSiswa.kelas?.nama_kelas || "-"} ({activeSiswa.kelas?.lembaga?.singkatan || "-"})
+                  </span>
+                </div>
+                <p className="font-bold text-xs sm:text-sm text-slate-900 truncate leading-snug">
+                  {activeSiswa.nama}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const el = document.getElementById("pilih-santri-section");
+                el?.scrollIntoView({ behavior: "smooth", block: "center" });
+              }}
+              className="shrink-0 px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-[11px] rounded-xl border border-emerald-200 transition-colors cursor-pointer"
+            >
+              Ganti
+            </button>
+          </div>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Kolom Kiri: Pemilihan Santri & Informasi Sesi (4 Col) - Sticky di Desktop */}
+        <div className="lg:col-span-4 space-y-5 lg:sticky lg:top-4">
           {/* Card Pilih Santri */}
-          <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs space-y-4">
+          <div id="pilih-santri-section" className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs space-y-4">
             <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
               <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
                 <User className="w-4 h-4" />

@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import bcrypt from 'bcryptjs';
 import prisma from '../config/prisma';
 
 // Helper to get authenticated user info
@@ -42,7 +43,11 @@ export const getPengampu = async (req: Request, res: Response, next: NextFunctio
     const pengampuList = await prisma.tahfidzPengampu.findMany({
       where,
       include: {
-        pegawai: true,
+        pegawai: {
+          include: {
+            user: { select: { user_id: true, username: true, email: true } },
+          },
+        },
         kelas: {
           include: {
             lembaga: true,
@@ -102,6 +107,74 @@ export const assignPengampu = async (req: Request, res: Response, next: NextFunc
   }
 };
 
+export const updatePengampu = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { pegawai_id, lembaga_id, kelas_id, tahun_id } = req.body;
+
+    const updated = await prisma.tahfidzPengampu.update({
+      where: { pengampu_id: Number(id) },
+      data: {
+        ...(pegawai_id && { pegawai_id: Number(pegawai_id) }),
+        ...(lembaga_id && { lembaga_id: Number(lembaga_id) }),
+        ...(kelas_id && { kelas_id: Number(kelas_id) }),
+        ...(tahun_id !== undefined && { tahun_id: tahun_id ? Number(tahun_id) : null }),
+      },
+      include: {
+        pegawai: true,
+        kelas: true,
+        lembaga: true,
+      },
+    });
+
+    res.json({ success: true, data: updated, message: 'Penugasan Guru Tahfidz berhasil diperbarui' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const assignMultiKelas = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { pegawai_id, lembaga_id, kelas_ids, tahun_id } = req.body;
+
+    if (!pegawai_id || !lembaga_id || !Array.isArray(kelas_ids) || kelas_ids.length === 0) {
+      res.status(400).json({ success: false, message: 'Pegawai, Lembaga, dan minimal 1 Kelas wajib dipilih' });
+      return;
+    }
+
+    const results = [];
+    for (const kId of kelas_ids) {
+      const pengampu = await prisma.tahfidzPengampu.upsert({
+        where: {
+          pegawai_id_kelas_id: {
+            pegawai_id: Number(pegawai_id),
+            kelas_id: Number(kId),
+          },
+        },
+        update: {
+          lembaga_id: Number(lembaga_id),
+          tahun_id: tahun_id ? Number(tahun_id) : null,
+        },
+        create: {
+          pegawai_id: Number(pegawai_id),
+          lembaga_id: Number(lembaga_id),
+          kelas_id: Number(kId),
+          tahun_id: tahun_id ? Number(tahun_id) : null,
+        },
+      });
+      results.push(pengampu);
+    }
+
+    res.status(201).json({
+      success: true,
+      data: results,
+      message: `Berhasil menugaskan ${results.length} kelas kepada Guru Tahfidz`,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const deletePengampu = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id } = req.params;
@@ -113,6 +186,299 @@ export const deletePengampu = async (req: Request, res: Response, next: NextFunc
     next(error);
   }
 };
+
+// ==========================================
+// 1B. KELOLA DATA GURU TAHFIDZ (DIREKTUR)
+// ==========================================
+
+export const getGuruTahfidzList = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { lembaga_id } = req.query;
+
+    const where: any = {
+      OR: [
+        { jabatan: { contains: 'Tahfidz', mode: 'insensitive' } },
+        { user: { user_roles: { some: { role: { nama_role: 'Guru Tahfidz' } } } } },
+        { tahfidz_pengampu: { some: {} } },
+      ],
+    };
+
+    if (lembaga_id) {
+      where.pegawai_lembaga = {
+        some: { lembaga_id: Number(lembaga_id) },
+      };
+    }
+
+    const guruList = await prisma.pegawai.findMany({
+      where,
+      include: {
+        user: {
+          select: {
+            user_id: true,
+            username: true,
+            email: true,
+            created_at: true,
+            user_roles: {
+              include: { role: true, lembaga: true },
+            },
+          },
+        },
+        pegawai_lembaga: {
+          include: { lembaga: true },
+        },
+        tahfidz_pengampu: {
+          include: {
+            kelas: {
+              include: { siswa: { select: { siswa_id: true } } },
+            },
+            lembaga: true,
+          },
+        },
+      },
+      orderBy: { nama: 'asc' },
+    });
+
+    res.json({ success: true, data: guruList });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createGuruTahfidz = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const {
+      nama,
+      nig,
+      jenis_kelamin,
+      no_hp,
+      jabatan,
+      lembaga_id,
+      username,
+      password,
+    } = req.body;
+
+    if (!nama || !nig) {
+      res.status(400).json({ success: false, message: 'Nama dan NIG wajib diisi' });
+      return;
+    }
+
+    // 1. Ensure Role 'Guru Tahfidz'
+    const role = await prisma.role.upsert({
+      where: { nama_role: 'Guru Tahfidz' },
+      update: {},
+      create: { nama_role: 'Guru Tahfidz' },
+    });
+
+    // 2. Create User Account if username provided
+    let userId: string | null = null;
+    if (username) {
+      const existingUser = await prisma.user.findUnique({ where: { username } });
+      if (existingUser) {
+        res.status(400).json({ success: false, message: `Username "${username}" sudah digunakan` });
+        return;
+      }
+
+      const pass = password || 'password123';
+      const password_hash = await bcrypt.hash(pass, 10);
+
+      const newUser = await prisma.user.create({
+        data: {
+          username,
+          email: `${username}@maskumambang.ac.id`,
+          password_hash,
+          user_roles: {
+            create: {
+              role_id: role.role_id,
+              lembaga_id: lembaga_id ? Number(lembaga_id) : null,
+            },
+          },
+        },
+      });
+      userId = newUser.user_id;
+    }
+
+    // 3. Create Pegawai Profile
+    const newPegawai = await prisma.pegawai.create({
+      data: {
+        nama,
+        nig,
+        jenis_kelamin: jenis_kelamin || 'L',
+        no_hp: no_hp || null,
+        jabatan: jabatan || 'Guru Tahfidz',
+        status: 'Aktif',
+        user_id: userId,
+        ...(lembaga_id && {
+          pegawai_lembaga: {
+            create: { lembaga_id: Number(lembaga_id) },
+          },
+        }),
+      },
+      include: {
+        user: true,
+        pegawai_lembaga: { include: { lembaga: true } },
+      },
+    });
+
+    res.status(201).json({
+      success: true,
+      data: newPegawai,
+      message: 'Guru Tahfidz berhasil ditambahkan',
+    });
+  } catch (error: any) {
+    if (error.code === 'P2002') {
+      res.status(400).json({ success: false, message: 'NIG atau Username sudah terdaftar di sistem' });
+      return;
+    }
+    next(error);
+  }
+};
+
+export const updateGuruTahfidz = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const {
+      nama,
+      nig,
+      jenis_kelamin,
+      no_hp,
+      jabatan,
+      status,
+      lembaga_id,
+      username,
+      password,
+    } = req.body;
+
+    const pegawai = await prisma.pegawai.findUnique({
+      where: { pegawai_id: Number(id) },
+      include: { user: true },
+    });
+
+    if (!pegawai) {
+      res.status(404).json({ success: false, message: 'Data Guru Tahfidz tidak ditemukan' });
+      return;
+    }
+
+    // 1. Update / Create User Auth
+    if (username || password) {
+      if (pegawai.user_id) {
+        const userUpdateData: any = {};
+        if (username) userUpdateData.username = username;
+        if (password && String(password).trim().length > 0) {
+          userUpdateData.password_hash = await bcrypt.hash(password, 10);
+        }
+        await prisma.user.update({
+          where: { user_id: pegawai.user_id },
+          data: userUpdateData,
+        });
+      } else if (username) {
+        const role = await prisma.role.upsert({
+          where: { nama_role: 'Guru Tahfidz' },
+          update: {},
+          create: { nama_role: 'Guru Tahfidz' },
+        });
+        const pass = password || 'password123';
+        const password_hash = await bcrypt.hash(pass, 10);
+        const newUser = await prisma.user.create({
+          data: {
+            username,
+            email: `${username}@maskumambang.ac.id`,
+            password_hash,
+            user_roles: {
+              create: {
+                role_id: role.role_id,
+                lembaga_id: lembaga_id ? Number(lembaga_id) : null,
+              },
+            },
+          },
+        });
+        await prisma.pegawai.update({
+          where: { pegawai_id: Number(id) },
+          data: { user_id: newUser.user_id },
+        });
+      }
+    }
+
+    // 2. Update Pegawai Info
+    const updatedPegawai = await prisma.pegawai.update({
+      where: { pegawai_id: Number(id) },
+      data: {
+        ...(nama && { nama }),
+        ...(nig && { nig }),
+        ...(jenis_kelamin && { jenis_kelamin }),
+        ...(no_hp !== undefined && { no_hp }),
+        ...(jabatan && { jabatan }),
+        ...(status && { status }),
+      },
+      include: {
+        user: true,
+        pegawai_lembaga: { include: { lembaga: true } },
+      },
+    });
+
+    // 3. Update Pegawai Lembaga if provided
+    if (lembaga_id) {
+      await prisma.pegawaiLembaga.upsert({
+        where: {
+          pegawai_id_lembaga_id: {
+            pegawai_id: Number(id),
+            lembaga_id: Number(lembaga_id),
+          },
+        },
+        update: {},
+        create: {
+          pegawai_id: Number(id),
+          lembaga_id: Number(lembaga_id),
+        },
+      });
+    }
+
+    res.json({
+      success: true,
+      data: updatedPegawai,
+      message: 'Data Guru Tahfidz berhasil diperbarui',
+    });
+  } catch (error: any) {
+    if (error.code === 'P2002') {
+      res.status(400).json({ success: false, message: 'NIG atau Username sudah digunakan' });
+      return;
+    }
+    next(error);
+  }
+};
+
+export const deleteGuruTahfidz = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const pegawai = await prisma.pegawai.findUnique({
+      where: { pegawai_id: Number(id) },
+    });
+
+    if (!pegawai) {
+      res.status(404).json({ success: false, message: 'Pegawai tidak ditemukan' });
+      return;
+    }
+
+    // Hapus penugasan tahfidz terlebih dahulu
+    await prisma.tahfidzPengampu.deleteMany({
+      where: { pegawai_id: Number(id) },
+    });
+
+    // Jika pegawai punya user_id, hapus role Guru Tahfidz
+    if (pegawai.user_id) {
+      const role = await prisma.role.findUnique({ where: { nama_role: 'Guru Tahfidz' } });
+      if (role) {
+        await prisma.userRole.deleteMany({
+          where: { user_id: pegawai.user_id, role_id: role.role_id },
+        });
+      }
+    }
+
+    res.json({ success: true, message: 'Guru Tahfidz dan penugasan halaqah berhasil dihapus' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 
 // ==========================================
 // 2. SANTRI BINAAN TAHFIDZ
