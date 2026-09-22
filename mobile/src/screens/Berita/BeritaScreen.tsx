@@ -31,7 +31,6 @@ import {
   SlidersHorizontal,
   Bookmark,
   Share2,
-  ExternalLink,
   X,
   Clock,
   User,
@@ -418,14 +417,6 @@ export const BeritaScreen = () => {
                 >
                   <Share2 size={18} color="#0F172A" />
                 </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.readerActionBtn}
-                  onPress={() => handleOpenBrowser(selectedArticle.link)}
-                  activeOpacity={0.8}
-                >
-                  <ExternalLink size={18} color="#0F172A" />
-                </TouchableOpacity>
               </View>
             </View>
 
@@ -460,17 +451,33 @@ export const BeritaScreen = () => {
                 resizeMode="cover"
               />
 
-              {/* Body Text */}
-              <Text style={styles.readerBodyText}>{selectedArticle.content}</Text>
+              {/* Body Text with distinct paragraphs */}
+              <View style={styles.articleBodyContainer}>
+                {selectedArticle.paragraphs && selectedArticle.paragraphs.length > 0 ? (
+                  selectedArticle.paragraphs.map((para, idx) => (
+                    <Text
+                      key={idx}
+                      style={[
+                        styles.articleParagraph,
+                        idx === 0 && styles.articleLeadParagraph,
+                      ]}
+                    >
+                      {para}
+                    </Text>
+                  ))
+                ) : (
+                  <Text style={styles.articleParagraph}>{selectedArticle.content}</Text>
+                )}
+              </View>
 
-              {/* Open in Browser Action */}
+              {/* Share Article Action Button */}
               <TouchableOpacity
-                style={styles.openWebBtn}
-                onPress={() => handleOpenBrowser(selectedArticle.link)}
+                style={styles.shareArticleBtn}
+                onPress={() => handleShare(selectedArticle)}
                 activeOpacity={0.85}
               >
-                <ExternalLink size={16} color="#FFFFFF" style={{ marginRight: 8 }} />
-                <Text style={styles.openWebBtnText}>Buka di Website maskumambang.ac.id</Text>
+                <Share2 size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+                <Text style={styles.shareArticleBtnText}>Bagikan Berita</Text>
               </TouchableOpacity>
             </ScrollView>
           </SafeAreaView>
@@ -896,22 +903,41 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginBottom: 18,
   },
-  readerBodyText: {
-    fontSize: 14,
-    lineHeight: 24,
-    color: "#334155",
+  articleBodyContainer: {
+    marginTop: 4,
+    marginBottom: 10,
   },
-  openWebBtn: {
+  articleParagraph: {
+    fontSize: 15.5,
+    lineHeight: 26,
+    color: "#334155",
+    marginBottom: 16,
+    letterSpacing: 0.15,
+  },
+  articleLeadParagraph: {
+    fontSize: 16.5,
+    lineHeight: 27,
+    fontWeight: "600",
+    color: "#0F172A",
+    marginBottom: 18,
+  },
+  shareArticleBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#1D4ED8",
     paddingVertical: 14,
     borderRadius: 14,
-    marginTop: 24,
+    marginTop: 16,
+    marginBottom: 30,
+    shadowColor: "#1D4ED8",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  openWebBtnText: {
-    fontSize: 13,
+  shareArticleBtnText: {
+    fontSize: 14,
     fontWeight: "800",
     color: "#FFFFFF",
   },

@@ -30,7 +30,15 @@ export const AppNavigator = () => {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Navigator
+        screenOptions={{
+          headerShown: false,
+          animation: "slide_from_right",
+          gestureEnabled: true,
+          fullScreenGestureEnabled: true,
+          gestureDirection: "horizontal",
+        }}
+      >
         {!isAuthenticated ? (
           <Stack.Screen name="Login" component={LoginScreen} />
         ) : (
