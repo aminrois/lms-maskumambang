@@ -72,16 +72,9 @@ const PenugasanModal: React.FC<PenugasanModalProps> = ({
     queryKey: ["pegawai-guru-tahfidz", lembagaId],
     queryFn: async () => {
       if (!lembagaId) return [];
-      // Hanya tampilkan Guru Tahfidz
-      const res = await restClient.get("/pegawai", {
-        params: {
-          lembaga_id: `eq.${lembagaId}`,
-          status: "eq.Aktif",
-          jabatan: "eq.Guru Tahfidz",
-          order: "nama.asc",
-        },
+      return await tahfidzService.getGuruTahfidzList({
+        lembaga_id: Number(lembagaId),
       });
-      return res.data || [];
     },
     enabled: !!lembagaId,
   });

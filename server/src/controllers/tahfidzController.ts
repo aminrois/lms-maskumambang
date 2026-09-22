@@ -196,17 +196,26 @@ export const getGuruTahfidzList = async (req: Request, res: Response, next: Next
     const { lembaga_id } = req.query;
 
     const where: any = {
+      status: { not: 'Tidak Aktif' },
       OR: [
         { jabatan: { contains: 'Tahfidz', mode: 'insensitive' } },
-        { user: { user_roles: { some: { role: { nama_role: 'Guru Tahfidz' } } } } },
+        { user: { user_roles: { some: { role: { nama_role: { contains: 'Tahfidz', mode: 'insensitive' } } } } } },
         { tahfidz_pengampu: { some: {} } },
       ],
     };
 
     if (lembaga_id) {
-      where.pegawai_lembaga = {
-        some: { lembaga_id: Number(lembaga_id) },
-      };
+      const lid = Number(lembaga_id);
+      where.AND = [
+        {
+          OR: [
+            { pegawai_lembaga: { some: { lembaga_id: lid } } },
+            { tahfidz_pengampu: { some: { lembaga_id: lid } } },
+            { user: { user_roles: { some: { lembaga_id: lid } } } },
+            { pegawai_lembaga: { none: {} } },
+          ],
+        },
+      ];
     }
 
     const guruList = await prisma.pegawai.findMany({
