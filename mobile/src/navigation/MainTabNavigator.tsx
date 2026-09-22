@@ -25,8 +25,13 @@ export const MainTabNavigator = () => {
   const { user } = useAuthStore();
 
   const isWali = user?.roles?.some((r) => {
-    const role = (r.nama_role || "").toLowerCase();
-    return role.includes("wali") || role.includes("orang tua") || role.includes("parent");
+    const role = (r.nama_role || "").toLowerCase().trim();
+    return (
+      role === "wali murid" ||
+      role.includes("orang tua") ||
+      role.includes("parent") ||
+      (role.includes("wali") && !role.includes("wali kelas"))
+    );
   });
 
   const DashboardComponent = isWali ? ParentDashboardScreen : TeacherDashboardScreen;
