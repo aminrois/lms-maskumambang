@@ -12,14 +12,24 @@ import {
   ScanLine,
 } from "lucide-react-native";
 import { TeacherDashboardScreen } from "../screens/Dashboard/TeacherDashboardScreen";
+import { ParentDashboardScreen } from "../screens/Dashboard/ParentDashboardScreen";
 import { JadwalScreen } from "../screens/Jadwal/JadwalScreen";
 import { ProfileScreen } from "../screens/Profile/ProfileScreen";
+import { useAuthStore } from "../store/useAuthStore";
 import { Colors } from "../constants/colors";
 
 const Tab = createBottomTabNavigator();
 
 export const MainTabNavigator = () => {
   const [showScanModal, setShowScanModal] = useState(false);
+  const { user } = useAuthStore();
+
+  const isWali = user?.roles?.some((r) => {
+    const role = (r.nama_role || "").toLowerCase();
+    return role.includes("wali") || role.includes("orang tua") || role.includes("parent");
+  });
+
+  const DashboardComponent = isWali ? ParentDashboardScreen : TeacherDashboardScreen;
 
   return (
     <>
@@ -50,7 +60,7 @@ export const MainTabNavigator = () => {
         {/* 1. Beranda */}
         <Tab.Screen
           name="DashboardTab"
-          component={TeacherDashboardScreen}
+          component={DashboardComponent}
           options={{
             tabBarLabel: "Beranda",
             tabBarIcon: ({ color }) => <Home size={22} color={color} />,

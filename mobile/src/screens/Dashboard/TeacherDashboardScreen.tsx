@@ -53,6 +53,11 @@ import {
   DOA_DZIKIR_LIST,
   DoaItem,
 } from "../../utils/islamicPrayerUtil";
+import {
+  INDONESIAN_CITIES,
+  CityLocation,
+  calculatePrayerTimes,
+} from "../../utils/prayerAndQibla";
 
 const { width } = Dimensions.get("window");
 
@@ -61,7 +66,16 @@ export const TeacherDashboardScreen = () => {
   const { user } = useAuthStore();
   const [refreshing, setRefreshing] = useState(false);
 
-  // Prayer times state
+  // Lokasi & Prayer times state dinamis
+  const [selectedCity, setSelectedCity] = useState<CityLocation>(INDONESIAN_CITIES[0]);
+  const [deviceHeading, setDeviceHeading] = useState<number>(0);
+  const [showCityPickerModal, setShowCityPickerModal] = useState(false);
+
+  const dynamicPrayer = useMemo(() => calculatePrayerTimes(selectedCity), [selectedCity]);
+  const qiblaAngle = (dynamicPrayer.qiblaBearing - deviceHeading + 360) % 360;
+  const isQiblaAligned = Math.abs(qiblaAngle) < 4 || Math.abs(qiblaAngle - 360) < 4;
+
+  // Prayer times static wrapper
   const [prayerData, setPrayerData] = useState<PrayerTimesData>(() => getPrayerTimes());
 
   // Interactive Modals
@@ -217,9 +231,12 @@ export const TeacherDashboardScreen = () => {
                 </View>
                 <View style={{ marginLeft: 8 }}>
                   <Text style={styles.sholatHeading}>Waktu Sholat</Text>
-                  <View style={styles.locRow}>
-                    <Text style={styles.sholatLocationText}>📍 Gresik</Text>
-                  </View>
+                  <TouchableOpacity
+                    onPress={() => setShowCityPickerModal(true)}
+                    style={{ flexDirection: "row", alignItems: "center" }}
+                  >
+                    <Text style={styles.sholatLocationText}>📍 {selectedCity.name} ▾</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
 
@@ -239,10 +256,10 @@ export const TeacherDashboardScreen = () => {
                 <View style={styles.activePrayerIconCircle}>
                   <Sun size={20} color="#15803d" />
                 </View>
-                <Text style={styles.activePrayerName}>{prayerData.nextPrayer.name}</Text>
-                <Text style={styles.activePrayerTime}>{prayerData.nextPrayer.time}</Text>
+                <Text style={styles.activePrayerName}>{dynamicPrayer.nextPrayer.name}</Text>
+                <Text style={styles.activePrayerTime}>{dynamicPrayer.nextPrayer.time}</Text>
                 <View style={styles.countdownBadge}>
-                  <Text style={styles.countdownText}>{prayerData.nextPrayer.countdown}</Text>
+                  <Text style={styles.countdownText}>{dynamicPrayer.nextPrayer.countdown}</Text>
                 </View>
               </View>
 
@@ -252,24 +269,24 @@ export const TeacherDashboardScreen = () => {
                 <View
                   style={[
                     styles.prayerItem,
-                    prayerData.nextPrayer.name === "Subuh" && styles.prayerItemActive,
+                    dynamicPrayer.nextPrayer.name === "Subuh" && styles.prayerItemActive,
                   ]}
                 >
                   <Sunrise size={18} color="#64748b" />
                   <Text style={styles.prayerItemLabel}>Subuh</Text>
-                  <Text style={styles.prayerItemTime}>{prayerData.subuh}</Text>
+                  <Text style={styles.prayerItemTime}>{dynamicPrayer.times.subuh}</Text>
                 </View>
 
                 {/* Dzuhur */}
                 <View
                   style={[
                     styles.prayerItem,
-                    prayerData.nextPrayer.name === "Dzuhur" && styles.prayerItemActive,
+                    dynamicPrayer.nextPrayer.name === "Dzuhur" && styles.prayerItemActive,
                   ]}
                 >
                   <Sun size={18} color="#eab308" />
                   <Text style={styles.prayerItemLabel}>Dzuhur</Text>
-                  <Text style={styles.prayerItemTime}>{prayerData.dzuhur}</Text>
+                  <Text style={styles.prayerItemTime}>{dynamicPrayer.times.dzuhur}</Text>
                 </View>
 
                 {/* Ashar */}
@@ -277,15 +294,15 @@ export const TeacherDashboardScreen = () => {
                   style={[
                     styles.prayerItem,
                     styles.prayerItemHighlighted,
-                    prayerData.nextPrayer.name === "Ashar" && styles.prayerItemActive,
+                    dynamicPrayer.nextPrayer.name === "Ashar" && styles.prayerItemActive,
                   ]}
                 >
                   <Sun size={18} color="#15803d" />
-                  <Text style={[styles.prayerItemLabel, { color: "#15803d", fontWeight: "800" }]}>
+                  <Text style={[styles.prayerItemLabel, { color: "#15803d", fontWeight: "700" }]}>
                     Ashar
                   </Text>
-                  <Text style={[styles.prayerItemTime, { color: "#15803d", fontWeight: "800" }]}>
-                    {prayerData.ashar}
+                  <Text style={[styles.prayerItemTime, { color: "#15803d", fontWeight: "700" }]}>
+                    {dynamicPrayer.times.ashar}
                   </Text>
                 </View>
 
@@ -293,24 +310,24 @@ export const TeacherDashboardScreen = () => {
                 <View
                   style={[
                     styles.prayerItem,
-                    prayerData.nextPrayer.name === "Maghrib" && styles.prayerItemActive,
+                    dynamicPrayer.nextPrayer.name === "Maghrib" && styles.prayerItemActive,
                   ]}
                 >
                   <Sunset size={18} color="#ea580c" />
                   <Text style={styles.prayerItemLabel}>Maghrib</Text>
-                  <Text style={styles.prayerItemTime}>{prayerData.maghrib}</Text>
+                  <Text style={styles.prayerItemTime}>{dynamicPrayer.times.maghrib}</Text>
                 </View>
 
                 {/* Isya */}
                 <View
                   style={[
                     styles.prayerItem,
-                    prayerData.nextPrayer.name === "Isya" && styles.prayerItemActive,
+                    dynamicPrayer.nextPrayer.name === "Isya" && styles.prayerItemActive,
                   ]}
                 >
                   <Moon size={18} color="#3b82f6" />
                   <Text style={styles.prayerItemLabel}>Isya</Text>
-                  <Text style={styles.prayerItemTime}>{prayerData.isya}</Text>
+                  <Text style={styles.prayerItemTime}>{dynamicPrayer.times.isya}</Text>
                 </View>
               </View>
             </View>
@@ -609,7 +626,17 @@ export const TeacherDashboardScreen = () => {
                 </View>
                 <View>
                   <Text style={styles.modalSheetTitle}>Jadwal Sholat & Imsakiyah</Text>
-                  <Text style={styles.modalSheetSub}>Pondok Pesantren Maskumambang, Dukun, Gresik</Text>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setShowSholatModal(false);
+                      setShowCityPickerModal(true);
+                    }}
+                    style={{ flexDirection: "row", alignItems: "center", gap: 2 }}
+                  >
+                    <Text style={[styles.modalSheetSub, { color: "#059669", fontWeight: "700" }]}>
+                      📍 {selectedCity.name} (Ubah Lokasi ▾)
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               </View>
               <TouchableOpacity
@@ -624,24 +651,24 @@ export const TeacherDashboardScreen = () => {
               {/* Highlight Card */}
               <View style={styles.sholatDetailHero}>
                 <Text style={styles.sholatHeroLabel}>Sholat Selanjutnya</Text>
-                <Text style={styles.sholatHeroPrayer}>{prayerData.nextPrayer.name}</Text>
-                <Text style={styles.sholatHeroTime}>{prayerData.nextPrayer.time} WIB</Text>
+                <Text style={styles.sholatHeroPrayer}>{dynamicPrayer.nextPrayer.name}</Text>
+                <Text style={styles.sholatHeroTime}>{dynamicPrayer.nextPrayer.time} WIB</Text>
                 <Text style={styles.sholatHeroCountdown}>
-                  ⏳ Hitung Mundur: {prayerData.nextPrayer.countdown}
+                  ⏳ Hitung Mundur: {dynamicPrayer.nextPrayer.countdown}
                 </Text>
               </View>
 
               {/* Schedule Table */}
               <View style={styles.sholatTable}>
                 {[
-                  { name: "Imsak", time: "04:07 WIB", icon: <Sunrise size={16} color="#64748b" /> },
-                  { name: "Subuh", time: `${prayerData.subuh} WIB`, icon: <Sunrise size={16} color="#0284c7" /> },
-                  { name: "Terbit / Syuruq", time: `${prayerData.terbit} WIB`, icon: <Sun size={16} color="#ea580c" /> },
-                  { name: "Dhuha", time: "06:15 WIB", icon: <Sun size={16} color="#eab308" /> },
-                  { name: "Dzuhur", time: `${prayerData.dzuhur} WIB`, icon: <Sun size={16} color="#eab308" /> },
-                  { name: "Ashar", time: `${prayerData.ashar} WIB`, icon: <Sun size={16} color="#16a34a" /> },
-                  { name: "Maghrib (Buka Puasa)", time: `${prayerData.maghrib} WIB`, icon: <Sunset size={16} color="#ea580c" /> },
-                  { name: "Isya", time: `${prayerData.isya} WIB`, icon: <Moon size={16} color="#3b82f6" /> },
+                  { name: "Imsak", time: `${dynamicPrayer.times.imsak} WIB`, icon: <Sunrise size={16} color="#64748b" /> },
+                  { name: "Subuh", time: `${dynamicPrayer.times.subuh} WIB`, icon: <Sunrise size={16} color="#0284c7" /> },
+                  { name: "Terbit / Syuruq", time: `${dynamicPrayer.times.terbit} WIB`, icon: <Sun size={16} color="#ea580c" /> },
+                  { name: "Dhuha", time: `${dynamicPrayer.times.dhuha} WIB`, icon: <Sun size={16} color="#eab308" /> },
+                  { name: "Dzuhur", time: `${dynamicPrayer.times.dzuhur} WIB`, icon: <Sun size={16} color="#eab308" /> },
+                  { name: "Ashar", time: `${dynamicPrayer.times.ashar} WIB`, icon: <Sun size={16} color="#16a34a" /> },
+                  { name: "Maghrib (Buka Puasa)", time: `${dynamicPrayer.times.maghrib} WIB`, icon: <Sunset size={16} color="#ea580c" /> },
+                  { name: "Isya", time: `${dynamicPrayer.times.isya} WIB`, icon: <Moon size={16} color="#3b82f6" /> },
                 ].map((item, index) => (
                   <View key={index} style={styles.sholatTableRow}>
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
@@ -667,7 +694,7 @@ export const TeacherDashboardScreen = () => {
 
       {/* ═══════════════════════════════════════════════════════
           MODAL 2: ARAH KIBLAT (Interactive Qibla Compass)
-        ════════════════════════════════════════════════════════ */}
+      ════════════════════════════════════════════════════════ */}
       <Modal
         visible={showKiblatModal}
         animationType="slide"
@@ -683,7 +710,17 @@ export const TeacherDashboardScreen = () => {
                 </View>
                 <View>
                   <Text style={styles.modalSheetTitle}>Kompas Arah Kiblat</Text>
-                  <Text style={styles.modalSheetSub}>Patokan Ka'bah dari Maskumambang Gresik</Text>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setShowKiblatModal(false);
+                      setShowCityPickerModal(true);
+                    }}
+                    style={{ flexDirection: "row", alignItems: "center", gap: 2 }}
+                  >
+                    <Text style={[styles.modalSheetSub, { color: "#ea580c", fontWeight: "700" }]}>
+                      📍 {selectedCity.name} (Ubah Lokasi ▾)
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               </View>
               <TouchableOpacity
@@ -696,9 +733,13 @@ export const TeacherDashboardScreen = () => {
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ alignItems: "center", paddingVertical: 14 }}>
               {/* Degree Badge */}
-              <View style={styles.qiblaDegreeBadge}>
-                <Text style={styles.qiblaDegreeNumber}>294.1°</Text>
-                <Text style={styles.qiblaDegreeLabel}>Barat Laut (WNW)</Text>
+              <View style={[styles.qiblaDegreeBadge, isQiblaAligned && { backgroundColor: "#16A34A", borderColor: "#16A34A" }]}>
+                <Text style={[styles.qiblaDegreeNumber, isQiblaAligned && { color: "#FFFFFF" }]}>
+                  {dynamicPrayer.qiblaBearing}°
+                </Text>
+                <Text style={[styles.qiblaDegreeLabel, isQiblaAligned && { color: "#FFFFFF" }]}>
+                  {isQiblaAligned ? "✅ Arah Kiblat Tepat Sesuai!" : "Arahkan jarum ke Ka'bah"}
+                </Text>
               </View>
 
               {/* Visual Compass Circle */}
@@ -711,10 +752,10 @@ export const TeacherDashboardScreen = () => {
                   <Text style={[styles.cardinalPoint, { left: 12 }]}>B (270°)</Text>
 
                   {/* Kaaba Direction Indicator Line */}
-                  <View style={[styles.compassNeedle, { transform: [{ rotate: "294deg" }] }]}>
-                    <View style={styles.needlePointer} />
+                  <View style={[styles.compassNeedle, { transform: [{ rotate: `${qiblaAngle}deg` }] }]}>
+                    <View style={[styles.needlePointer, isQiblaAligned && { backgroundColor: "#16A34A" }]} />
                     <View style={styles.kaabaIconBox}>
-                      <Text style={{ fontSize: 18 }}>🕋</Text>
+                      <Text style={{ fontSize: 22 }}>🕋</Text>
                     </View>
                   </View>
 
@@ -722,21 +763,112 @@ export const TeacherDashboardScreen = () => {
                 </View>
               </View>
 
+              {/* Putar Arah Simulator */}
+              <View style={{ width: "100%", backgroundColor: "#F8FAFC", padding: 12, borderRadius: 14, marginBottom: 14, alignItems: "center" }}>
+                <Text style={{ fontSize: 11, color: "#64748B", marginBottom: 8, fontWeight: "500" }}>
+                  Arah Kompas HP ({deviceHeading}°):
+                </Text>
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  <TouchableOpacity
+                    style={{ backgroundColor: "#E2E8F0", paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 }}
+                    onPress={() => setDeviceHeading((prev) => (prev - 15 + 360) % 360)}
+                  >
+                    <Text style={{ fontSize: 10.5, fontWeight: "700", color: "#334155" }}>◀ Putar 15°</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{ backgroundColor: "#059669", paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 }}
+                    onPress={() => setDeviceHeading(Math.round(dynamicPrayer.qiblaBearing))}
+                  >
+                    <Text style={{ fontSize: 10.5, fontWeight: "700", color: "#FFFFFF" }}>🎯 Pas ke Kiblat</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{ backgroundColor: "#E2E8F0", paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 }}
+                    onPress={() => setDeviceHeading((prev) => (prev + 15) % 360)}
+                  >
+                    <Text style={{ fontSize: 10.5, fontWeight: "700", color: "#334155" }}>Putar 15° ▶</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
               {/* Info Badges */}
               <View style={styles.qiblaInfoGrid}>
                 <View style={styles.qiblaInfoItem}>
                   <Text style={styles.qiblaInfoLabel}>Jarak ke Ka'bah</Text>
-                  <Text style={styles.qiblaInfoValue}>± 8.472 KM</Text>
+                  <Text style={styles.qiblaInfoValue}>± {dynamicPrayer.distanceKaaba.toLocaleString("id-ID")} KM</Text>
                 </View>
                 <View style={styles.qiblaInfoItem}>
                   <Text style={styles.qiblaInfoLabel}>Titik Koordinat</Text>
-                  <Text style={styles.qiblaInfoValue}>6.93° S, 112.56° E</Text>
+                  <Text style={styles.qiblaInfoValue}>
+                    {selectedCity.latitude.toFixed(2)}°, {selectedCity.longitude.toFixed(2)}°
+                  </Text>
                 </View>
               </View>
 
               <Text style={styles.qiblaTip}>
-                💡 Letakkan HP di atas permukaan datar dan jauhkan dari benda logam/magnet untuk keakuratan sensor kompas.
+                💡 Letakkan HP di atas permukaan datar untuk keakuratan sensor arah kiblat.
               </Text>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ═══════════════════════════════════════════════════════
+          MODAL 3: PILIH LOKASI KOTA / GPS
+      ════════════════════════════════════════════════════════ */}
+      <Modal
+        visible={showCityPickerModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowCityPickerModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalSheet, { maxHeight: "75%" }]}>
+            <View style={styles.modalSheetHeader}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <MapPin size={20} color="#059669" />
+                <View>
+                  <Text style={styles.modalSheetTitle}>Pilih Lokasi Sholat & Kiblat</Text>
+                  <Text style={styles.modalSheetSub}>Sesuaikan jadwal dan arah kiblat terkini</Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={() => setShowCityPickerModal(false)} style={styles.modalCloseBtn}>
+                <X size={18} color="#475569" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 10 }}>
+              {INDONESIAN_CITIES.map((city) => {
+                const isSelected = city.id === selectedCity.id;
+                return (
+                  <TouchableOpacity
+                    key={city.id}
+                    style={[
+                      {
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        paddingVertical: 12,
+                        paddingHorizontal: 16,
+                        borderBottomWidth: 1,
+                        borderColor: "#F1F5F9",
+                      },
+                      isSelected && { backgroundColor: "#F0FDF4", borderRadius: 12 },
+                    ]}
+                    onPress={() => {
+                      setSelectedCity(city);
+                      setShowCityPickerModal(false);
+                    }}
+                  >
+                    <View>
+                      <Text style={[{ fontSize: 13, fontWeight: "600", color: "#0F172A" }, isSelected && { color: "#059669", fontWeight: "700" }]}>
+                        {city.name}
+                      </Text>
+                      <Text style={{ fontSize: 11, color: "#64748B", marginTop: 2 }}>{city.province}</Text>
+                    </View>
+                    {isSelected && <CheckCircle2 size={18} color="#059669" />}
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
           </View>
         </View>

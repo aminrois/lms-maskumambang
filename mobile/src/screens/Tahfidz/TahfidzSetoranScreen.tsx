@@ -297,7 +297,7 @@ export const TahfidzSetoranScreen = () => {
                 style={[styles.jenisBtn, jenisSetoran === "Setoran Baru" && styles.jenisBtnActiveZiyadah]}
               >
                 <Text style={[styles.jenisBtnText, jenisSetoran === "Setoran Baru" && styles.jenisBtnTextActive]}>
-                  ✨ Ziyadah
+                  Setoran Baru
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -305,7 +305,7 @@ export const TahfidzSetoranScreen = () => {
                 style={[styles.jenisBtn, jenisSetoran === "Setoran Ulang" && styles.jenisBtnActiveMurajaah]}
               >
                 <Text style={[styles.jenisBtnText, jenisSetoran === "Setoran Ulang" && styles.jenisBtnTextActive]}>
-                  🔄 Muraja'ah
+                  Setoran Ulang
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -313,7 +313,7 @@ export const TahfidzSetoranScreen = () => {
                 style={[styles.jenisBtn, jenisSetoran === "Ujian" && styles.jenisBtnActiveUjian]}
               >
                 <Text style={[styles.jenisBtnText, jenisSetoran === "Ujian" && styles.jenisBtnTextActive]}>
-                  📝 Ujian
+                  Ujian
                 </Text>
               </TouchableOpacity>
             </View>
@@ -382,7 +382,7 @@ export const TahfidzSetoranScreen = () => {
                 {/* Surat Mulai & Ayat Mulai */}
                 <View style={styles.subCard}>
                   <Text style={styles.subCardTitle}>🟢 DARI (SURAT & AYAT AWAL)</Text>
-                  
+
                   <Text style={styles.label}>Pilih Surat Awal</Text>
                   <TouchableOpacity
                     style={styles.pickerTrigger}
@@ -412,7 +412,7 @@ export const TahfidzSetoranScreen = () => {
                 {/* Surat Selesai & Ayat Selesai */}
                 <View style={[styles.subCard, { marginTop: 10 }]}>
                   <Text style={styles.subCardTitle}>🔴 SAMPAI (SURAT & AYAT AKHIR)</Text>
-                  
+
                   <Text style={styles.label}>Pilih Surat Akhir</Text>
                   <TouchableOpacity
                     style={styles.pickerTrigger}
