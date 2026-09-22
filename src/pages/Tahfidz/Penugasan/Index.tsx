@@ -62,18 +62,22 @@ const PenugasanModal: React.FC<PenugasanModalProps> = ({
   const [pegawaiId, setPegawaiId] = useState(
     item?.pegawai_id ? String(item.pegawai_id) : ""
   );
-  const [kelasId, setKelasId] = useState(
-    item?.kelas_id ? String(item.kelas_id) : ""
+  // Multi-select kelas: array of kelas_id string
+  const [kelasIds, setKelasIds] = useState<string[]>(
+    item?.kelas_id ? [String(item.kelas_id)] : []
   );
+  const [kelasSearch, setKelasSearch] = useState("");
 
   const { data: pegawais = [], isLoading: loadingPegawai } = useQuery({
-    queryKey: ["pegawai-list", lembagaId],
+    queryKey: ["pegawai-guru-tahfidz", lembagaId],
     queryFn: async () => {
       if (!lembagaId) return [];
+      // Hanya tampilkan Guru Tahfidz
       const res = await restClient.get("/pegawai", {
         params: {
           lembaga_id: `eq.${lembagaId}`,
           status: "eq.Aktif",
+          jabatan: "eq.Guru Tahfidz",
           order: "nama.asc",
         },
       });
@@ -92,26 +96,41 @@ const PenugasanModal: React.FC<PenugasanModalProps> = ({
     enabled: !!lembagaId,
   });
 
+  const toggleKelas = (id: string) => {
+    setKelasIds((prev) =>
+      prev.includes(id) ? prev.filter((k) => k !== id) : [...prev, id]
+    );
+  };
+
+  const filteredKelases = kelases.filter((k: any) =>
+    k.nama_kelas.toLowerCase().includes(kelasSearch.toLowerCase())
+  );
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (mode === "add") {
-        return tahfidzService.assignPengampu({
-          pegawai_id: Number(pegawaiId),
-          lembaga_id: Number(lembagaId),
-          kelas_id: Number(kelasId),
-        });
+        // Kirim satu request per kelas yang dipilih
+        const promises = kelasIds.map((kid) =>
+          tahfidzService.assignPengampu({
+            pegawai_id: Number(pegawaiId),
+            lembaga_id: Number(lembagaId),
+            kelas_id: Number(kid),
+          })
+        );
+        return Promise.all(promises);
       } else {
+        // Edit: update hanya ke kelas pertama yang dipilih
         return tahfidzService.updatePengampu(item!.pengampu_id, {
           pegawai_id: Number(pegawaiId),
           lembaga_id: Number(lembagaId),
-          kelas_id: Number(kelasId),
+          kelas_id: Number(kelasIds[0]),
         });
       }
     },
     onSuccess: () => {
       toast.success(
         mode === "add"
-          ? "Penugasan berhasil disimpan!"
+          ? `${kelasIds.length} penugasan berhasil disimpan!`
           : "Penugasan berhasil diperbarui!"
       );
       queryClient.invalidateQueries({ queryKey: ["tahfidz-pengampu"] });
@@ -126,8 +145,8 @@ const PenugasanModal: React.FC<PenugasanModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!pegawaiId || !lembagaId || !kelasId) {
-      toast.error("Semua field wajib dipilih.");
+    if (!pegawaiId || !lembagaId || kelasIds.length === 0) {
+      toast.error("Semua field wajib dipilih, dan pilih minimal 1 kelas.");
       return;
     }
     saveMutation.mutate();
@@ -176,7 +195,8 @@ const PenugasanModal: React.FC<PenugasanModalProps> = ({
 
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              Guru / Pengajar Tahfidz <span className="text-rose-500">*</span>
+              Guru Tahfidz <span className="text-rose-500">*</span>
+              <span className="ml-1.5 text-[10px] font-normal text-slate-400 normal-case">(hanya Guru Tahfidz aktif)</span>
             </label>
             <select
               required
@@ -191,43 +211,132 @@ const PenugasanModal: React.FC<PenugasanModalProps> = ({
                   : loadingPegawai
                   ? "-- Memuat daftar guru... --"
                   : pegawais.length === 0
-                  ? "-- Tidak ada guru di lembaga ini --"
-                  : "-- Pilih Guru / Pegawai --"}
+                  ? "-- Tidak ada Guru Tahfidz di lembaga ini --"
+                  : "-- Pilih Guru Tahfidz --"}
               </option>
               {pegawais.map((p: any) => (
                 <option key={p.pegawai_id} value={p.pegawai_id}>
-                  {p.nama} {p.nig ? `(${p.nig})` : ""} {p.jabatan ? `• ${p.jabatan}` : ""}
+                  {p.nama} {p.nig ? `(${p.nig})` : ""}
                 </option>
               ))}
             </select>
           </div>
 
+          {/* Multi-select Kelas */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              Kelas / Halaqah Santri <span className="text-rose-500">*</span>
+              Kelas / Halaqah yang Diampu
+              <span className="ml-1.5 text-[10px] font-normal text-slate-400 normal-case">
+                ({kelasIds.length} dipilih)
+              </span>
+              <span className="text-rose-500"> *</span>
             </label>
-            <select
-              required
-              disabled={!lembagaId || loadingKelas}
-              value={kelasId}
-              onChange={(e) => setKelasId(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-blue-500/20 font-medium disabled:opacity-50"
-            >
-              <option value="">
-                {!lembagaId
-                  ? "-- Pilih Lembaga Terlebih Dahulu --"
-                  : loadingKelas
-                  ? "-- Memuat daftar kelas... --"
-                  : kelases.length === 0
-                  ? "-- Tidak ada kelas di lembaga ini --"
-                  : "-- Pilih Kelas --"}
-              </option>
-              {kelases.map((k: any) => (
-                <option key={k.kelas_id} value={k.kelas_id}>
-                  {k.nama_kelas}
-                </option>
-              ))}
-            </select>
+
+            {!lembagaId ? (
+              <p className="text-xs text-slate-400 italic px-3 py-2.5 bg-slate-50 rounded-xl border border-slate-200">
+                -- Pilih Lembaga Terlebih Dahulu --
+              </p>
+            ) : loadingKelas ? (
+              <p className="text-xs text-slate-400 italic px-3 py-2.5 bg-slate-50 rounded-xl border border-slate-200">
+                Memuat daftar kelas...
+              </p>
+            ) : (
+              <div className="border border-slate-200 rounded-xl overflow-hidden">
+                {/* Search kelas */}
+                {kelases.length > 5 && (
+                  <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
+                    <input
+                      type="text"
+                      placeholder="Cari kelas..."
+                      value={kelasSearch}
+                      onChange={(e) => setKelasSearch(e.target.value)}
+                      className="w-full text-xs outline-none bg-transparent text-slate-700 placeholder:text-slate-400"
+                    />
+                  </div>
+                )}
+                {/* Select All */}
+                {filteredKelases.length > 0 && (
+                  <div className="flex items-center justify-between px-3 py-2 bg-blue-50 border-b border-slate-100">
+                    <span className="text-[11px] font-bold text-blue-700">Pilih semua</span>
+                    <input
+                      type="checkbox"
+                      checked={filteredKelases.every((k: any) => kelasIds.includes(String(k.kelas_id)))}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setKelasIds((prev) => [
+                            ...new Set([...prev, ...filteredKelases.map((k: any) => String(k.kelas_id))]),
+                          ]);
+                        } else {
+                          const filtered = filteredKelases.map((k: any) => String(k.kelas_id));
+                          setKelasIds((prev) => prev.filter((id) => !filtered.includes(id)));
+                        }
+                      }}
+                      className="w-4 h-4 rounded accent-blue-600 cursor-pointer"
+                    />
+                  </div>
+                )}
+                {/* Kelas Checkboxes */}
+                <div className="max-h-40 overflow-y-auto">
+                  {filteredKelases.length === 0 ? (
+                    <p className="text-xs text-slate-400 italic text-center py-4">
+                      {kelasSearch ? "Kelas tidak ditemukan" : "Tidak ada kelas di lembaga ini"}
+                    </p>
+                  ) : (
+                    filteredKelases.map((k: any) => {
+                      const sid = String(k.kelas_id);
+                      const checked = kelasIds.includes(sid);
+                      return (
+                        <label
+                          key={k.kelas_id}
+                          className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors border-b border-slate-50 last:border-0 ${
+                            checked ? "bg-blue-50" : "hover:bg-slate-50"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleKelas(sid)}
+                            className="w-4 h-4 rounded accent-blue-600 cursor-pointer shrink-0"
+                          />
+                          <span className={`text-xs font-medium flex-1 ${
+                            checked ? "text-blue-700 font-bold" : "text-slate-700"
+                          }`}>
+                            {k.nama_kelas}
+                          </span>
+                          {checked && (
+                            <CheckCircle className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                          )}
+                        </label>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Badge kelas terpilih */}
+            {kelasIds.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {kelasIds.map((kid) => {
+                  const kelas = kelases.find((k: any) => String(k.kelas_id) === kid);
+                  return kelas ? (
+                    <span
+                      key={kid}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-lg text-[11px] font-bold"
+                    >
+                      {kelas.nama_kelas}
+                      <button
+                        type="button"
+                        onClick={() => toggleKelas(kid)}
+                        className="text-blue-400 hover:text-blue-700 cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ) : null;
+                })}
+              </div>
+            )}
           </div>
 
           <div className="pt-4 flex items-center justify-end gap-2 border-t border-slate-100">
@@ -240,10 +349,14 @@ const PenugasanModal: React.FC<PenugasanModalProps> = ({
             </button>
             <button
               type="submit"
-              disabled={saveMutation.isPending || !pegawaiId || !kelasId}
+              disabled={saveMutation.isPending || !pegawaiId || kelasIds.length === 0}
               className="px-5 py-2.5 bg-[#1e2f65] hover:bg-[#2A4080] text-white text-xs font-bold rounded-xl shadow-md shadow-blue-900/20 transition-all cursor-pointer disabled:opacity-50"
             >
-              {saveMutation.isPending ? "Menyimpan..." : "Simpan Penugasan"}
+              {saveMutation.isPending
+                ? "Menyimpan..."
+                : mode === "add" && kelasIds.length > 1
+                ? `Simpan ${kelasIds.length} Penugasan`
+                : "Simpan Penugasan"}
             </button>
           </div>
         </form>
