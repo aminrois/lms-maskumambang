@@ -5,33 +5,59 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   RefreshControl,
-  ActivityIndicator,
+  TouchableOpacity,
+  Image,
   Modal,
+  FlatList,
+  Dimensions,
+  Platform,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import {
   BookOpen,
+  ScrollText,
   Calendar,
   Clock,
   Compass,
-  CheckCircle2,
-  XCircle,
-  AlertCircle,
-  TrendingUp,
+  BookMarked,
+  Newspaper,
+  MoreHorizontal,
+  Bell,
+  ChevronDown,
+  ChevronRight,
+  ArrowRight,
+  GraduationCap,
   MapPin,
+  Megaphone,
+  Sun,
+  Moon,
+  Sunrise,
+  Sunset,
   X,
-  Star,
+  CheckCircle2,
   FileText,
+  Info,
+  User,
+  Award,
 } from "lucide-react-native";
 import { useAuthStore } from "../../store/useAuthStore";
-import { waliService } from "../../api/waliService";
+import { waliService, AnakItem } from "../../api/waliService";
+import {
+  getPrayerTimes,
+  PrayerTimesData,
+  DOA_DZIKIR_LIST,
+  DoaItem,
+} from "../../utils/islamicPrayerUtil";
 import {
   INDONESIAN_CITIES,
   CityLocation,
   calculatePrayerTimes,
 } from "../../utils/prayerAndQibla";
+
+const { width } = Dimensions.get("window");
 
 const HARI_ORDER = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Ahad"];
 
@@ -47,28 +73,45 @@ const formatTanggal = (dateStr?: string) => {
   return d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
 };
 
-const kelancaranColor: Record<string, { bg: string; text: string }> = {
-  Lancar: { bg: "#DCFCE7", text: "#16A34A" },
-  Sedang: { bg: "#FEF9C3", text: "#B45309" },
-  Terbata: { bg: "#FEE2E2", text: "#DC2626" },
-  "Terbata-bata": { bg: "#FEE2E2", text: "#DC2626" },
-};
-
 export const ParentDashboardScreen = () => {
+  const navigation = useNavigation<any>();
   const { user } = useAuthStore();
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Lokasi & Prayer times state dinamis
   const [selectedCity, setSelectedCity] = useState<CityLocation>(INDONESIAN_CITIES[0]);
-  const [selectedSiswaId, setSelectedSiswaId] = useState<number | null>(null);
+  const [deviceHeading, setDeviceHeading] = useState<number>(0);
   const [showCityPickerModal, setShowCityPickerModal] = useState(false);
+
+  const dynamicPrayer = useMemo(() => calculatePrayerTimes(selectedCity), [selectedCity]);
+  const qiblaAngle = (dynamicPrayer.qiblaBearing - deviceHeading + 360) % 360;
+  const isQiblaAligned = Math.abs(qiblaAngle) < 4 || Math.abs(qiblaAngle - 360) < 4;
+
+  const [prayerData, setPrayerData] = useState<PrayerTimesData>(() => getPrayerTimes());
+
+  // Interactive Modals
   const [showSholatModal, setShowSholatModal] = useState(false);
   const [showKiblatModal, setShowKiblatModal] = useState(false);
-  const [deviceHeading, setDeviceHeading] = useState(0);
-  const [activeTab, setActiveTab] = useState<"hafalan" | "presensi" | "jadwal">("hafalan");
+  const [showDoaModal, setShowDoaModal] = useState(false);
+  const [selectedDoa, setSelectedDoa] = useState<DoaItem | null>(null);
+  const [showBeritaModal, setShowBeritaModal] = useState(false);
+  const [showLainnyaModal, setShowLainnyaModal] = useState(false);
+  const [selectedNews, setSelectedNews] = useState<any | null>(null);
 
+  // Wali Modals
+  const [showTahfidzModal, setShowTahfidzModal] = useState(false);
+  const [showPresensiModal, setShowPresensiModal] = useState(false);
+  const [showJadwalModal, setShowJadwalModal] = useState(false);
+  const [showLmsModal, setShowLmsModal] = useState(false);
+
+  // Santri selection state
+  const [selectedSiswaId, setSelectedSiswaId] = useState<number | null>(null);
+
+  // Query Daftar Anak
   const {
     data: daftarAnak = [],
     isLoading: isLoadingAnak,
     refetch: refetchAnak,
-    isRefetching,
   } = useQuery({
     queryKey: ["wali-daftar-anak"],
     queryFn: () => waliService.getDaftarAnak(),
@@ -81,6 +124,7 @@ export const ParentDashboardScreen = () => {
     }
   }, [daftarAnak, selectedSiswaId]);
 
+  // Query Perkembangan Anak yang Dipilih
   const {
     data: perkembangan,
     isLoading: isLoadingPerkembangan,
@@ -92,13 +136,22 @@ export const ParentDashboardScreen = () => {
     staleTime: 2 * 60 * 1000,
   });
 
+  useEffect(() => {
+    setPrayerData(getPrayerTimes());
+    const interval = setInterval(() => {
+      setPrayerData(getPrayerTimes());
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
   const onRefresh = async () => {
+    setRefreshing(true);
+    setPrayerData(getPrayerTimes());
     await Promise.all([refetchAnak(), refetchPerkembangan()]);
+    setRefreshing(false);
   };
 
-  const prayerData = useMemo(() => calculatePrayerTimes(selectedCity), [selectedCity]);
-  const qiblaAngle = (prayerData.qiblaBearing - deviceHeading + 360) % 360;
-  const isQiblaAligned = Math.abs(qiblaAngle) < 4 || Math.abs(qiblaAngle - 360) < 4;
+  const userName = user?.pegawai?.nama || user?.username || "Wali Murid";
 
   const activeAnak = useMemo(
     () => daftarAnak.find((a) => a.siswa_id === selectedSiswaId) || daftarAnak[0],
@@ -107,9 +160,11 @@ export const ParentDashboardScreen = () => {
 
   const rekap = perkembangan?.presensi?.rekap30Hari;
   const totalHari = (rekap?.hadir || 0) + (rekap?.izin || 0) + (rekap?.sakit || 0) + (rekap?.alpa || 0);
-  const persentaseHadir = totalHari > 0 ? Math.round(((rekap?.hadir || 0) / totalHari) * 100) : 0;
+  const persentaseHadir = totalHari > 0 ? Math.round(((rekap?.hadir || 0) / totalHari) * 100) : 100;
   const totalSetoran = perkembangan?.tahfidz?.summary?.totalSetoran || 0;
   const totalJuz = perkembangan?.tahfidz?.summary?.totalJuzZiyadah || 0;
+  const targetNominal = perkembangan?.tahfidz?.targetAktif?.target_nominal || 30;
+  const targetPercent = Math.min(100, Math.round((totalJuz / targetNominal) * 100)) || 10;
   const hariIni = getNamaHariIni();
 
   const jadwalHariIni = useMemo(() => {
@@ -117,556 +172,1061 @@ export const ParentDashboardScreen = () => {
     return perkembangan.jadwalPelajaran.filter((j: any) => j.hari === hariIni);
   }, [perkembangan, hariIni]);
 
+  const latestSetoran = useMemo(() => {
+    if (perkembangan?.tahfidz?.recentSetoran?.length) {
+      return perkembangan.tahfidz.recentSetoran[0];
+    }
+    return activeAnak?.tahfidz_setoran?.[0] || null;
+  }, [perkembangan, activeAnak]);
+
+  // Berita Pesantren
+  const BERITA_LIST = [
+    {
+      id: "1",
+      title: "Peringatan Maulid Nabi Muhammad SAW di Masjid Jami' Maskumambang",
+      category: "Kegiatan Pesantren",
+      date: "20 September 2025",
+      author: "Humas Pesantren",
+      content:
+        "Ribuan santri dan asatidz memadati Masjid Jami' Pondok Pesantren Maskumambang dalam rangka memperingati Maulid Nabi Muhammad SAW dengan lantunan sholawat dan tausiyah penuh berkah.",
+    },
+    {
+      id: "2",
+      title: "Prestasi Gemilang Santri Maskumambang di Olimpiade Bahasa Arab Nasional",
+      category: "Prestasi Akademik",
+      date: "18 September 2025",
+      author: "Tim Media",
+      content:
+        "Alhamdulillah, santri MA Maskumambang berhasil meraih Juara 1 dan 3 dalam ajang Olimpiade Bahasa Arab (OBA) tingkat Provinsi Jawa Timur.",
+    },
+    {
+      id: "3",
+      title: "Sosialisasi Penerimaan Santri Baru (PSB) Tahun Ajaran 2026/2027",
+      category: "Informasi PSB",
+      date: "15 September 2025",
+      author: "Panitia PSB",
+      content:
+        "Pondok Pesantren Maskumambang membuka pendaftaran santri baru untuk jenjang MI, MTs, MA, dan SMK berbasis asrama tahfidz & kitab kuning.",
+    },
+  ];
+
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <View>
-            <Text style={styles.headerGreeting}>Assalamu'alaikum,</Text>
-            <Text style={styles.headerName}>{user?.username || "Wali Murid"}</Text>
-          </View>
-          <TouchableOpacity style={styles.headerLocationBtn} onPress={() => setShowCityPickerModal(true)}>
-            <MapPin size={12} color="#6EE7B7" />
-            <Text style={styles.headerLocationText}>{selectedCity.name}</Text>
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity style={styles.prayerStrip} onPress={() => setShowSholatModal(true)} activeOpacity={0.85}>
-          <View style={styles.prayerStripLeft}>
-            <Clock size={13} color="#10B981" />
-            <Text style={styles.prayerStripText}>
-              {prayerData.nextPrayer.name}: {prayerData.nextPrayer.time} WIB
-            </Text>
-            <View style={styles.prayerCountdownBadge}>
-              <Text style={styles.prayerCountdownText}>{prayerData.nextPrayer.countdown}</Text>
-            </View>
-          </View>
-          <TouchableOpacity onPress={() => setShowKiblatModal(true)}>
-            <Compass size={15} color="#A7F3D0" />
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </View>
-
       <ScrollView
-        showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} colors={["#10B981"]} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#162E6E"]} />
         }
+        showsVerticalScrollIndicator={false}
       >
-        {/* Pilihan Anak */}
-        {daftarAnak.length > 1 && (
-          <View style={styles.childSelectorRow}>
-            <Text style={styles.childSelectorLabel}>Pantau Ananda:</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {daftarAnak.map((anak) => {
-                const isSelected = anak.siswa_id === selectedSiswaId;
-                return (
-                  <TouchableOpacity
-                    key={anak.siswa_id}
-                    style={[styles.childPill, isSelected && styles.childPillActive]}
-                    onPress={() => setSelectedSiswaId(anak.siswa_id)}
-                    activeOpacity={0.8}
-                  >
-                    <View style={[styles.childPillDot, isSelected && styles.childPillDotActive]}>
-                      <Text style={[styles.childPillDotText, isSelected && { color: "#FFFFFF" }]}>
-                        {anak.nama.charAt(0)}
-                      </Text>
-                    </View>
-                    <Text style={[styles.childPillText, isSelected && styles.childPillTextActive]}>
-                      {anak.panggilan || anak.nama.split(" ")[0]}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </View>
-        )}
+        {/* ═══════════════════════════════════════════════════════
+            1. TOP HEADER (Deep Gradient Navy with Mosque Backdrop)
+        ════════════════════════════════════════════════════════ */}
+        <View style={styles.headerBackground}>
+          <Image
+            source={require("../../../assets/pesantren-bg.jpg")}
+            style={styles.headerBackdropImage}
+            resizeMode="cover"
+          />
+          <View style={styles.headerOverlay} />
 
-        {/* Kartu Profil Santri */}
-        {isLoadingAnak ? (
-          <View style={styles.loadingCard}>
-            <ActivityIndicator size="small" color="#10B981" />
-            <Text style={styles.loadingText}>Memuat data ananda...</Text>
-          </View>
-        ) : activeAnak ? (
-          <View style={styles.santriCard}>
-            <View style={styles.santriAvatar}>
-              <Text style={styles.santriAvatarLetter}>{activeAnak.nama.charAt(0)}</Text>
-            </View>
-            <View style={styles.santriInfo}>
-              <Text style={styles.santriName}>{activeAnak.nama}</Text>
-              <Text style={styles.santriNisn}>NISN: {activeAnak.nisn || "-"}</Text>
-              <View style={styles.santriMetaRow}>
-                <View style={styles.santriMetaBadge}>
-                  <BookOpen size={10} color="#7C3AED" />
-                  <Text style={styles.santriMetaBadgeText}>
-                    {activeAnak.kelas?.nama_kelas || "Kelas -"}
-                  </Text>
+          <SafeAreaView edges={["top"]} style={styles.headerContent}>
+            {/* Top Brand & Actions Bar */}
+            <View style={styles.topBar}>
+              <View style={styles.brandRow}>
+                <View style={styles.logoBadge}>
+                  <Image
+                    source={require("../../../assets/logo.png")}
+                    style={styles.logoImg}
+                    resizeMode="contain"
+                  />
                 </View>
-                <View style={[styles.santriMetaBadge, { backgroundColor: "#F0FDF4", borderColor: "#DCFCE7" }]}>
-                  <Text style={[styles.santriMetaBadgeText, { color: "#16A34A" }]}>
-                    {activeAnak.kelas?.lembaga?.nama_lembaga || "Maskumambang"}
+                <View style={{ marginLeft: 10 }}>
+                  <Text style={styles.brandSub}>Pondok Pesantren</Text>
+                  <Text style={styles.brandTitle}>Maskumambang</Text>
+                  <Text style={styles.brandMotto}>
+                    Menyemai Aqidah Shohihah, Menuai Akhlak Karimah
                   </Text>
                 </View>
               </View>
-            </View>
-          </View>
-        ) : null}
 
-        {/* Ringkasan Statistik */}
-        {!isLoadingPerkembangan && (
-          <View style={styles.statsRow}>
-            <View style={[styles.statBox, { backgroundColor: "#F0FDF4" }]}>
-              <TrendingUp size={16} color="#16A34A" />
-              <Text style={[styles.statNumber, { color: "#16A34A" }]}>{persentaseHadir}%</Text>
-              <Text style={styles.statLabel}>Kehadiran</Text>
-            </View>
-            <View style={[styles.statBox, { backgroundColor: "#EDE9FE" }]}>
-              <Star size={16} color="#7C3AED" />
-              <Text style={[styles.statNumber, { color: "#7C3AED" }]}>{totalSetoran}×</Text>
-              <Text style={styles.statLabel}>Setoran</Text>
-            </View>
-            <View style={[styles.statBox, { backgroundColor: "#FFF7ED" }]}>
-              <BookOpen size={16} color="#EA580C" />
-              <Text style={[styles.statNumber, { color: "#EA580C" }]}>{totalJuz} Juz</Text>
-              <Text style={styles.statLabel}>Ziyadah</Text>
-            </View>
-            <View style={[styles.statBox, { backgroundColor: "#EFF6FF" }]}>
-              <Calendar size={16} color="#2563EB" />
-              <Text style={[styles.statNumber, { color: "#2563EB" }]}>{jadwalHariIni.length}</Text>
-              <Text style={styles.statLabel}>Pelajaran Hari Ini</Text>
-            </View>
-          </View>
-        )}
+              <View style={styles.topRightActions}>
+                <TouchableOpacity
+                  style={styles.headerIconBtn}
+                  onPress={() => setShowBeritaModal(true)}
+                  activeOpacity={0.8}
+                >
+                  <Bell size={20} color="#FFFFFF" />
+                  <View style={styles.unreadDot} />
+                </TouchableOpacity>
 
-        {/* Tabs */}
-        <View style={styles.tabRow}>
-          {(["hafalan", "presensi", "jadwal"] as const).map((tab) => {
-            const labels = { hafalan: "📖 Hafalan", presensi: "📅 Presensi", jadwal: "🗓️ Jadwal" };
-            return (
-              <TouchableOpacity
-                key={tab}
-                style={[styles.tabBtn, activeTab === tab && styles.tabBtnActive]}
-                onPress={() => setActiveTab(tab)}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.tabBtnText, activeTab === tab && styles.tabBtnTextActive]}>
-                  {labels[tab]}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+                <TouchableOpacity
+                  style={styles.profileBtn}
+                  onPress={() => navigation.navigate("ProfileTab")}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.avatarCircle}>
+                    <Text style={styles.avatarText}>{userName.charAt(0)}</Text>
+                  </View>
+                  <ChevronDown size={14} color="#FFFFFF" style={{ marginLeft: 4 }} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* User Greeting */}
+            <View style={styles.greetingBox}>
+              <Text style={styles.greetingSub}>Assalamu'alaikum Warahmatullah,</Text>
+              <Text style={styles.greetingName}>{userName}</Text>
+              <View style={styles.rolePill}>
+                <Text style={styles.rolePillText}>Wali Murid Santri</Text>
+              </View>
+            </View>
+
+            {/* Santri Switcher Strip (Jika ada anak / santri) */}
+            {daftarAnak.length > 0 && (
+              <View style={styles.santriSelectorContainer}>
+                <Text style={styles.santriSelectorLabel}>Santri yang Dipantau:</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.santriScroll}>
+                  {daftarAnak.map((anak) => {
+                    const isSelected = anak.siswa_id === selectedSiswaId;
+                    return (
+                      <TouchableOpacity
+                        key={anak.siswa_id}
+                        style={[
+                          styles.santriChip,
+                          isSelected && styles.santriChipActive,
+                        ]}
+                        onPress={() => setSelectedSiswaId(anak.siswa_id)}
+                        activeOpacity={0.85}
+                      >
+                        <User size={13} color={isSelected ? "#FFFFFF" : "#CBD5E1"} />
+                        <Text
+                          style={[
+                            styles.santriChipText,
+                            isSelected && styles.santriChipTextActive,
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {anak.nama} {anak.kelas ? `(${anak.kelas.nama_kelas})` : ""}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            )}
+          </SafeAreaView>
         </View>
 
-        {/* TAB: HAFALAN */}
-        {activeTab === "hafalan" && (
-          <View style={styles.tabContent}>
-            {isLoadingPerkembangan ? (
-              <View style={styles.loadingCard}>
-                <ActivityIndicator size="small" color="#7C3AED" />
-                <Text style={styles.loadingText}>Memuat riwayat hafalan...</Text>
+        {/* ═══════════════════════════════════════════════════════
+            2. WAKTU SHOLAT CARD (Floating Card)
+        ════════════════════════════════════════════════════════ */}
+        <View style={styles.sholatCardWrapper}>
+          <TouchableOpacity
+            style={styles.sholatCard}
+            onPress={() => setShowSholatModal(true)}
+            activeOpacity={0.92}
+          >
+            {/* Card Header */}
+            <View style={styles.sholatCardHeader}>
+              <View style={styles.sholatLocationRow}>
+                <View style={styles.mosqueBadge}>
+                  <MapPin size={15} color="#162E6E" />
+                </View>
+                <View style={{ marginLeft: 8 }}>
+                  <Text style={styles.sholatHeading}>Waktu Sholat</Text>
+                  <TouchableOpacity
+                    onPress={() => setShowCityPickerModal(true)}
+                    style={{ flexDirection: "row", alignItems: "center" }}
+                  >
+                    <Text style={styles.sholatLocationText}>📍 {selectedCity.name} ▾</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-            ) : (
-              <>
-                <View style={styles.hafalanSummaryCard}>
-                  <View style={styles.hafalanSummaryItem}>
-                    <Text style={styles.hafalanSumLabel}>Total Ziyadah</Text>
-                    <Text style={styles.hafalanSumValue}>
-                      {perkembangan?.tahfidz?.summary?.totalAyatZiyadah || 0} Ayat
-                    </Text>
-                    <Text style={styles.hafalanSumSub}>
-                      ≈ {perkembangan?.tahfidz?.summary?.totalJuzZiyadah || 0} Juz
-                    </Text>
-                  </View>
-                  <View style={styles.hafalanSumDivider} />
-                  <View style={styles.hafalanSummaryItem}>
-                    <Text style={styles.hafalanSumLabel}>Total Setoran</Text>
-                    <Text style={styles.hafalanSumValue}>{totalSetoran} Kali</Text>
-                    <Text style={styles.hafalanSumSub}>Seluruh jenis</Text>
-                  </View>
+
+              <View style={styles.sholatDateRight}>
+                <View style={{ alignItems: "flex-end" }}>
+                  <Text style={styles.gregorianDateText}>{prayerData.gregorianDateFormatted}</Text>
+                  <Text style={styles.hijriDateText}>{prayerData.hijriDateFormatted}</Text>
                 </View>
-
-                <Text style={styles.subSectionTitle}>Riwayat Setoran Terakhir</Text>
-                {perkembangan?.tahfidz?.recentSetoran && perkembangan.tahfidz.recentSetoran.length > 0 ? (
-                  perkembangan.tahfidz.recentSetoran.slice(0, 5).map((s: any, idx: number) => {
-                    const kColor = kelancaranColor[s.kelancaran || "Lancar"] || kelancaranColor["Lancar"];
-                    const jenisLabel =
-                      s.jenis_hafalan === "Setoran Baru"
-                        ? "🆕 Ziyadah"
-                        : s.jenis_hafalan === "Setoran Ulang"
-                        ? "🔁 Muraja'ah"
-                        : "📝 Ujian";
-                    const namaHafalan =
-                      s.kategori === "Al-Quran"
-                        ? `${s.surat_mulai_nama || "Al-Qur'an"} Ayat ${s.ayat_mulai || 1}–${s.ayat_selesai || 7}`
-                        : s.kategori === "Hadits"
-                        ? `Hadits ke-${s.hadits_mulai || 1}–${s.hadits_selesai || 1}`
-                        : s.nama_bait || "Setoran";
-                    return (
-                      <View key={idx} style={styles.setoranCard}>
-                        <View style={styles.setoranCardTop}>
-                          <View style={styles.setoranCardLeft}>
-                            <Text style={styles.setoranSurat}>{namaHafalan}</Text>
-                            <Text style={styles.setoranJenis}>
-                              {jenisLabel} • Ustadz: {s.pegawai?.nama || "-"}
-                            </Text>
-                          </View>
-                          <View style={[styles.kelancaranBadge, { backgroundColor: kColor.bg }]}>
-                            <Text style={[styles.kelancaranBadgeText, { color: kColor.text }]}>
-                              {s.kelancaran || "Lancar"}
-                            </Text>
-                          </View>
-                        </View>
-                        {s.catatan_guru ? (
-                          <View style={styles.catatanBox}>
-                            <FileText size={11} color="#64748B" />
-                            <Text style={styles.catatanText}>"{s.catatan_guru}"</Text>
-                          </View>
-                        ) : null}
-                        <Text style={styles.setoranTanggal}>{formatTanggal(s.tanggal)}</Text>
-                      </View>
-                    );
-                  })
-                ) : (
-                  <View style={styles.emptyBox}>
-                    <BookOpen size={28} color="#CBD5E1" />
-                    <Text style={styles.emptyText}>Belum ada catatan setoran hafalan.</Text>
-                  </View>
-                )}
-              </>
-            )}
-          </View>
-        )}
-
-        {/* TAB: PRESENSI */}
-        {activeTab === "presensi" && (
-          <View style={styles.tabContent}>
-            {isLoadingPerkembangan ? (
-              <View style={styles.loadingCard}>
-                <ActivityIndicator size="small" color="#2563EB" />
-                <Text style={styles.loadingText}>Memuat data presensi...</Text>
+                <Calendar size={18} color="#162E6E" style={{ marginLeft: 6 }} />
               </View>
-            ) : (
-              <>
-                <View style={styles.todayStatusCard}>
-                  <Text style={styles.todayStatusLabel}>Status Kehadiran Hari Ini</Text>
-                  {perkembangan?.presensi?.hariIni ? (
-                    <View style={styles.todayStatusRow}>
-                      {perkembangan.presensi.hariIni.status === "Hadir" ? (
-                        <CheckCircle2 size={20} color="#16A34A" />
-                      ) : perkembangan.presensi.hariIni.status === "Alpa" ? (
-                        <XCircle size={20} color="#DC2626" />
-                      ) : (
-                        <AlertCircle size={20} color="#D97706" />
-                      )}
-                      <Text style={styles.todayStatusValue}>
-                        {perkembangan.presensi.hariIni.status}
-                      </Text>
-                    </View>
-                  ) : (
-                    <View style={styles.todayStatusRow}>
-                      <AlertCircle size={20} color="#94A3B8" />
-                      <Text style={[styles.todayStatusValue, { color: "#94A3B8" }]}>Belum ada data</Text>
-                    </View>
-                  )}
+            </View>
+
+            {/* Prayer Times Row */}
+            <View style={styles.prayerRow}>
+              {/* Active Next Prayer Highlighted Box */}
+              <View style={styles.activePrayerBox}>
+                <View style={styles.activePrayerIconCircle}>
+                  <Sun size={20} color="#15803d" />
+                </View>
+                <Text style={styles.activePrayerName}>{dynamicPrayer.nextPrayer.name}</Text>
+                <Text style={styles.activePrayerTime}>{dynamicPrayer.nextPrayer.time}</Text>
+                <View style={styles.countdownBadge}>
+                  <Text style={styles.countdownText}>{dynamicPrayer.nextPrayer.countdown}</Text>
+                </View>
+              </View>
+
+              {/* Individual Prayer Times Columns */}
+              <View style={styles.prayerTimesGrid}>
+                {/* Subuh */}
+                <View
+                  style={[
+                    styles.prayerItem,
+                    dynamicPrayer.nextPrayer.name === "Subuh" && styles.prayerItemActive,
+                  ]}
+                >
+                  <Sunrise size={18} color="#64748b" />
+                  <Text style={styles.prayerItemLabel}>Subuh</Text>
+                  <Text style={styles.prayerItemTime}>{dynamicPrayer.times.subuh}</Text>
                 </View>
 
-                <Text style={styles.subSectionTitle}>Rekapitulasi 30 Hari Terakhir</Text>
-                <View style={styles.presensiGrid}>
-                  {[
-                    { label: "Hadir", val: rekap?.hadir || 0, bg: "#F0FDF4", color: "#16A34A" },
-                    { label: "Izin", val: rekap?.izin || 0, bg: "#FEF9C3", color: "#CA8A04" },
-                    { label: "Sakit", val: rekap?.sakit || 0, bg: "#EFF6FF", color: "#2563EB" },
-                    { label: "Alpa", val: rekap?.alpa || 0, bg: "#FEF2F2", color: "#DC2626" },
-                  ].map((item) => (
-                    <View key={item.label} style={[styles.presensiBox, { backgroundColor: item.bg }]}>
-                      <Text style={[styles.presensiNumber, { color: item.color }]}>{item.val}</Text>
-                      <Text style={styles.presensiLabel}>{item.label}</Text>
-                    </View>
-                  ))}
+                {/* Dzuhur */}
+                <View
+                  style={[
+                    styles.prayerItem,
+                    dynamicPrayer.nextPrayer.name === "Dzuhur" && styles.prayerItemActive,
+                  ]}
+                >
+                  <Sun size={18} color="#eab308" />
+                  <Text style={styles.prayerItemLabel}>Dzuhur</Text>
+                  <Text style={styles.prayerItemTime}>{dynamicPrayer.times.dzuhur}</Text>
                 </View>
 
-                <View style={styles.progressCard}>
-                  <View style={styles.progressCardHeader}>
-                    <Text style={styles.progressCardTitle}>Tingkat Kehadiran</Text>
-                    <Text
-                      style={[
-                        styles.progressCardPct,
-                        {
-                          color:
-                            persentaseHadir >= 80 ? "#16A34A" : persentaseHadir >= 60 ? "#CA8A04" : "#DC2626",
-                        },
-                      ]}
-                    >
-                      {persentaseHadir}%
-                    </Text>
-                  </View>
-                  <View style={styles.progressBarBg}>
-                    <View
-                      style={[
-                        styles.progressBarFill,
-                        {
-                          width: `${persentaseHadir}%` as any,
-                          backgroundColor:
-                            persentaseHadir >= 80 ? "#16A34A" : persentaseHadir >= 60 ? "#F59E0B" : "#EF4444",
-                        },
-                      ]}
-                    />
-                  </View>
-                  <Text style={styles.progressCardSub}>
-                    {persentaseHadir >= 80
-                      ? "✅ Kehadiran sangat baik — pertahankan!"
-                      : persentaseHadir >= 60
-                      ? "⚠️ Kehadiran cukup — perlu ditingkatkan."
-                      : "❌ Kehadiran rendah — harap diperhatikan."}
+                {/* Ashar */}
+                <View
+                  style={[
+                    styles.prayerItem,
+                    styles.prayerItemHighlighted,
+                    dynamicPrayer.nextPrayer.name === "Ashar" && styles.prayerItemActive,
+                  ]}
+                >
+                  <Sun size={18} color="#15803d" />
+                  <Text style={[styles.prayerItemLabel, { color: "#15803d", fontWeight: "700" }]}>
+                    Ashar
+                  </Text>
+                  <Text style={[styles.prayerItemTime, { color: "#15803d", fontWeight: "700" }]}>
+                    {dynamicPrayer.times.ashar}
                   </Text>
                 </View>
-              </>
-            )}
-          </View>
-        )}
 
-        {/* TAB: JADWAL */}
-        {activeTab === "jadwal" && (
-          <View style={styles.tabContent}>
-            {isLoadingPerkembangan ? (
-              <View style={styles.loadingCard}>
-                <ActivityIndicator size="small" color="#7C3AED" />
-                <Text style={styles.loadingText}>Memuat jadwal pelajaran...</Text>
+                {/* Maghrib */}
+                <View
+                  style={[
+                    styles.prayerItem,
+                    dynamicPrayer.nextPrayer.name === "Maghrib" && styles.prayerItemActive,
+                  ]}
+                >
+                  <Sunset size={18} color="#ea580c" />
+                  <Text style={styles.prayerItemLabel}>Maghrib</Text>
+                  <Text style={styles.prayerItemTime}>{dynamicPrayer.times.maghrib}</Text>
+                </View>
+
+                {/* Isya */}
+                <View
+                  style={[
+                    styles.prayerItem,
+                    dynamicPrayer.nextPrayer.name === "Isya" && styles.prayerItemActive,
+                  ]}
+                >
+                  <Moon size={18} color="#3b82f6" />
+                  <Text style={styles.prayerItemLabel}>Isya</Text>
+                  <Text style={styles.prayerItemTime}>{dynamicPrayer.times.isya}</Text>
+                </View>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* ═══════════════════════════════════════════════════════
+            3. QUICK ACTION 8-GRID MENU (Sama seperti Guru)
+        ════════════════════════════════════════════════════════ */}
+        <View style={styles.menuGridContainer}>
+          <View style={styles.menuGridRow}>
+            {/* 1. LMS Santri */}
+            <TouchableOpacity
+              style={styles.gridCard}
+              onPress={() => setShowLmsModal(true)}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.gridIconCircle, { backgroundColor: "#10b981" }]}>
+                <GraduationCap size={24} color="#FFFFFF" />
+              </View>
+              <Text style={styles.gridCardTitle}>LMS Santri</Text>
+            </TouchableOpacity>
+
+            {/* 2. Setoran Hafalan */}
+            <TouchableOpacity
+              style={styles.gridCard}
+              onPress={() => setShowTahfidzModal(true)}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.gridIconCircle, { backgroundColor: "#3b82f6" }]}>
+                <ScrollText size={24} color="#FFFFFF" />
+              </View>
+              <Text style={styles.gridCardTitle}>Setoran Hafalan</Text>
+            </TouchableOpacity>
+
+            {/* 3. Presensi & Absen */}
+            <TouchableOpacity
+              style={styles.gridCard}
+              onPress={() => setShowPresensiModal(true)}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.gridIconCircle, { backgroundColor: "#8b5cf6" }]}>
+                <CheckCircle2 size={24} color="#FFFFFF" />
+              </View>
+              <Text style={styles.gridCardTitle}>Presensi Santri</Text>
+            </TouchableOpacity>
+
+            {/* 4. Jadwal Pelajaran */}
+            <TouchableOpacity
+              style={styles.gridCard}
+              onPress={() => setShowJadwalModal(true)}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.gridIconCircle, { backgroundColor: "#059669" }]}>
+                <Calendar size={24} color="#FFFFFF" />
+              </View>
+              <Text style={styles.gridCardTitle}>Jadwal Pelajaran</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={[styles.menuGridRow, { marginTop: 12 }]}>
+            {/* 5. Arah Kiblat */}
+            <TouchableOpacity
+              style={styles.gridCard}
+              onPress={() => setShowKiblatModal(true)}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.gridIconCircle, { backgroundColor: "#f97316" }]}>
+                <Compass size={24} color="#FFFFFF" />
+              </View>
+              <Text style={styles.gridCardTitle}>Arah Kiblat</Text>
+            </TouchableOpacity>
+
+            {/* 6. Doa & Dzikir */}
+            <TouchableOpacity
+              style={styles.gridCard}
+              onPress={() => setShowDoaModal(true)}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.gridIconCircle, { backgroundColor: "#0284c7" }]}>
+                <BookMarked size={24} color="#FFFFFF" />
+              </View>
+              <Text style={styles.gridCardTitle}>Doa & Dzikir</Text>
+            </TouchableOpacity>
+
+            {/* 7. Berita */}
+            <TouchableOpacity
+              style={styles.gridCard}
+              onPress={() => setShowBeritaModal(true)}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.gridIconCircle, { backgroundColor: "#f43f5e" }]}>
+                <Newspaper size={24} color="#FFFFFF" />
+              </View>
+              <Text style={styles.gridCardTitle}>Berita</Text>
+            </TouchableOpacity>
+
+            {/* 8. Lainnya */}
+            <TouchableOpacity
+              style={styles.gridCard}
+              onPress={() => setShowLainnyaModal(true)}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.gridIconCircle, { backgroundColor: "#64748b" }]}>
+                <MoreHorizontal size={24} color="#FFFFFF" />
+              </View>
+              <Text style={styles.gridCardTitle}>Lainnya</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* ═══════════════════════════════════════════════════════
+            4. DUA KARTU PROGRESS & PRESENSI (2 Columns)
+        ════════════════════════════════════════════════════════ */}
+        <View style={styles.dualCardContainer}>
+          {/* Card Kiri: Progress Tahfidz Santri */}
+          <TouchableOpacity
+            style={styles.dualCard}
+            onPress={() => setShowTahfidzModal(true)}
+            activeOpacity={0.85}
+          >
+            <View style={styles.dualCardHeader}>
+              <View style={styles.dualCardTitleRow}>
+                <BookOpen size={16} color="#15803d" />
+                <Text style={styles.dualCardTitle}>Tahfidz Santri</Text>
+              </View>
+              <ChevronRight size={14} color="#94A3B8" />
+            </View>
+
+            <View style={styles.hafalanContentRow}>
+              {/* Circular Ring Gauge */}
+              <View style={styles.circularGauge}>
+                <View style={styles.circularInner}>
+                  <Text style={styles.gaugeNumber}>{totalJuz}</Text>
+                  <Text style={styles.gaugeUnit}>Juz</Text>
+                </View>
+              </View>
+
+              {/* Detail Hafalan */}
+              <View style={styles.hafalanDetails}>
+                <Text style={styles.hafalanJuz}>
+                  Target: {targetNominal} Juz
+                </Text>
+                <Text style={styles.hafalanSurat} numberOfLines={1}>
+                  {latestSetoran
+                    ? `${latestSetoran.surat_mulai_nama || "Al-Qur'an"} : ${latestSetoran.ayat_mulai || 1}-${latestSetoran.ayat_selesai || 7}`
+                    : "Belum ada setoran"}
+                </Text>
+                <Text style={styles.hafalanHalaman}>
+                  {latestSetoran?.kelancaran || "Siap Setoran"}
+                </Text>
+
+                <View style={styles.progressBarBg}>
+                  <View style={[styles.progressBarFill, { width: `${targetPercent}%` }]} />
+                </View>
+                <Text style={styles.progressStatusText}>
+                  {totalSetoran} riwayat setoran
+                </Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+
+          {/* Card Kanan: Presensi & Absensi */}
+          <TouchableOpacity
+            style={styles.dualCard}
+            onPress={() => setShowPresensiModal(true)}
+            activeOpacity={0.85}
+          >
+            <View style={styles.dualCardHeader}>
+              <View style={styles.dualCardTitleRow}>
+                <CheckCircle2 size={16} color="#1d4ed8" />
+                <Text style={styles.dualCardTitle}>Kehadiran</Text>
+              </View>
+              <ChevronRight size={14} color="#94A3B8" />
+            </View>
+
+            <View style={styles.lmsClassBox}>
+              <View style={styles.lmsClassTop}>
+                <View style={styles.lmsIconBox}>
+                  <CheckCircle2 size={18} color="#1d4ed8" />
+                </View>
+                <View style={styles.lmsClassBadge}>
+                  <Text style={styles.lmsClassBadgeText}>{persentaseHadir}% Hadir</Text>
+                </View>
+              </View>
+
+              <Text style={styles.lmsClassName} numberOfLines={1}>
+                {activeAnak?.nama || "Santri"}
+              </Text>
+              <Text style={styles.lmsTeacherName} numberOfLines={1}>
+                Hadir: {rekap?.hadir || 0} • Izin: {rekap?.izin || 0} • Sakit: {rekap?.sakit || 0}
+              </Text>
+
+              <View style={[styles.progressBarBg, { marginTop: 8 }]}>
+                <View
+                  style={[
+                    styles.progressBarFill,
+                    {
+                      width: `${persentaseHadir}%`,
+                      backgroundColor: persentaseHadir > 80 ? "#10b981" : "#f59e0b",
+                    },
+                  ]}
+                />
+              </View>
+              <Text style={styles.progressStatusText}>Status: Aktif Belajar</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* ═══════════════════════════════════════════════════════
+            5. KARTU JADWAL PELAJARAN HARI INI
+        ════════════════════════════════════════════════════════ */}
+        <View style={styles.jadwalSectionContainer}>
+          <TouchableOpacity
+            style={styles.jadwalCard}
+            onPress={() => setShowJadwalModal(true)}
+            activeOpacity={0.9}
+          >
+            <View style={styles.jadwalCardHeader}>
+              <View style={styles.jadwalHeaderLeft}>
+                <View style={styles.jadwalIconBox}>
+                  <Calendar size={18} color="#8b5cf6" />
+                </View>
+                <View style={{ marginLeft: 10 }}>
+                  <Text style={styles.jadwalTitle}>Jadwal Pelajaran Hari Ini</Text>
+                  <Text style={styles.jadwalSubtitle}>
+                    {hariIni} • {activeAnak?.kelas?.nama_kelas || "Kelas Aktif"}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.jadwalBadge}>
+                <Text style={styles.jadwalBadgeText}>Lihat Semua ▾</Text>
+              </View>
+            </View>
+
+            {jadwalHariIni.length > 0 ? (
+              <View style={styles.jadwalList}>
+                {jadwalHariIni.slice(0, 3).map((item: any, idx: number) => (
+                  <View key={idx} style={styles.jadwalItemRow}>
+                    <View style={styles.jadwalTimeBadge}>
+                      <Clock size={12} color="#1E293B" />
+                      <Text style={styles.jadwalTimeText}>
+                        {item.jam_akademik?.jam_mulai || "07:30"} - {item.jam_akademik?.jam_selesai || "08:30"}
+                      </Text>
+                    </View>
+                    <View style={styles.jadwalInfoCol}>
+                      <Text style={styles.jadwalMapelName}>{item.mata_pelajaran?.nama_mapel || "Pelajaran"}</Text>
+                      <Text style={styles.jadwalGuruName}>{item.pegawai?.nama || "Ustadz / Ustadzah"}</Text>
+                    </View>
+                  </View>
+                ))}
               </View>
             ) : (
-              <>
-                {jadwalHariIni.length > 0 && (
-                  <>
-                    <View style={styles.todayScheduleBadge}>
-                      <Calendar size={12} color="#FFFFFF" />
-                      <Text style={styles.todayScheduleBadgeText}>Jadwal Hari Ini — {hariIni}</Text>
-                    </View>
-                    {jadwalHariIni.map((j: any, idx: number) => (
-                      <View key={idx} style={[styles.jadwalCard, { borderLeftColor: "#2563EB" }]}>
-                        <View style={styles.jadwalCardLeft}>
-                          <Text style={styles.jadwalMapel}>
-                            {j.mapel?.nama_mapel || j.mata_pelajaran?.nama_mapel || "Pelajaran"}
-                          </Text>
-                          <Text style={styles.jadwalGuru}>Ustadz/ah: {j.pegawai?.nama || "-"}</Text>
-                        </View>
-                        <View style={styles.jadwalTimeBadge}>
-                          <Clock size={10} color="#2563EB" />
-                          <Text style={styles.jadwalTimeText}>{j.jam_mulai?.jam_mulai || "-"}</Text>
-                        </View>
-                      </View>
-                    ))}
-                    <View style={styles.dividerLine} />
-                  </>
-                )}
-
-                <Text style={styles.subSectionTitle}>Seluruh Jadwal Pelajaran</Text>
-                {perkembangan?.jadwalPelajaran && perkembangan.jadwalPelajaran.length > 0 ? (
-                  HARI_ORDER.map((hari) => {
-                    const jadwalHari = perkembangan.jadwalPelajaran.filter((j: any) => j.hari === hari);
-                    if (jadwalHari.length === 0) return null;
-                    const isToday = hari === hariIni;
-                    return (
-                      <View key={hari} style={styles.jadwalHariGroup}>
-                        <View style={[styles.jadwalHariHeader, isToday && styles.jadwalHariHeaderToday]}>
-                          <Text style={[styles.jadwalHariLabel, isToday && styles.jadwalHariLabelToday]}>
-                            {hari}
-                            {isToday ? " • Hari Ini" : ""}
-                          </Text>
-                        </View>
-                        {jadwalHari.map((j: any, idx: number) => (
-                          <View key={idx} style={styles.jadwalItem}>
-                            <View style={styles.jadwalItemDot} />
-                            <View style={styles.jadwalItemContent}>
-                              <Text style={styles.jadwalMapelSmall}>
-                                {j.mapel?.nama_mapel || j.mata_pelajaran?.nama_mapel || "Pelajaran"}
-                              </Text>
-                              <Text style={styles.jadwalGuruSmall}>{j.pegawai?.nama || "-"}</Text>
-                            </View>
-                            <Text style={styles.jadwalTimeSmall}>{j.jam_mulai?.jam_mulai || "-"}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    );
-                  })
-                ) : (
-                  <View style={styles.emptyBox}>
-                    <Calendar size={28} color="#CBD5E1" />
-                    <Text style={styles.emptyText}>Jadwal pelajaran belum tersedia.</Text>
-                  </View>
-                )}
-              </>
+              <View style={styles.jadwalEmptyBox}>
+                <Text style={styles.jadwalEmptyText}>
+                  Tidak ada jam pelajaran kelas pada hari {hariIni}, santri fokus kegiatan asrama & halaqoh.
+                </Text>
+              </View>
             )}
+          </TouchableOpacity>
+        </View>
+
+        {/* ═══════════════════════════════════════════════════════
+            6. BANNER PESANTREN & INFORMASI PENTING
+        ════════════════════════════════════════════════════════ */}
+        <View style={styles.bottomSectionContainer}>
+          {/* Banner Dark Navy with Mosque Photo */}
+          <View style={styles.pesantrenBanner}>
+            <Image
+              source={require("../../../assets/pesantren-bg.jpg")}
+              style={styles.bannerBgImage}
+              resizeMode="cover"
+            />
+            <View style={styles.bannerDarkOverlay} />
+
+            <View style={styles.bannerContent}>
+              <Text style={styles.bannerQuoteTitle}>
+                Mendidik dengan Hati,{"\n"}Menjaga Amanah Wali Santri
+              </Text>
+              <Text style={styles.bannerQuoteSub}>
+                Pondok Pesantren Maskumambang berkomitmen membina generasi Qur'ani, berakhlak mulia, dan berprestasi.
+              </Text>
+
+              <TouchableOpacity
+                style={styles.bannerActionBtn}
+                onPress={() => setShowLainnyaModal(true)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.bannerActionText}>Lihat Profil Pesantren</Text>
+                <ArrowRight size={13} color="#FFFFFF" style={{ marginLeft: 4 }} />
+              </TouchableOpacity>
+            </View>
           </View>
-        )}
+
+          {/* Informasi Penting Card */}
+          <View style={styles.infoPentingCard}>
+            <View style={styles.infoPentingHeader}>
+              <Megaphone size={16} color="#162E6E" />
+              <Text style={styles.infoPentingTitle}>Informasi & Pengumuman Wali</Text>
+            </View>
+
+            {BERITA_LIST.map((b, idx) => (
+              <TouchableOpacity
+                key={b.id}
+                style={[
+                  styles.infoItem,
+                  idx === BERITA_LIST.length - 1 && { borderBottomWidth: 0 },
+                ]}
+                onPress={() => {
+                  setSelectedNews(b);
+                  setShowBeritaModal(true);
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={styles.infoItemIcon}>
+                  {idx === 0 ? (
+                    <Calendar size={15} color="#1d4ed8" />
+                  ) : idx === 1 ? (
+                    <Award size={15} color="#16a34a" />
+                  ) : (
+                    <Info size={15} color="#d97706" />
+                  )}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.infoItemTitle} numberOfLines={1}>
+                    {b.title}
+                  </Text>
+                  <Text style={styles.infoItemMeta}>{b.date} • {b.category}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
 
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* MODAL JADWAL SHOLAT */}
-      <Modal
-        visible={showSholatModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowSholatModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
-            <View style={styles.modalHeader}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <Clock size={18} color="#059669" />
-                <View>
-                  <Text style={styles.modalTitle}>Jadwal Sholat</Text>
-                  <Text style={styles.modalSub}>{selectedCity.name}, {selectedCity.province}</Text>
+      {/* ═══════════════════════════════════════════════════════
+          MODAL 1: MODAL TAHFIDZ & HAFALAN LENGKAP
+      ════════════════════════════════════════════════════════ */}
+      <Modal visible={showTahfidzModal} animationType="slide" transparent>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalSheetContainer}>
+            <View style={styles.modalSheetHeader}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <View style={[styles.modalHeaderIconCircle, { backgroundColor: "#DBEAFE" }]}>
+                  <BookOpen size={20} color="#1D4ED8" />
+                </View>
+                <View style={{ marginLeft: 10 }}>
+                  <Text style={styles.modalSheetTitle}>Progress Tahfidz Santri</Text>
+                  <Text style={styles.modalSheetSubtitle}>{activeAnak?.nama}</Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={() => setShowTahfidzModal(false)} style={styles.modalCloseBtn}>
+                <X size={20} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ padding: 16 }}>
+              {/* Target Card */}
+              <View style={styles.tahfidzTargetBox}>
+                <Text style={styles.tahfidzTargetLabel}>Target Hafalan Santri</Text>
+                <Text style={styles.tahfidzTargetValue}>{targetNominal} Juz ({perkembangan?.tahfidz?.targetAktif?.target_deskripsi || "Al-Qur'an"})</Text>
+                <View style={[styles.progressBarBg, { marginTop: 10 }]}>
+                  <View style={[styles.progressBarFill, { width: `${targetPercent}%`, backgroundColor: "#2563EB" }]} />
+                </View>
+                <Text style={styles.progressStatusText}>{totalJuz} Juz Selesai ({targetPercent}%)</Text>
+              </View>
+
+              <Text style={styles.modalSectionTitle}>Riwayat Setoran Terbaru</Text>
+              {perkembangan?.tahfidz?.recentSetoran && perkembangan.tahfidz.recentSetoran.length > 0 ? (
+                perkembangan.tahfidz.recentSetoran.map((setoran: any, idx: number) => (
+                  <View key={idx} style={styles.setoranCardItem}>
+                    <View style={styles.setoranCardHeader}>
+                      <Text style={styles.setoranSuratText}>
+                        {setoran.surat_mulai_nama || "Al-Qur'an"} : {setoran.ayat_mulai || 1} – {setoran.ayat_selesai || 7}
+                      </Text>
+                      <View style={styles.kelancaranBadge}>
+                        <Text style={styles.kelancaranBadgeText}>{setoran.kelancaran || "Lancar"}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.setoranDateText}>
+                      📅 {formatTanggal(setoran.tanggal)} • {setoran.pegawai?.nama || "Ustadz Tahfidz"}
+                    </Text>
+                    {setoran.catatan_guru && (
+                      <Text style={styles.setoranCatatan}>💬 "{setoran.catatan_guru}"</Text>
+                    )}
+                  </View>
+                ))
+              ) : (
+                <View style={styles.emptyCard}>
+                  <Text style={styles.emptyCardText}>Belum ada riwayat setoran hafalan tercatat.</Text>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ═══════════════════════════════════════════════════════
+          MODAL 2: MODAL PRESENSI & REKAP KEHADIRAN
+      ════════════════════════════════════════════════════════ */}
+      <Modal visible={showPresensiModal} animationType="slide" transparent>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalSheetContainer}>
+            <View style={styles.modalSheetHeader}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <View style={[styles.modalHeaderIconCircle, { backgroundColor: "#DCFCE7" }]}>
+                  <CheckCircle2 size={20} color="#16A34A" />
+                </View>
+                <View style={{ marginLeft: 10 }}>
+                  <Text style={styles.modalSheetTitle}>Rekapitulasi Presensi</Text>
+                  <Text style={styles.modalSheetSubtitle}>{activeAnak?.nama}</Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={() => setShowPresensiModal(false)} style={styles.modalCloseBtn}>
+                <X size={20} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ padding: 16 }}>
+              {/* 4 Stats Grid */}
+              <View style={styles.presensiStatsGrid}>
+                <View style={[styles.presensiStatCard, { backgroundColor: "#F0FDF4" }]}>
+                  <Text style={[styles.presensiStatNumber, { color: "#16A34A" }]}>{rekap?.hadir || 0}</Text>
+                  <Text style={styles.presensiStatLabel}>Hadir</Text>
+                </View>
+                <View style={[styles.presensiStatCard, { backgroundColor: "#FEF9C3" }]}>
+                  <Text style={[styles.presensiStatNumber, { color: "#B45309" }]}>{rekap?.izin || 0}</Text>
+                  <Text style={styles.presensiStatLabel}>Izin</Text>
+                </View>
+                <View style={[styles.presensiStatCard, { backgroundColor: "#EFF6FF" }]}>
+                  <Text style={[styles.presensiStatNumber, { color: "#2563EB" }]}>{rekap?.sakit || 0}</Text>
+                  <Text style={styles.presensiStatLabel}>Sakit</Text>
+                </View>
+                <View style={[styles.presensiStatCard, { backgroundColor: "#FEF2F2" }]}>
+                  <Text style={[styles.presensiStatNumber, { color: "#DC2626" }]}>{rekap?.alpa || 0}</Text>
+                  <Text style={styles.presensiStatLabel}>Alpa</Text>
+                </View>
+              </View>
+
+              <View style={styles.presensiRateBox}>
+                <Text style={styles.presensiRateLabel}>Tingkat Kehadiran Bulan Ini:</Text>
+                <Text style={styles.presensiRateValue}>{persentaseHadir}%</Text>
+              </View>
+
+              <Text style={styles.modalSectionTitle}>Riwayat Kehadiran 30 Hari Terakhir</Text>
+              {perkembangan?.presensi?.riwayat && perkembangan.presensi.riwayat.length > 0 ? (
+                perkembangan.presensi.riwayat.map((item: any, idx: number) => (
+                  <View key={idx} style={styles.presensiHistoryRow}>
+                    <View>
+                      <Text style={styles.presensiDateText}>{formatTanggal(item.tanggal)}</Text>
+                      <Text style={styles.presensiMapelText}>{item.keterangan || "Presensi Harian"}</Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.presensiStatusTag,
+                        item.status === "H"
+                          ? { backgroundColor: "#DCFCE7" }
+                          : item.status === "I"
+                          ? { backgroundColor: "#FEF9C3" }
+                          : item.status === "S"
+                          ? { backgroundColor: "#EFF6FF" }
+                          : { backgroundColor: "#FEE2E2" },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.presensiStatusTagText,
+                          item.status === "H"
+                            ? { color: "#16A34A" }
+                            : item.status === "I"
+                            ? { color: "#B45309" }
+                            : item.status === "S"
+                            ? { color: "#2563EB" }
+                            : { color: "#DC2626" },
+                        ]}
+                      >
+                        {item.status === "H" ? "Hadir" : item.status === "I" ? "Izin" : item.status === "S" ? "Sakit" : "Alpa"}
+                      </Text>
+                    </View>
+                  </View>
+                ))
+              ) : (
+                <View style={styles.emptyCard}>
+                  <Text style={styles.emptyCardText}>Data presensi santri bulan ini belum tercatat.</Text>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ═══════════════════════════════════════════════════════
+          MODAL 3: MODAL JADWAL PELAJARAN MINGGUAN
+      ════════════════════════════════════════════════════════ */}
+      <Modal visible={showJadwalModal} animationType="slide" transparent>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalSheetContainer}>
+            <View style={styles.modalSheetHeader}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <View style={[styles.modalHeaderIconCircle, { backgroundColor: "#EDE9FE" }]}>
+                  <Calendar size={20} color="#7C3AED" />
+                </View>
+                <View style={{ marginLeft: 10 }}>
+                  <Text style={styles.modalSheetTitle}>Jadwal Pelajaran Santri</Text>
+                  <Text style={styles.modalSheetSubtitle}>{activeAnak?.nama} • {activeAnak?.kelas?.nama_kelas}</Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={() => setShowJadwalModal(false)} style={styles.modalCloseBtn}>
+                <X size={20} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ padding: 16 }}>
+              {HARI_ORDER.map((hariName) => {
+                const mapels = perkembangan?.jadwalPelajaran?.filter((j: any) => j.hari === hariName) || [];
+                return (
+                  <View key={hariName} style={styles.jadwalDaySection}>
+                    <View style={styles.jadwalDayHeader}>
+                      <Text style={styles.jadwalDayTitle}>{hariName}</Text>
+                      <Text style={styles.jadwalDayCount}>{mapels.length} Pelajaran</Text>
+                    </View>
+                    {mapels.length > 0 ? (
+                      mapels.map((m: any, idx: number) => (
+                        <View key={idx} style={styles.jadwalDayItem}>
+                          <Text style={styles.jadwalDayTime}>
+                            {m.jam_akademik?.jam_mulai || "07:30"} - {m.jam_akademik?.jam_selesai || "08:30"}
+                          </Text>
+                          <Text style={styles.jadwalDaySubject}>{m.mata_pelajaran?.nama_mapel || "Pelajaran"}</Text>
+                          <Text style={styles.jadwalDayTeacher}>{m.pegawai?.nama || "Ustadz"}</Text>
+                        </View>
+                      ))
+                    ) : (
+                      <Text style={styles.jadwalDayEmpty}>Tidak ada jam pelajaran utama (kegiatan asrama / libur).</Text>
+                    )}
+                  </View>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ═══════════════════════════════════════════════════════
+          MODAL 4: MODAL LMS SANTRI
+      ════════════════════════════════════════════════════════ */}
+      <Modal visible={showLmsModal} animationType="slide" transparent>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalSheetContainer}>
+            <View style={styles.modalSheetHeader}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <View style={[styles.modalHeaderIconCircle, { backgroundColor: "#D1FAE5" }]}>
+                  <GraduationCap size={20} color="#059669" />
+                </View>
+                <View style={{ marginLeft: 10 }}>
+                  <Text style={styles.modalSheetTitle}>LMS & Akademik Santri</Text>
+                  <Text style={styles.modalSheetSubtitle}>{activeAnak?.nama} • {activeAnak?.kelas?.nama_kelas}</Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={() => setShowLmsModal(false)} style={styles.modalCloseBtn}>
+                <X size={20} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ padding: 16 }}>
+              <View style={styles.lmsInfoBanner}>
+                <Text style={styles.lmsInfoTitle}>Sistem Manajemen Pembelajaran</Text>
+                <Text style={styles.lmsInfoText}>
+                  Santri terdaftar aktif di {activeAnak?.kelas?.lembaga?.nama_lembaga || "Pesantren Maskumambang"}. Materi, tugas, dan nilai diinput langsung oleh para asatidz pengampu mapel.
+                </Text>
+              </View>
+
+              <Text style={styles.modalSectionTitle}>Informasi Santri</Text>
+              <View style={styles.santriDetailCard}>
+                <View style={styles.santriDetailRow}>
+                  <Text style={styles.santriDetailLabel}>NIS / NISN</Text>
+                  <Text style={styles.santriDetailVal}>{activeAnak?.nis || "-"} / {activeAnak?.nisn || "-"}</Text>
+                </View>
+                <View style={styles.santriDetailRow}>
+                  <Text style={styles.santriDetailLabel}>Lembaga</Text>
+                  <Text style={styles.santriDetailVal}>{activeAnak?.kelas?.lembaga?.nama_lembaga || "-"}</Text>
+                </View>
+                <View style={styles.santriDetailRow}>
+                  <Text style={styles.santriDetailLabel}>Kelas</Text>
+                  <Text style={styles.santriDetailVal}>{activeAnak?.kelas?.nama_kelas || "-"}</Text>
+                </View>
+                <View style={styles.santriDetailRow}>
+                  <Text style={styles.santriDetailLabel}>Status Siswa</Text>
+                  <Text style={styles.santriDetailVal}>{activeAnak?.status || "Aktif"}</Text>
+                </View>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ═══════════════════════════════════════════════════════
+          MODAL 5: JADWAL SHOLAT LENGKAP
+      ════════════════════════════════════════════════════════ */}
+      <Modal visible={showSholatModal} animationType="slide" transparent>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalSheetContainer}>
+            <View style={styles.modalSheetHeader}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <View style={[styles.modalHeaderIconCircle, { backgroundColor: "#DCFCE7" }]}>
+                  <Clock size={20} color="#16A34A" />
+                </View>
+                <View style={{ marginLeft: 10 }}>
+                  <Text style={styles.modalSheetTitle}>Jadwal Sholat Hari Ini</Text>
+                  <Text style={styles.modalSheetSubtitle}>📍 {selectedCity.name} ({prayerData.gregorianDateFormatted})</Text>
                 </View>
               </View>
               <TouchableOpacity onPress={() => setShowSholatModal(false)} style={styles.modalCloseBtn}>
-                <X size={18} color="#475569" />
+                <X size={20} color="#64748B" />
               </TouchableOpacity>
             </View>
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
-              <View style={styles.sholatHeroBox}>
-                <Text style={styles.sholatHeroLabel}>Sholat Selanjutnya</Text>
-                <Text style={styles.sholatHeroPrayer}>{prayerData.nextPrayer.name}</Text>
-                <Text style={styles.sholatHeroTime}>{prayerData.nextPrayer.time} WIB</Text>
-                <View style={styles.sholatCountdownBadge}>
-                  <Clock size={12} color="#6EE7B7" />
-                  <Text style={styles.sholatCountdownText}>{prayerData.nextPrayer.countdown}</Text>
-                </View>
-              </View>
-              <View style={styles.sholatTable}>
-                {Object.entries(prayerData.times).map(([key, val]) => (
-                  <View key={key} style={styles.sholatTableRow}>
-                    <Text style={styles.sholatTableName}>{key.charAt(0).toUpperCase() + key.slice(1)}</Text>
-                    <Text style={styles.sholatTableTime}>{val} WIB</Text>
+
+            <ScrollView style={{ padding: 16 }}>
+              {[
+                { name: "Imsak", time: dynamicPrayer.times.imsak, icon: Moon, color: "#64748b" },
+                { name: "Subuh", time: dynamicPrayer.times.subuh, icon: Sunrise, color: "#0284c7" },
+                { name: "Terbit", time: dynamicPrayer.times.terbit, icon: Sun, color: "#d97706" },
+                { name: "Dhuha", time: dynamicPrayer.times.dhuha, icon: Sun, color: "#16a34a" },
+                { name: "Dzuhur", time: dynamicPrayer.times.dzuhur, icon: Sun, color: "#eab308" },
+                { name: "Ashar", time: dynamicPrayer.times.ashar, icon: Sun, color: "#15803d" },
+                { name: "Maghrib", time: dynamicPrayer.times.maghrib, icon: Sunset, color: "#ea580c" },
+                { name: "Isya", time: dynamicPrayer.times.isya, icon: Moon, color: "#3b82f6" },
+              ].map((p, idx) => (
+                <View key={idx} style={styles.modalSholatRow}>
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <p.icon size={20} color={p.color} />
+                    <Text style={styles.modalSholatName}>{p.name}</Text>
                   </View>
-                ))}
-              </View>
+                  <Text style={styles.modalSholatTime}>{p.time} WIB</Text>
+                </View>
+              ))}
             </ScrollView>
           </View>
         </View>
       </Modal>
 
-      {/* MODAL ARAH KIBLAT */}
-      <Modal
-        visible={showKiblatModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowKiblatModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
-            <View style={styles.modalHeader}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <Compass size={18} color="#EA580C" />
-                <View>
-                  <Text style={styles.modalTitle}>Arah Kiblat</Text>
-                  <Text style={styles.modalSub}>Dari: {selectedCity.name}</Text>
+      {/* ═══════════════════════════════════════════════════════
+          MODAL 6: ARAH KIBLAT INTERAKTIF
+      ════════════════════════════════════════════════════════ */}
+      <Modal visible={showKiblatModal} animationType="slide" transparent>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalSheetContainer}>
+            <View style={styles.modalSheetHeader}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <View style={[styles.modalHeaderIconCircle, { backgroundColor: "#FFEDD5" }]}>
+                  <Compass size={20} color="#EA580C" />
+                </View>
+                <View style={{ marginLeft: 10 }}>
+                  <Text style={styles.modalSheetTitle}>Arah Kiblat</Text>
+                  <Text style={styles.modalSheetSubtitle}>Ka'bah, Makkah Al-Mukarramah</Text>
                 </View>
               </View>
               <TouchableOpacity onPress={() => setShowKiblatModal(false)} style={styles.modalCloseBtn}>
-                <X size={18} color="#475569" />
+                <X size={20} color="#64748B" />
               </TouchableOpacity>
             </View>
-            <ScrollView contentContainerStyle={{ alignItems: "center", paddingVertical: 14 }}>
-              <View style={[styles.qiblaDegreeBadge, isQiblaAligned && styles.qiblaDegreeBadgeAligned]}>
-                <Text style={[styles.qiblaDegreeNum, isQiblaAligned && { color: "#FFFFFF" }]}>
-                  {prayerData.qiblaBearing}°
-                </Text>
-                <Text style={[styles.qiblaDegreeLbl, isQiblaAligned && { color: "#FFFFFF" }]}>
-                  {isQiblaAligned ? "✅ Arah Kiblat Tepat!" : "Arahkan jarum ke Ka'bah"}
-                </Text>
-              </View>
-              <View style={styles.compassContainer}>
-                <View style={styles.compassDial}>
-                  <Text style={[styles.cardinalPoint, { top: 10, color: "#DC2626", fontWeight: "700" }]}>U</Text>
-                  <Text style={[styles.cardinalPoint, { right: 12 }]}>T</Text>
-                  <Text style={[styles.cardinalPoint, { bottom: 10 }]}>S</Text>
-                  <Text style={[styles.cardinalPoint, { left: 12 }]}>B</Text>
-                  <View style={[styles.compassNeedle, { transform: [{ rotate: `${qiblaAngle}deg` }] }]}>
-                    <View style={[styles.needleTop, isQiblaAligned && { backgroundColor: "#16A34A" }]} />
-                    <Text style={{ fontSize: 20 }}>🕋</Text>
-                  </View>
-                  <View style={styles.compassCenter} />
+
+            <View style={{ padding: 24, alignItems: "center" }}>
+              <View style={styles.compassOuter}>
+                <View style={[styles.compassNeedle, { transform: [{ rotate: `${dynamicPrayer.qiblaBearing}deg` }] }]}>
+                  <Compass size={80} color="#162E6E" />
                 </View>
               </View>
-              <View style={styles.headingBtnRow}>
-                <TouchableOpacity
-                  style={styles.headingBtn}
-                  onPress={() => setDeviceHeading((prev) => (prev - 15 + 360) % 360)}
-                >
-                  <Text style={styles.headingBtnText}>◀ -15°</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.headingBtn, { backgroundColor: "#059669" }]}
-                  onPress={() => setDeviceHeading(Math.round(prayerData.qiblaBearing))}
-                >
-                  <Text style={[styles.headingBtnText, { color: "#FFFFFF" }]}>🎯 Tepat Kiblat</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.headingBtn}
-                  onPress={() => setDeviceHeading((prev) => (prev + 15) % 360)}
-                >
-                  <Text style={styles.headingBtnText}>+15° ▶</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={styles.qiblaInfoRow}>
-                <View style={styles.qiblaInfoItem}>
-                  <Text style={styles.qiblaInfoLabel}>Jarak ke Ka'bah</Text>
-                  <Text style={styles.qiblaInfoValue}>±{prayerData.distanceKaaba.toLocaleString("id-ID")} KM</Text>
+              <Text style={styles.compassDegreeText}>{dynamicPrayer.qiblaBearing}° Barat-Barat Laut</Text>
+              <Text style={styles.compassSubText}>Titik koordinat {selectedCity.name} menuju Ka'bah di Makkah.</Text>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ═══════════════════════════════════════════════════════
+          MODAL 7: DOA & DZIKIR HARIAN
+      ════════════════════════════════════════════════════════ */}
+      <Modal visible={showDoaModal} animationType="slide" transparent>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalSheetContainer}>
+            <View style={styles.modalSheetHeader}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <View style={[styles.modalHeaderIconCircle, { backgroundColor: "#E0F2FE" }]}>
+                  <BookMarked size={20} color="#0284C7" />
                 </View>
-                <View style={styles.qiblaInfoItem}>
-                  <Text style={styles.qiblaInfoLabel}>Koordinat</Text>
-                  <Text style={styles.qiblaInfoValue}>
-                    {selectedCity.latitude.toFixed(2)}°, {selectedCity.longitude.toFixed(2)}°
-                  </Text>
+                <View style={{ marginLeft: 10 }}>
+                  <Text style={styles.modalSheetTitle}>Kumpulan Doa & Dzikir</Text>
+                  <Text style={styles.modalSheetSubtitle}>Doa Harian Santri & Orang Tua</Text>
                 </View>
               </View>
+              <TouchableOpacity onPress={() => setShowDoaModal(false)} style={styles.modalCloseBtn}>
+                <X size={20} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ padding: 16 }}>
+              {DOA_DZIKIR_LIST.map((d) => (
+                <View key={d.id} style={styles.doaCard}>
+                  <Text style={styles.doaTitle}>{d.judul}</Text>
+                  <Text style={styles.doaArab}>{d.arab}</Text>
+                  <Text style={styles.doaLatin}>{d.latin}</Text>
+                  <Text style={styles.doaArti}>"{d.arti}"</Text>
+                </View>
+              ))}
             </ScrollView>
           </View>
         </View>
       </Modal>
 
-      {/* MODAL PILIH KOTA */}
-      <Modal
-        visible={showCityPickerModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowCityPickerModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalSheet, { maxHeight: "72%" }]}>
-            <View style={styles.modalHeader}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <MapPin size={18} color="#2563EB" />
-                <Text style={styles.modalTitle}>Pilih Lokasi</Text>
-              </View>
+      {/* ═══════════════════════════════════════════════════════
+          MODAL 8: PILIH KOTA (GPS / REGION PICKER)
+      ════════════════════════════════════════════════════════ */}
+      <Modal visible={showCityPickerModal} animationType="slide" transparent>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalSheetContainer}>
+            <View style={styles.modalSheetHeader}>
+              <Text style={styles.modalSheetTitle}>Pilih Lokasi Wilayah</Text>
               <TouchableOpacity onPress={() => setShowCityPickerModal(false)} style={styles.modalCloseBtn}>
-                <X size={18} color="#475569" />
+                <X size={20} color="#64748B" />
               </TouchableOpacity>
             </View>
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 8 }}>
-              {INDONESIAN_CITIES.map((city) => {
-                const isActive = city.id === selectedCity.id;
-                return (
-                  <TouchableOpacity
-                    key={city.id}
-                    style={[styles.cityItem, isActive && styles.cityItemActive]}
-                    onPress={() => {
-                      setSelectedCity(city);
-                      setShowCityPickerModal(false);
-                    }}
-                  >
-                    <View>
-                      <Text style={[styles.cityItemName, isActive && { color: "#2563EB" }]}>{city.name}</Text>
-                      <Text style={styles.cityItemProv}>{city.province}</Text>
-                    </View>
-                    {isActive && <CheckCircle2 size={18} color="#2563EB" />}
-                  </TouchableOpacity>
-                );
-              })}
+            <FlatList
+              data={INDONESIAN_CITIES}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.cityPickerRow,
+                    selectedCity.id === item.id && styles.cityPickerRowActive,
+                  ]}
+                  onPress={() => {
+                    setSelectedCity(item);
+                    setShowCityPickerModal(false);
+                  }}
+                >
+                  <Text style={[styles.cityPickerText, selectedCity.id === item.id && styles.cityPickerTextActive]}>
+                    {item.name} ({item.province})
+                  </Text>
+                  {selectedCity.id === item.id && <CheckCircle2 size={16} color="#162E6E" />}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* ═══════════════════════════════════════════════════════
+          MODAL 9: BERITA & PENGUMUMAN
+      ════════════════════════════════════════════════════════ */}
+      <Modal visible={showBeritaModal} animationType="slide" transparent>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalSheetContainer}>
+            <View style={styles.modalSheetHeader}>
+              <Text style={styles.modalSheetTitle}>Berita & Informasi Pesantren</Text>
+              <TouchableOpacity onPress={() => setShowBeritaModal(false)} style={styles.modalCloseBtn}>
+                <X size={20} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ padding: 16 }}>
+              {BERITA_LIST.map((b) => (
+                <View key={b.id} style={styles.newsDetailCard}>
+                  <Text style={styles.newsDetailBadge}>{b.category}</Text>
+                  <Text style={styles.newsDetailTitle}>{b.title}</Text>
+                  <Text style={styles.newsDetailDate}>{b.date} • {b.author}</Text>
+                  <Text style={styles.newsDetailContent}>{b.content}</Text>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ═══════════════════════════════════════════════════════
+          MODAL 10: LAINNYA / PROFIL PESANTREN
+      ════════════════════════════════════════════════════════ */}
+      <Modal visible={showLainnyaModal} animationType="slide" transparent>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalSheetContainer}>
+            <View style={styles.modalSheetHeader}>
+              <Text style={styles.modalSheetTitle}>Tentang Pesantren Maskumambang</Text>
+              <TouchableOpacity onPress={() => setShowLainnyaModal(false)} style={styles.modalCloseBtn}>
+                <X size={20} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ padding: 16 }}>
+              <Text style={{ fontSize: 14, color: "#334155", lineHeight: 22 }}>
+                Pondok Pesantren Maskumambang berdiri di Dukun, Gresik sejak tahun 1859 M. Memadukan kurikulum kepesantrenan berbasis kitab turots dan tahfidz Al-Qur'an dengan kurikulum formal kementerian.
+              </Text>
+              <Text style={{ fontSize: 13, color: "#64748B", marginTop: 12 }}>
+                Layanan Informasi & Sekretariat:{"\n"}
+                📞 (031) 3949 123{"\n"}
+                🌐 www.maskumambang.ac.id
+              </Text>
             </ScrollView>
           </View>
         </View>
@@ -676,399 +1236,1125 @@ export const ParentDashboardScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F8FAFC" },
-  header: {
-    backgroundColor: "#0F382A",
-    paddingTop: 50,
-    paddingBottom: 16,
+  container: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+  },
+  scrollContent: {
+    paddingBottom: 24,
+  },
+
+  // 1. Header Styles (Identik Guru)
+  headerBackground: {
+    position: "relative",
+    backgroundColor: "#162E6E",
+    paddingBottom: 28,
+  },
+  headerBackdropImage: {
+    ...StyleSheet.absoluteFill,
+    width: "100%",
+    height: "100%",
+    opacity: 0.18,
+  },
+  headerOverlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: "rgba(22, 46, 110, 0.88)",
+  },
+  headerContent: {
     paddingHorizontal: 20,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
+    paddingTop: Platform.OS === "android" ? 14 : 6,
   },
-  headerTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  headerGreeting: { fontSize: 11.5, color: "#6EE7B7", fontWeight: "500" },
-  headerName: { fontSize: 18, fontWeight: "700", color: "#FFFFFF", marginTop: 2, letterSpacing: -0.3 },
-  headerLocationBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    backgroundColor: "rgba(255,255,255,0.12)",
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-  },
-  headerLocationText: { fontSize: 11, color: "#A7F3D0", fontWeight: "500" },
-  prayerStrip: {
+  topBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "rgba(255,255,255,0.10)",
-    borderRadius: 12,
-    paddingVertical: 9,
-    paddingHorizontal: 12,
+    marginBottom: 16,
   },
-  prayerStripLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
-  prayerStripText: { fontSize: 11.5, color: "#FFFFFF", fontWeight: "500" },
-  prayerCountdownBadge: { backgroundColor: "#10B981", paddingVertical: 2, paddingHorizontal: 8, borderRadius: 8 },
-  prayerCountdownText: { fontSize: 10, color: "#FFFFFF", fontWeight: "700" },
-  scrollContent: { padding: 16, paddingBottom: 40 },
-  childSelectorRow: { marginBottom: 14 },
-  childSelectorLabel: { fontSize: 11, fontWeight: "600", color: "#64748B", marginBottom: 8 },
-  childPill: {
+  brandRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    flex: 1,
+  },
+  logoBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  logoImg: {
+    width: "100%",
+    height: "100%",
+  },
+  brandSub: {
+    color: "#93C5FD",
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+  },
+  brandTitle: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "800",
+    letterSpacing: 0.3,
+  },
+  brandMotto: {
+    color: "#E2E8F0",
+    fontSize: 8.5,
+    fontWeight: "500",
+    fontStyle: "italic",
+  },
+  topRightActions: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  headerIconBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
+  },
+  unreadDot: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: "#EF4444",
+  },
+  profileBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.18)",
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    borderRadius: 20,
+  },
+  avatarCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#2563EB",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  greetingBox: {
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  greetingSub: {
+    color: "#BFDBFE",
+    fontSize: 12.5,
+    fontWeight: "500",
+  },
+  greetingName: {
+    color: "#FFFFFF",
+    fontSize: 20,
+    fontWeight: "800",
+    marginTop: 2,
+  },
+  rolePill: {
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(16, 185, 129, 0.25)",
+    borderColor: "#10B981",
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 2,
+    borderRadius: 12,
+    marginTop: 6,
+  },
+  rolePillText: {
+    color: "#A7F3D0",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+
+  // Santri Selector Strip
+  santriSelectorContainer: {
+    marginTop: 14,
+  },
+  santriSelectorLabel: {
+    color: "#93C5FD",
+    fontSize: 11,
+    fontWeight: "700",
+    marginBottom: 6,
+  },
+  santriScroll: {
+    flexDirection: "row",
+  },
+  santriChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 20,
     paddingVertical: 6,
     paddingHorizontal: 12,
-    borderRadius: 20,
     marginRight: 8,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
   },
-  childPillActive: { backgroundColor: "#0F382A", borderColor: "#0F382A" },
-  childPillDot: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: "#E2E8F0",
-    alignItems: "center",
-    justifyContent: "center",
+  santriChipActive: {
+    backgroundColor: "#2563EB",
+    borderColor: "#60A5FA",
   },
-  childPillDotActive: { backgroundColor: "#10B981" },
-  childPillDotText: { fontSize: 10, fontWeight: "700", color: "#475569" },
-  childPillText: { fontSize: 12, fontWeight: "500", color: "#334155" },
-  childPillTextActive: { color: "#FFFFFF" },
-  loadingCard: {
+  santriChipText: {
+    color: "#CBD5E1",
+    fontSize: 11.5,
+    fontWeight: "600",
+    marginLeft: 6,
+  },
+  santriChipTextActive: {
+    color: "#FFFFFF",
+    fontWeight: "800",
+  },
+
+  // 2. Waktu Sholat Floating Card
+  sholatCardWrapper: {
+    paddingHorizontal: 16,
+    marginTop: -16,
+  },
+  sholatCard: {
     backgroundColor: "#FFFFFF",
-    padding: 24,
     borderRadius: 18,
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 14,
+    padding: 14,
+    shadowColor: "#1E293B",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
-  loadingText: { fontSize: 12, color: "#64748B" },
-  santriCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 16,
+  sholatCardHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    shadowColor: "#0F172A",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
+    justifyContent: "space-between",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+    paddingBottom: 10,
+    marginBottom: 10,
   },
-  santriAvatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: "#10B981",
+  sholatLocationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  mosqueBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: "#EEF2FF",
     alignItems: "center",
     justifyContent: "center",
   },
-  santriAvatarLetter: { fontSize: 22, fontWeight: "800", color: "#FFFFFF" },
-  santriInfo: { flex: 1 },
-  santriName: { fontSize: 15, fontWeight: "700", color: "#0F172A" },
-  santriNisn: { fontSize: 11, color: "#64748B", marginTop: 2 },
-  santriMetaRow: { flexDirection: "row", gap: 6, marginTop: 6 },
-  santriMetaBadge: {
+  sholatHeading: {
+    color: "#0F172A",
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  sholatLocationText: {
+    color: "#162E6E",
+    fontSize: 11,
+    fontWeight: "700",
+    marginTop: 1,
+  },
+  sholatDateRight: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    backgroundColor: "#EDE9FE",
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#DDD6FE",
   },
-  santriMetaBadgeText: { fontSize: 10, fontWeight: "600", color: "#7C3AED" },
-  statsRow: { flexDirection: "row", gap: 8, marginBottom: 14 },
-  statBox: { flex: 1, borderRadius: 14, padding: 10, alignItems: "center", gap: 3 },
-  statNumber: { fontSize: 14, fontWeight: "800", letterSpacing: -0.5 },
-  statLabel: { fontSize: 9, color: "#64748B", textAlign: "center", fontWeight: "500" },
-  tabRow: { flexDirection: "row", gap: 8, marginBottom: 14 },
-  tabBtn: {
+  gregorianDateText: {
+    color: "#334155",
+    fontSize: 11.5,
+    fontWeight: "700",
+  },
+  hijriDateText: {
+    color: "#16A34A",
+    fontSize: 10,
+    fontWeight: "600",
+  },
+  prayerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  activePrayerBox: {
+    backgroundColor: "#F0FDF4",
+    borderWidth: 1.5,
+    borderColor: "#BBF7D0",
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    alignItems: "center",
+    width: 82,
+    marginRight: 8,
+  },
+  activePrayerIconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#DCFCE7",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
+  activePrayerName: {
+    color: "#15803D",
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  activePrayerTime: {
+    color: "#0F172A",
+    fontSize: 13,
+    fontWeight: "900",
+    marginTop: 1,
+  },
+  countdownBadge: {
+    backgroundColor: "#16A34A",
+    borderRadius: 8,
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
+    marginTop: 3,
+  },
+  countdownText: {
+    color: "#FFFFFF",
+    fontSize: 8.5,
+    fontWeight: "800",
+  },
+  prayerTimesGrid: {
     flex: 1,
-    paddingVertical: 9,
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  prayerItem: {
+    alignItems: "center",
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+    borderRadius: 8,
+  },
+  prayerItemActive: {
+    backgroundColor: "#F1F5F9",
+  },
+  prayerItemHighlighted: {},
+  prayerItemLabel: {
+    color: "#64748B",
+    fontSize: 10,
+    fontWeight: "600",
+    marginTop: 3,
+  },
+  prayerItemTime: {
+    color: "#0F172A",
+    fontSize: 10.5,
+    fontWeight: "700",
+    marginTop: 1,
+  },
+
+  // 3. 8-Grid Menu
+  menuGridContainer: {
+    paddingHorizontal: 16,
+    marginTop: 16,
+  },
+  menuGridRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  gridCard: {
+    width: (width - 32 - 36) / 4,
+    alignItems: "center",
+  },
+  gridIconCircle: {
+    width: 48,
+    height: 48,
     borderRadius: 14,
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
-  tabBtnActive: { backgroundColor: "#0F382A", borderColor: "#0F382A" },
-  tabBtnText: { fontSize: 11, fontWeight: "600", color: "#64748B" },
-  tabBtnTextActive: { color: "#FFFFFF" },
-  tabContent: {},
-  subSectionTitle: { fontSize: 12, fontWeight: "600", color: "#475569", marginBottom: 10, marginTop: 4 },
-  hafalanSummaryCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    padding: 16,
-    flexDirection: "row",
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    shadowColor: "#0F172A",
+    justifyContent: "center",
+    marginBottom: 6,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  gridCardTitle: {
+    color: "#1E293B",
+    fontSize: 11,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+
+  // 4. Dua Kartu Berdampingan (Dual Cards)
+  dualCardContainer: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    marginTop: 18,
+    gap: 12,
+  },
+  dualCard: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
     shadowRadius: 6,
     elevation: 2,
-  },
-  hafalanSummaryItem: { flex: 1, alignItems: "center" },
-  hafalanSumLabel: { fontSize: 10.5, color: "#64748B", fontWeight: "500" },
-  hafalanSumValue: { fontSize: 20, fontWeight: "800", color: "#0F172A", marginTop: 4 },
-  hafalanSumSub: { fontSize: 10, color: "#94A3B8", marginTop: 2 },
-  hafalanSumDivider: { width: 1, backgroundColor: "#E2E8F0", marginVertical: 4 },
-  setoranCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 10,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-    borderLeftWidth: 3,
-    borderLeftColor: "#7C3AED",
+    borderColor: "#F1F5F9",
   },
-  setoranCardTop: {
+  dualCardHeader: {
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: 8,
+    marginBottom: 10,
   },
-  setoranCardLeft: { flex: 1 },
-  setoranSurat: { fontSize: 13.5, fontWeight: "700", color: "#0F172A" },
-  setoranJenis: { fontSize: 11, color: "#64748B", marginTop: 3 },
-  kelancaranBadge: { paddingVertical: 3, paddingHorizontal: 8, borderRadius: 8 },
-  kelancaranBadgeText: { fontSize: 10.5, fontWeight: "700" },
-  catatanBox: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 6,
-    backgroundColor: "#F8FAFC",
-    borderRadius: 8,
-    padding: 8,
-    marginTop: 8,
-  },
-  catatanText: { fontSize: 11, color: "#475569", flex: 1, fontStyle: "italic" },
-  setoranTanggal: { fontSize: 10, color: "#94A3B8", marginTop: 6, textAlign: "right" },
-  todayStatusCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
-  todayStatusLabel: { fontSize: 11, color: "#64748B", fontWeight: "600", marginBottom: 8 },
-  todayStatusRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  todayStatusValue: { fontSize: 18, fontWeight: "700", color: "#0F172A" },
-  presensiGrid: { flexDirection: "row", gap: 8, marginBottom: 14 },
-  presensiBox: { flex: 1, borderRadius: 14, padding: 12, alignItems: "center" },
-  presensiNumber: { fontSize: 22, fontWeight: "800" },
-  presensiLabel: { fontSize: 10, color: "#64748B", marginTop: 2, fontWeight: "500" },
-  progressCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
-  progressCardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
-  progressCardTitle: { fontSize: 12.5, fontWeight: "600", color: "#334155" },
-  progressCardPct: { fontSize: 18, fontWeight: "800" },
-  progressBarBg: { height: 8, backgroundColor: "#E2E8F0", borderRadius: 4, overflow: "hidden" },
-  progressBarFill: { height: 8, borderRadius: 4 },
-  progressCardSub: { fontSize: 11, color: "#64748B", marginTop: 10 },
-  todayScheduleBadge: {
+  dualCardTitleRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#2563EB",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    alignSelf: "flex-start",
-    marginBottom: 10,
   },
-  todayScheduleBadgeText: { fontSize: 11, fontWeight: "700", color: "#FFFFFF" },
+  dualCardTitle: {
+    color: "#0F172A",
+    fontSize: 12.5,
+    fontWeight: "800",
+  },
+  hafalanContentRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  circularGauge: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#DCFCE7",
+    borderWidth: 3,
+    borderColor: "#16A34A",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+  },
+  circularInner: {
+    alignItems: "center",
+  },
+  gaugeNumber: {
+    color: "#15803D",
+    fontSize: 14,
+    fontWeight: "900",
+    lineHeight: 16,
+  },
+  gaugeUnit: {
+    color: "#166534",
+    fontSize: 8.5,
+    fontWeight: "700",
+  },
+  hafalanDetails: {
+    flex: 1,
+  },
+  hafalanJuz: {
+    color: "#0F172A",
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  hafalanSurat: {
+    color: "#334155",
+    fontSize: 10,
+    fontWeight: "600",
+    marginTop: 1,
+  },
+  hafalanHalaman: {
+    color: "#16A34A",
+    fontSize: 9.5,
+    fontWeight: "700",
+    marginTop: 1,
+  },
+  progressBarBg: {
+    height: 5,
+    backgroundColor: "#E2E8F0",
+    borderRadius: 3,
+    marginTop: 4,
+    overflow: "hidden",
+  },
+  progressBarFill: {
+    height: "100%",
+    backgroundColor: "#16A34A",
+    borderRadius: 3,
+  },
+  progressStatusText: {
+    color: "#64748B",
+    fontSize: 8.5,
+    fontWeight: "600",
+    marginTop: 3,
+  },
+  lmsClassBox: {
+    flex: 1,
+  },
+  lmsClassTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+  lmsIconBox: {
+    width: 26,
+    height: 26,
+    borderRadius: 6,
+    backgroundColor: "#DBEAFE",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  lmsClassBadge: {
+    backgroundColor: "#EFF6FF",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  lmsClassBadgeText: {
+    color: "#1D4ED8",
+    fontSize: 9,
+    fontWeight: "700",
+  },
+  lmsClassName: {
+    color: "#0F172A",
+    fontSize: 11.5,
+    fontWeight: "800",
+  },
+  lmsTeacherName: {
+    color: "#64748B",
+    fontSize: 9.5,
+    fontWeight: "500",
+    marginTop: 1,
+  },
+
+  // 5. Jadwal Pelajaran Section
+  jadwalSectionContainer: {
+    paddingHorizontal: 16,
+    marginTop: 16,
+  },
   jadwalCard: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 14,
-    padding: 12,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
+    borderRadius: 16,
+    padding: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-    borderLeftWidth: 3,
+    borderColor: "#F1F5F9",
   },
-  jadwalCardLeft: { flex: 1 },
-  jadwalMapel: { fontSize: 13, fontWeight: "700", color: "#0F172A" },
-  jadwalGuru: { fontSize: 11, color: "#64748B", marginTop: 2 },
+  jadwalCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+    paddingBottom: 10,
+    marginBottom: 10,
+  },
+  jadwalHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  jadwalIconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: "#EDE9FE",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  jadwalTitle: {
+    color: "#0F172A",
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  jadwalSubtitle: {
+    color: "#64748B",
+    fontSize: 10.5,
+    fontWeight: "500",
+    marginTop: 1,
+  },
+  jadwalBadge: {
+    backgroundColor: "#F3F4F6",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  jadwalBadgeText: {
+    color: "#4B5563",
+    fontSize: 10.5,
+    fontWeight: "700",
+  },
+  jadwalList: {
+    gap: 8,
+  },
+  jadwalItemRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F8FAFC",
+    padding: 10,
+    borderRadius: 10,
+  },
   jadwalTimeBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    backgroundColor: "#EFF6FF",
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 8,
+    backgroundColor: "#E2E8F0",
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginRight: 10,
   },
-  jadwalTimeText: { fontSize: 11, fontWeight: "600", color: "#2563EB" },
-  dividerLine: { height: 1, backgroundColor: "#E2E8F0", marginVertical: 14 },
-  jadwalHariGroup: { marginBottom: 12 },
-  jadwalHariHeader: {
-    backgroundColor: "#F1F5F9",
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    marginBottom: 6,
+  jadwalTimeText: {
+    color: "#1E293B",
+    fontSize: 9.5,
+    fontWeight: "700",
+    marginLeft: 4,
   },
-  jadwalHariHeaderToday: { backgroundColor: "#EFF6FF" },
-  jadwalHariLabel: { fontSize: 11.5, fontWeight: "700", color: "#475569" },
-  jadwalHariLabelToday: { color: "#2563EB" },
-  jadwalItem: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 6, paddingHorizontal: 4 },
-  jadwalItemDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#CBD5E1" },
-  jadwalItemContent: { flex: 1 },
-  jadwalMapelSmall: { fontSize: 12.5, fontWeight: "600", color: "#0F172A" },
-  jadwalGuruSmall: { fontSize: 10.5, color: "#64748B" },
-  jadwalTimeSmall: { fontSize: 11, color: "#64748B", fontWeight: "500" },
-  emptyBox: {
+  jadwalInfoCol: {
+    flex: 1,
+  },
+  jadwalMapelName: {
+    color: "#0F172A",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  jadwalGuruName: {
+    color: "#64748B",
+    fontSize: 10,
+    fontWeight: "500",
+  },
+  jadwalEmptyBox: {
+    paddingVertical: 12,
     alignItems: "center",
-    paddingVertical: 28,
-    backgroundColor: "#FFFFFF",
+  },
+  jadwalEmptyText: {
+    color: "#94A3B8",
+    fontSize: 11,
+    textAlign: "center",
+  },
+
+  // 6. Bottom Banner & Pengumuman
+  bottomSectionContainer: {
+    paddingHorizontal: 16,
+    marginTop: 16,
+  },
+  pesantrenBanner: {
+    position: "relative",
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    gap: 8,
-    marginBottom: 10,
-  },
-  emptyText: { fontSize: 12.5, color: "#94A3B8", textAlign: "center" },
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
-  modalSheet: {
-    backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 26,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 30,
-    maxHeight: "80%",
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  modalTitle: { fontSize: 16, fontWeight: "700", color: "#0F172A" },
-  modalSub: { fontSize: 11, color: "#64748B", marginTop: 2 },
-  modalCloseBtn: { padding: 6, borderRadius: 8, backgroundColor: "#F1F5F9" },
-  sholatHeroBox: {
-    backgroundColor: "#0F382A",
-    borderRadius: 16,
-    padding: 18,
-    alignItems: "center",
+    overflow: "hidden",
+    backgroundColor: "#162E6E",
+    padding: 16,
     marginBottom: 14,
   },
-  sholatHeroLabel: { fontSize: 11, color: "#6EE7B7", fontWeight: "500" },
-  sholatHeroPrayer: { fontSize: 24, fontWeight: "800", color: "#FFFFFF", marginTop: 4 },
-  sholatHeroTime: { fontSize: 18, color: "#A7F3D0", fontWeight: "600", marginTop: 2 },
-  sholatCountdownBadge: {
+  bannerBgImage: {
+    ...StyleSheet.absoluteFill,
+    width: "100%",
+    height: "100%",
+    opacity: 0.25,
+  },
+  bannerDarkOverlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: "rgba(22, 46, 110, 0.85)",
+  },
+  bannerContent: {
+    zIndex: 2,
+  },
+  bannerQuoteTitle: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "800",
+    lineHeight: 18,
+  },
+  bannerQuoteSub: {
+    color: "#BFDBFE",
+    fontSize: 10.5,
+    fontWeight: "500",
+    marginTop: 4,
+    marginBottom: 10,
+    lineHeight: 15,
+  },
+  bannerActionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 14,
+  },
+  bannerActionText: {
+    color: "#FFFFFF",
+    fontSize: 10.5,
+    fontWeight: "700",
+  },
+  infoPentingCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  infoPentingHeader: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    marginTop: 10,
-    paddingVertical: 5,
-    paddingHorizontal: 12,
-    borderRadius: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+    paddingBottom: 8,
+    marginBottom: 8,
   },
-  sholatCountdownText: { fontSize: 12, color: "#FFFFFF", fontWeight: "600" },
-  sholatTable: { gap: 2 },
-  sholatTableRow: {
+  infoPentingTitle: {
+    color: "#0F172A",
+    fontSize: 12.5,
+    fontWeight: "800",
+  },
+  infoItem: {
     flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F8FAFC",
+  },
+  infoItemIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: "#F1F5F9",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+  },
+  infoItemTitle: {
+    color: "#1E293B",
+    fontSize: 11.5,
+    fontWeight: "700",
+  },
+  infoItemMeta: {
+    color: "#64748B",
+    fontSize: 10,
+    marginTop: 1,
+  },
+
+  // Modal Styles
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.6)",
+    justifyContent: "flex-end",
+  },
+  modalSheetContainer: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: "85%",
+  },
+  modalSheetHeader: {
+    flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 11,
-    paddingHorizontal: 6,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#F1F5F9",
   },
-  sholatTableName: { fontSize: 13, fontWeight: "600", color: "#334155" },
-  sholatTableTime: { fontSize: 13, fontWeight: "700", color: "#0F172A" },
-  qiblaDegreeBadge: {
-    alignItems: "center",
-    backgroundColor: "#FFF7ED",
-    borderRadius: 16,
-    paddingVertical: 10,
-    paddingHorizontal: 30,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#FED7AA",
-  },
-  qiblaDegreeBadgeAligned: { backgroundColor: "#059669", borderColor: "#047857" },
-  qiblaDegreeNum: { fontSize: 28, fontWeight: "800", color: "#EA580C" },
-  qiblaDegreeLbl: { fontSize: 12, color: "#EA580C", marginTop: 2 },
-  compassContainer: { alignItems: "center", marginBottom: 16 },
-  compassDial: {
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    borderWidth: 2,
-    borderColor: "#E2E8F0",
-    backgroundColor: "#F8FAFC",
+  modalHeaderIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
-    position: "relative",
   },
-  cardinalPoint: { position: "absolute", fontSize: 13, fontWeight: "600", color: "#475569" },
-  compassNeedle: {
-    position: "absolute",
-    alignItems: "center",
-    height: 160,
-    justifyContent: "space-between",
-    paddingVertical: 8,
+  modalSheetTitle: {
+    color: "#0F172A",
+    fontSize: 15,
+    fontWeight: "800",
   },
-  needleTop: { width: 8, height: 60, borderRadius: 4, backgroundColor: "#EA580C" },
-  compassCenter: { position: "absolute", width: 14, height: 14, borderRadius: 7, backgroundColor: "#334155" },
-  headingBtnRow: { flexDirection: "row", gap: 8, marginBottom: 14 },
-  headingBtn: { flex: 1, paddingVertical: 8, borderRadius: 10, backgroundColor: "#F1F5F9", alignItems: "center" },
-  headingBtnText: { fontSize: 11, fontWeight: "600", color: "#334155" },
-  qiblaInfoRow: { flexDirection: "row", gap: 12, width: "100%" },
-  qiblaInfoItem: {
-    flex: 1,
+  modalSheetSubtitle: {
+    color: "#64748B",
+    fontSize: 11.5,
+    fontWeight: "500",
+  },
+  modalCloseBtn: {
+    padding: 4,
+  },
+  modalSectionTitle: {
+    color: "#0F172A",
+    fontSize: 13,
+    fontWeight: "800",
+    marginTop: 14,
+    marginBottom: 8,
+  },
+  tahfidzTargetBox: {
+    backgroundColor: "#EFF6FF",
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+    borderRadius: 14,
+    padding: 14,
+  },
+  tahfidzTargetLabel: {
+    color: "#1E40AF",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  tahfidzTargetValue: {
+    color: "#1E3A8A",
+    fontSize: 16,
+    fontWeight: "900",
+    marginTop: 2,
+  },
+  setoranCardItem: {
     backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
     borderRadius: 12,
-    padding: 10,
+    padding: 12,
+    marginBottom: 8,
+  },
+  setoranCardHeader: {
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
+  },
+  setoranSuratText: {
+    color: "#0F172A",
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  kelancaranBadge: {
+    backgroundColor: "#DCFCE7",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  kelancaranBadgeText: {
+    color: "#16A34A",
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  setoranDateText: {
+    color: "#64748B",
+    fontSize: 10.5,
+    marginTop: 4,
+  },
+  setoranCatatan: {
+    color: "#334155",
+    fontSize: 11,
+    fontStyle: "italic",
+    marginTop: 4,
+  },
+  presensiStatsGrid: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 12,
+  },
+  presensiStatCard: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: "center",
+    borderRadius: 12,
+  },
+  presensiStatNumber: {
+    fontSize: 18,
+    fontWeight: "900",
+  },
+  presensiStatLabel: {
+    color: "#475569",
+    fontSize: 11,
+    fontWeight: "600",
+    marginTop: 2,
+  },
+  presensiRateBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#F8FAFC",
+    padding: 12,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: "#E2E8F0",
   },
-  qiblaInfoLabel: { fontSize: 10, color: "#64748B", fontWeight: "500" },
-  qiblaInfoValue: { fontSize: 13, fontWeight: "700", color: "#0F172A", marginTop: 3 },
-  cityItem: {
+  presensiRateLabel: {
+    color: "#334155",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  presensiRateValue: {
+    color: "#16A34A",
+    fontSize: 16,
+    fontWeight: "900",
+  },
+  presensiHistoryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+  },
+  presensiDateText: {
+    color: "#0F172A",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  presensiMapelText: {
+    color: "#64748B",
+    fontSize: 10.5,
+  },
+  presensiStatusTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  presensiStatusTagText: {
+    fontSize: 10.5,
+    fontWeight: "700",
+  },
+  jadwalDaySection: {
+    marginBottom: 14,
+  },
+  jadwalDayHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#F1F5F9",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginBottom: 6,
+  },
+  jadwalDayTitle: {
+    color: "#1E293B",
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  jadwalDayCount: {
+    color: "#64748B",
+    fontSize: 10,
+    fontWeight: "600",
+  },
+  jadwalDayItem: {
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 8,
+    padding: 8,
+    marginBottom: 4,
+  },
+  jadwalDayTime: {
+    color: "#2563EB",
+    fontSize: 9.5,
+    fontWeight: "700",
+  },
+  jadwalDaySubject: {
+    color: "#0F172A",
+    fontSize: 11.5,
+    fontWeight: "700",
+  },
+  jadwalDayTeacher: {
+    color: "#64748B",
+    fontSize: 10,
+  },
+  jadwalDayEmpty: {
+    color: "#94A3B8",
+    fontSize: 10.5,
+    fontStyle: "italic",
+    paddingLeft: 4,
+  },
+  lmsInfoBanner: {
+    backgroundColor: "#ECFDF5",
+    borderWidth: 1,
+    borderColor: "#A7F3D0",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+  },
+  lmsInfoTitle: {
+    color: "#065F46",
+    fontSize: 12.5,
+    fontWeight: "800",
+  },
+  lmsInfoText: {
+    color: "#047857",
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 2,
+  },
+  santriDetailCard: {
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 12,
+    padding: 12,
+  },
+  santriDetailRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    marginBottom: 2,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: "#EEF2F6",
   },
-  cityItemActive: { backgroundColor: "#EFF6FF" },
-  cityItemName: { fontSize: 13.5, fontWeight: "600", color: "#0F172A" },
-  cityItemProv: { fontSize: 11, color: "#64748B", marginTop: 2 },
+  santriDetailLabel: {
+    color: "#64748B",
+    fontSize: 11.5,
+  },
+  santriDetailVal: {
+    color: "#0F172A",
+    fontSize: 11.5,
+    fontWeight: "700",
+  },
+  emptyCard: {
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  emptyCardText: {
+    color: "#94A3B8",
+    fontSize: 12,
+  },
+  modalSholatRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+  },
+  modalSholatName: {
+    color: "#0F172A",
+    fontSize: 13,
+    fontWeight: "700",
+    marginLeft: 10,
+  },
+  modalSholatTime: {
+    color: "#162E6E",
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  compassOuter: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: "#EEF2FF",
+    borderWidth: 3,
+    borderColor: "#C7D2FE",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  compassNeedle: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  compassDegreeText: {
+    color: "#0F172A",
+    fontSize: 18,
+    fontWeight: "800",
+  },
+  compassSubText: {
+    color: "#64748B",
+    fontSize: 11.5,
+    textAlign: "center",
+    marginTop: 4,
+    lineHeight: 16,
+  },
+  doaCard: {
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+  },
+  doaTitle: {
+    color: "#0F172A",
+    fontSize: 12.5,
+    fontWeight: "800",
+    marginBottom: 6,
+  },
+  doaArab: {
+    color: "#162E6E",
+    fontSize: 16,
+    textAlign: "right",
+    lineHeight: 26,
+    fontWeight: "700",
+  },
+  doaLatin: {
+    color: "#2563EB",
+    fontSize: 11,
+    fontStyle: "italic",
+    marginTop: 6,
+  },
+  doaArti: {
+    color: "#475569",
+    fontSize: 11,
+    marginTop: 4,
+  },
+  cityPickerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+  },
+  cityPickerRowActive: {
+    backgroundColor: "#EEF2FF",
+  },
+  cityPickerText: {
+    color: "#334155",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  cityPickerTextActive: {
+    color: "#162E6E",
+    fontWeight: "800",
+  },
+  newsDetailCard: {
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+  },
+  newsDetailBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: "#EFF6FF",
+    color: "#1D4ED8",
+    fontSize: 9.5,
+    fontWeight: "700",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginBottom: 4,
+  },
+  newsDetailTitle: {
+    color: "#0F172A",
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  newsDetailDate: {
+    color: "#64748B",
+    fontSize: 10,
+    marginTop: 2,
+    marginBottom: 6,
+  },
+  newsDetailContent: {
+    color: "#334155",
+    fontSize: 11.5,
+    lineHeight: 18,
+  },
 });
