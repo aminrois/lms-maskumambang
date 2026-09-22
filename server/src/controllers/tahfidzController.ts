@@ -905,6 +905,7 @@ export const getStatistikSiswa = async (req: Request, res: Response, next: NextF
     });
 
     const timelineChart = Object.values(timelineMap).sort((a, b) => a.tanggal.localeCompare(b.tanggal));
+    const totalJuzQuranZiyadah = Number(((totalAyatQuranZiyadah / 6236) * 30).toFixed(2));
 
     res.json({
       success: true,
@@ -916,6 +917,7 @@ export const getStatistikSiswa = async (req: Request, res: Response, next: NextF
           totalSetoranBaru,
           totalSetoranUlang,
           totalAyatQuranZiyadah,
+          totalJuzQuranZiyadah,
           totalHaditsZiyadah,
           totalBaitMatanZiyadah,
           kelancaranCount,

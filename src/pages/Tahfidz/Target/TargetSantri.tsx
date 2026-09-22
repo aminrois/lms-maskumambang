@@ -319,9 +319,11 @@ const TargetSantriTahfidz: React.FC = () => {
                       <span className="text-[10px] font-bold uppercase tracking-wider">Al-Qur'an</span>
                     </div>
                     <span className="text-lg font-black text-emerald-950">
-                      {statistikData.summary?.totalAyatQuranZiyadah || 0}
+                      {statistikData.summary?.totalJuzQuranZiyadah ?? Number((((statistikData.summary?.totalAyatQuranZiyadah || 0) / 6236) * 30).toFixed(2))} <span className="text-xs font-bold text-emerald-700">Juz</span>
                     </span>
-                    <span className="text-[10px] text-emerald-700 block">Ayat Disetorkan</span>
+                    <span className="text-[10px] text-emerald-700 block">
+                      ({statistikData.summary?.totalAyatQuranZiyadah || 0} Ayat Disetorkan)
+                    </span>
                   </div>
 
                   <div className="p-3.5 bg-blue-50 rounded-2xl border border-blue-100">
@@ -381,20 +383,38 @@ const TargetSantriTahfidz: React.FC = () => {
                 ) : (
                   <div className="space-y-3">
                     {statistikData.targets.map((tgt: TahfidzTargetItem) => {
-                      // Hitung progres terhadap target
-                      let achieved = 0;
-                      if (tgt.kategori === "Al-Quran") {
-                        achieved = statistikData.summary?.totalAyatQuranZiyadah || 0;
-                      } else if (tgt.kategori === "Hadits") {
-                        achieved = statistikData.summary?.totalHaditsZiyadah || 0;
-                      } else if (tgt.kategori === "Matan Ilmu") {
-                        achieved = statistikData.summary?.totalBaitMatanZiyadah || 0;
-                      }
+                      // Hitung progres terhadap target berdasarkan kategori
+                      let achievedDisplay = "";
+                      let percentage = 0;
 
-                      const percentage = Math.min(
-                        100,
-                        Math.round((achieved / (tgt.target_nominal || 1)) * 100)
-                      );
+                      if (tgt.kategori === "Al-Quran") {
+                        const totalAyat = statistikData.summary?.totalAyatQuranZiyadah || 0;
+                        const achievedJuz =
+                          statistikData.summary?.totalJuzQuranZiyadah ??
+                          Number(((totalAyat / 6236) * 30).toFixed(2));
+                        const targetJuz = tgt.target_nominal || 1;
+                        percentage = Math.min(
+                          100,
+                          Math.round((achievedJuz / targetJuz) * 100)
+                        );
+                        achievedDisplay = `${achievedJuz} Juz (${totalAyat} Ayat) / ${targetJuz} Juz`;
+                      } else if (tgt.kategori === "Hadits") {
+                        const achievedHadits = statistikData.summary?.totalHaditsZiyadah || 0;
+                        const targetHadits = tgt.target_nominal || 1;
+                        percentage = Math.min(
+                          100,
+                          Math.round((achievedHadits / targetHadits) * 100)
+                        );
+                        achievedDisplay = `${achievedHadits} / ${targetHadits} Hadits`;
+                      } else {
+                        const achievedBait = statistikData.summary?.totalBaitMatanZiyadah || 0;
+                        const targetBait = tgt.target_nominal || 1;
+                        percentage = Math.min(
+                          100,
+                          Math.round((achievedBait / targetBait) * 100)
+                        );
+                        achievedDisplay = `${achievedBait} / ${targetBait} Bait`;
+                      }
 
                       return (
                         <div
@@ -440,7 +460,7 @@ const TargetSantriTahfidz: React.FC = () => {
                           <div className="space-y-1">
                             <div className="flex items-center justify-between text-[11px] font-bold">
                               <span className="text-slate-600">
-                                Tercapai: <strong>{achieved}</strong> / {tgt.target_nominal} {tgt.satuan}
+                                Tercapai: <strong>{achievedDisplay}</strong>
                               </span>
                               <span className="text-emerald-600">{percentage}%</span>
                             </div>
@@ -558,15 +578,22 @@ const TargetSantriTahfidz: React.FC = () => {
                   onChange={(e) => {
                     const cat = e.target.value as any;
                     setFormKategori(cat);
-                    if (cat === "Al-Quran") setFormSatuan("Ayat");
-                    else if (cat === "Hadits") setFormSatuan("Hadits");
-                    else setFormSatuan("Bait");
+                    if (cat === "Al-Quran") {
+                      setFormSatuan("Juz");
+                      if (formNominal === "40" || formNominal === "50" || !formNominal) setFormNominal("5");
+                    } else if (cat === "Hadits") {
+                      setFormSatuan("Hadits");
+                      if (formNominal === "5" || !formNominal) setFormNominal("40");
+                    } else {
+                      setFormSatuan("Bait");
+                      if (formNominal === "5" || !formNominal) setFormNominal("50");
+                    }
                   }}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 outline-none"
                 >
-                  <option value="Al-Quran">Al-Qur'an</option>
-                  <option value="Hadits">Hadits</option>
-                  <option value="Matan Ilmu">Matan Ilmu</option>
+                  <option value="Al-Quran">Al-Qur'an (Parameter Target: Juz)</option>
+                  <option value="Hadits">Hadits (Parameter Target: Hadits)</option>
+                  <option value="Matan Ilmu">Matan Ilmu (Parameter Target: Bait)</option>
                 </select>
               </div>
 
@@ -580,7 +607,7 @@ const TargetSantriTahfidz: React.FC = () => {
                   required
                   value={formDeskripsi}
                   onChange={(e) => setFormDeskripsi(e.target.value)}
-                  placeholder="Contoh: Target 5 Juz (Juz 1 s/d 5) atau 42 Hadits Arbain"
+                  placeholder={formKategori === "Al-Quran" ? "Contoh: Target 5 Juz (Juz 1 s/d 5) atau Target Juz 30" : "Deskripsi target hafalan"}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
@@ -589,27 +616,28 @@ const TargetSantriTahfidz: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Jumlah Nominal Target <span className="text-rose-500">*</span>
+                    Jumlah Target ({formSatuan}) <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="number"
                     required
                     min="1"
+                    max={formKategori === "Al-Quran" ? 30 : 10000}
                     value={formNominal}
                     onChange={(e) => setFormNominal(e.target.value)}
+                    placeholder={formKategori === "Al-Quran" ? "Contoh: 5" : "Jumlah target"}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 outline-none focus:ring-2 focus:ring-blue-500/20"
                   />
+                  {formKategori === "Al-Quran" && (
+                    <p className="text-[10px] text-slate-400 mt-0.5">Rentang 1 s/d 30 Juz</p>
+                  )}
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Satuan Capaian</label>
-                  <input
-                    type="text"
-                    required
-                    value={formSatuan}
-                    onChange={(e) => setFormSatuan(e.target.value)}
-                    placeholder="Ayat / Hadits / Bait"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 outline-none focus:ring-2 focus:ring-blue-500/20"
-                  />
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Satuan Parameter</label>
+                  <div className="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 flex items-center justify-between">
+                    <span>{formSatuan}</span>
+                    <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-semibold">Fixed</span>
+                  </div>
                 </div>
               </div>
 
