@@ -21,7 +21,6 @@ import {
   Check,
   FingerprintPattern,
   ScanFace,
-  ShieldCheck,
 } from "lucide-react-native";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
@@ -164,44 +163,6 @@ export const LoginScreen = () => {
               </View>
             ) : null}
 
-            {/* Quick Biometric Login Button (jika sudah diaktifkan) */}
-            {biometricStatus?.isEnabled && (
-              <View style={styles.biometricBox}>
-                <View style={styles.biometricInfo}>
-                  <ShieldCheck size={18} color="#15803d" />
-                  <Text style={styles.biometricUserText}>
-                    Login Biometrik Aktif:{" "}
-                    <Text style={{ fontWeight: "800" }}>{biometricStatus.savedUsername}</Text>
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  style={styles.biometricBtn}
-                  onPress={handleBiometricLogin}
-                  disabled={isBioAuthenticating || isLoading}
-                  activeOpacity={0.8}
-                >
-                  {isBioAuthenticating ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <>
-                      {isFaceId ? (
-                        <ScanFace size={22} color="#FFFFFF" />
-                      ) : (
-                        <FingerprintPattern size={22} color="#FFFFFF" />
-                      )}
-                      <Text style={styles.biometricBtnText}>Masuk dengan {bioName}</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-
-                <View style={styles.dividerRow}>
-                  <View style={styles.dividerLine} />
-                  <Text style={styles.dividerText}>atau gunakan kata sandi</Text>
-                  <View style={styles.dividerLine} />
-                </View>
-              </View>
-            )}
-
             <Input
               label="Username"
               placeholder="Masukkan username atau NIP"
@@ -235,6 +196,43 @@ export const LoginScreen = () => {
               style={styles.loginBtn}
             />
 
+            {/* Biometric Login Button — di bawah button Login */}
+            {biometricStatus?.isEnabled && (
+              <View style={styles.biometricSection}>
+                <View style={styles.dividerRow}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>atau</Text>
+                  <View style={styles.dividerLine} />
+                </View>
+
+                {biometricStatus.savedUsername ? (
+                  <Text style={styles.biometricHint}>
+                    Masuk sebagai <Text style={{ fontWeight: "800" }}>{biometricStatus.savedUsername}</Text>
+                  </Text>
+                ) : null}
+
+                <TouchableOpacity
+                  style={styles.biometricBtn}
+                  onPress={handleBiometricLogin}
+                  disabled={isBioAuthenticating || isLoading}
+                  activeOpacity={0.8}
+                >
+                  {isBioAuthenticating ? (
+                    <ActivityIndicator size="small" color={Colors.primary} />
+                  ) : (
+                    <>
+                      {isFaceId ? (
+                        <ScanFace size={22} color={Colors.primary} />
+                      ) : (
+                        <FingerprintPattern size={22} color={Colors.primary} />
+                      )}
+                      <Text style={styles.biometricBtnText}>Masuk dengan {bioName}</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
+
             {/* Server Settings Link */}
             <TouchableOpacity
               onPress={() => setShowServerModal(true)}
@@ -250,7 +248,7 @@ export const LoginScreen = () => {
 
           {/* Footer */}
           <Text style={styles.footerText}>
-            © {new Date().getFullYear()} LMS Maskumambang • Versi {APP_CONFIG.appVersion}
+            © {new Date().getFullYear()} Maskumambang Creative Center
           </Text>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -412,35 +410,28 @@ const styles = StyleSheet.create({
     color: Colors.danger,
     fontWeight: "600",
   },
-  biometricBox: {
-    backgroundColor: "#f0fdf4",
-    borderWidth: 1,
-    borderColor: "#bbf7d0",
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 16,
+  biometricSection: {
+    marginTop: 4,
   },
-  biometricInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
+  biometricHint: {
+    textAlign: "center",
+    fontSize: 12,
+    color: Colors.textMuted,
     marginBottom: 10,
   },
-  biometricUserText: {
-    fontSize: 12,
-    color: "#166534",
-  },
   biometricBtn: {
-    backgroundColor: Colors.primaryDark,
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 12,
     borderRadius: 12,
     gap: 10,
+    backgroundColor: Colors.primaryLight,
   },
   biometricBtnText: {
-    color: "#FFFFFF",
+    color: Colors.primary,
     fontSize: 14,
     fontWeight: "800",
   },

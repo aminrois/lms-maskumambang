@@ -39,6 +39,7 @@ import {
 } from "lucide-react-native";
 import { Colors } from "../../constants/colors";
 import { newsService, WordPressPost } from "../../api/newsService";
+import { SwipeBackContainer } from "../../components/ui/SwipeBackContainer";
 
 const { width } = Dimensions.get("window");
 
@@ -135,7 +136,8 @@ export const BeritaScreen = () => {
   const regularPosts = filteredPosts.length > 0 ? (selectedCategory === "all" ? filteredPosts.slice(1) : filteredPosts) : [];
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+    <SwipeBackContainer onBack={() => navigation.goBack()}>
+      <SafeAreaView style={styles.safeArea} edges={["top"]}>
       {/* ═══════════════════════════════════════════════════════
           1. TOP NAVIGATION HEADER
       ════════════════════════════════════════════════════════ */}
@@ -484,6 +486,7 @@ export const BeritaScreen = () => {
         )}
       </Modal>
     </SafeAreaView>
+    </SwipeBackContainer>
   );
 };
 
