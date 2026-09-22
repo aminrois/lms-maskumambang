@@ -4,6 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authService, AuthUser } from "../api/authService";
 import { apiClient } from "../api/client";
 import { STORAGE_KEYS, DEFAULT_API_BASE_URL } from "../constants/config";
+import { biometricService, BiometricStatus } from "../services/biometricService";
 
 interface AuthState {
   token: string | null;
@@ -11,11 +12,18 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   apiBaseUrl: string;
+  biometricStatus: BiometricStatus | null;
 
   login: (identifier: string, kata_sandi: string) => Promise<void>;
   logout: () => Promise<void>;
   restoreSession: () => Promise<void>;
   setApiBaseUrl: (url: string) => Promise<void>;
+
+  // Biometric actions
+  checkBiometricStatus: () => Promise<BiometricStatus>;
+  enableBiometric: (identifier: string, kata_sandi: string) => Promise<boolean>;
+  disableBiometric: () => Promise<void>;
+  loginWithBiometrics: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -24,6 +32,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isAuthenticated: false,
   isLoading: true,
   apiBaseUrl: DEFAULT_API_BASE_URL,
+  biometricStatus: null,
+
+  checkBiometricStatus: async () => {
+    const status = await biometricService.checkBiometricStatus();
+    set({ biometricStatus: status });
+    return status;
+  },
 
   restoreSession: async () => {
     try {
@@ -34,24 +49,28 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         AsyncStorage.getItem(STORAGE_KEYS.API_BASE_URL),
       ]);
 
+      const activeUrl = savedBaseUrl || DEFAULT_API_BASE_URL;
+      apiClient.defaults.baseURL = activeUrl;
+
+      // Cek status biometrik juga
+      const bioStatus = await biometricService.checkBiometricStatus();
+
       if (savedToken && savedUserData) {
-        const activeUrl = savedBaseUrl || DEFAULT_API_BASE_URL;
-        apiClient.defaults.baseURL = activeUrl;
         set({
           token: savedToken,
           user: JSON.parse(savedUserData),
           isAuthenticated: true,
           apiBaseUrl: activeUrl,
+          biometricStatus: bioStatus,
           isLoading: false,
         });
       } else {
-        const activeUrl = savedBaseUrl || DEFAULT_API_BASE_URL;
-        apiClient.defaults.baseURL = activeUrl;
         set({
           token: null,
           user: null,
           isAuthenticated: false,
           apiBaseUrl: activeUrl,
+          biometricStatus: bioStatus,
           isLoading: false,
         });
       }
@@ -69,16 +88,59 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await AsyncStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
       await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(user));
 
+      // Jika biometrik sebelumnya aktif untuk user ini, perbarui passwordnya
+      const currentBio = get().biometricStatus;
+      if (currentBio?.isEnabled) {
+        await biometricService.saveCredentials(identifier, kata_sandi);
+      }
+
+      const bioStatus = await biometricService.checkBiometricStatus();
+
       set({
         token,
         user,
         isAuthenticated: true,
         isLoading: false,
+        biometricStatus: bioStatus,
       });
     } catch (error) {
       set({ isLoading: false });
       throw error;
     }
+  },
+
+  enableBiometric: async (identifier: string, kata_sandi: string) => {
+    const success = await biometricService.saveCredentials(identifier, kata_sandi);
+    if (success) {
+      const bioStatus = await biometricService.checkBiometricStatus();
+      set({ biometricStatus: bioStatus });
+      return true;
+    }
+    return false;
+  },
+
+  disableBiometric: async () => {
+    await biometricService.removeCredentials();
+    const bioStatus = await biometricService.checkBiometricStatus();
+    set({ biometricStatus: bioStatus });
+  },
+
+  loginWithBiometrics: async () => {
+    const creds = await biometricService.getCredentials();
+    if (!creds || !creds.identifier || !creds.kata_sandi) {
+      throw new Error("Kredensial biometrik tidak ditemukan. Silakan login dengan kata sandi terlebih dahulu.");
+    }
+
+    const bioResult = await biometricService.authenticate(
+      `Pindai untuk masuk sebagai ${creds.identifier}`
+    );
+
+    if (!bioResult.success) {
+      throw new Error(bioResult.error || "Autentikasi biometrik dibatalkan");
+    }
+
+    // Eksekusi login dengan kredensial yang tersimpan aman
+    await get().login(creds.identifier, creds.kata_sandi);
   },
 
   logout: async () => {
@@ -92,11 +154,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         STORAGE_KEYS.AUTH_TOKEN,
         STORAGE_KEYS.USER_DATA,
       ]);
+      const bioStatus = await biometricService.checkBiometricStatus();
       set({
         token: null,
         user: null,
         isAuthenticated: false,
         isLoading: false,
+        biometricStatus: bioStatus,
       });
     }
   },

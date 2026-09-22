@@ -1,5 +1,5 @@
 // mobile/src/screens/Auth/LoginScreen.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,9 +10,19 @@ import {
   Alert,
   TouchableOpacity,
   Modal,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { GraduationCap, Lock, User, Server, Check } from "lucide-react-native";
+import {
+  GraduationCap,
+  Lock,
+  User,
+  Server,
+  Check,
+  FingerprintPattern,
+  ScanFace,
+  ShieldCheck,
+} from "lucide-react-native";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { Colors } from "../../constants/colors";
@@ -24,9 +34,29 @@ export const LoginScreen = () => {
   const [kataSandi, setKataSandi] = useState("");
   const [error, setError] = useState("");
   const [showServerModal, setShowServerModal] = useState(false);
+  const [isBioAuthenticating, setIsBioAuthenticating] = useState(false);
 
-  const { login, isLoading, apiBaseUrl, setApiBaseUrl } = useAuthStore();
+  const {
+    login,
+    isLoading,
+    apiBaseUrl,
+    setApiBaseUrl,
+    biometricStatus,
+    checkBiometricStatus,
+    loginWithBiometrics,
+    enableBiometric,
+  } = useAuthStore();
   const [customUrlInput, setCustomUrlInput] = useState(apiBaseUrl);
+
+  useEffect(() => {
+    const initBiometrics = async () => {
+      const status = await checkBiometricStatus();
+      if (status.isEnabled && status.savedUsername) {
+        setIdentifier(status.savedUsername);
+      }
+    };
+    initBiometrics();
+  }, [checkBiometricStatus]);
 
   const handleLogin = async () => {
     if (!identifier.trim() || !kataSandi.trim()) {
@@ -37,6 +67,27 @@ export const LoginScreen = () => {
     try {
       setError("");
       await login(identifier.trim(), kataSandi);
+
+      // Jika biometrik didukung tapi belum aktif, tawarkan kepada user
+      if (
+        biometricStatus?.isSupported &&
+        biometricStatus?.isEnrolled &&
+        !biometricStatus?.isEnabled
+      ) {
+        Alert.alert(
+          `Aktifkan ${biometricStatus.biometricName}?`,
+          `Apakah Anda ingin menggunakan ${biometricStatus.biometricName} untuk masuk lebih cepat di kemudian hari?`,
+          [
+            { text: "Nanti Saja", style: "cancel" },
+            {
+              text: "Aktifkan",
+              onPress: async () => {
+                await enableBiometric(identifier.trim(), kataSandi);
+              },
+            },
+          ]
+        );
+      }
     } catch (err: any) {
       const msg =
         err.response?.data?.message ||
@@ -47,12 +98,31 @@ export const LoginScreen = () => {
     }
   };
 
+  const handleBiometricLogin = async () => {
+    try {
+      setIsBioAuthenticating(true);
+      setError("");
+      await loginWithBiometrics();
+    } catch (err: any) {
+      const msg = err.message || "Autentikasi biometrik gagal.";
+      if (!msg.toLowerCase().includes("batal") && !msg.toLowerCase().includes("cancel")) {
+        setError(msg);
+        Alert.alert("Biometrik Gagal", msg);
+      }
+    } finally {
+      setIsBioAuthenticating(false);
+    }
+  };
+
   const handleSaveServerUrl = async () => {
     if (!customUrlInput.trim()) return;
     await setApiBaseUrl(customUrlInput.trim());
     setShowServerModal(false);
     Alert.alert("Sukses", "Alamat server berhasil diperbarui.");
   };
+
+  const isFaceId = biometricStatus?.biometricType === "faceid";
+  const bioName = biometricStatus?.biometricName || "Sidik Jari / Face ID";
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -90,6 +160,44 @@ export const LoginScreen = () => {
               </View>
             ) : null}
 
+            {/* Quick Biometric Login Button (jika sudah diaktifkan) */}
+            {biometricStatus?.isEnabled && (
+              <View style={styles.biometricBox}>
+                <View style={styles.biometricInfo}>
+                  <ShieldCheck size={18} color="#15803d" />
+                  <Text style={styles.biometricUserText}>
+                    Login Biometrik Aktif:{" "}
+                    <Text style={{ fontWeight: "800" }}>{biometricStatus.savedUsername}</Text>
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.biometricBtn}
+                  onPress={handleBiometricLogin}
+                  disabled={isBioAuthenticating || isLoading}
+                  activeOpacity={0.8}
+                >
+                  {isBioAuthenticating ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <>
+                      {isFaceId ? (
+                        <ScanFace size={22} color="#FFFFFF" />
+                      ) : (
+                        <FingerprintPattern size={22} color="#FFFFFF" />
+                      )}
+                      <Text style={styles.biometricBtnText}>Masuk dengan {bioName}</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+
+                <View style={styles.dividerRow}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>atau gunakan kata sandi</Text>
+                  <View style={styles.dividerLine} />
+                </View>
+              </View>
+            )}
+
             <Input
               label="Username / Email / NIP / NISN"
               placeholder="Masukkan username atau NIP"
@@ -118,7 +226,7 @@ export const LoginScreen = () => {
             <Button
               title="Masuk ke Aplikasi"
               onPress={handleLogin}
-              loading={isLoading}
+              loading={isLoading && !isBioAuthenticating}
               size="lg"
               style={styles.loginBtn}
             />
@@ -291,6 +399,54 @@ const styles = StyleSheet.create({
   errorBannerText: {
     fontSize: 12,
     color: Colors.danger,
+    fontWeight: "600",
+  },
+  biometricBox: {
+    backgroundColor: "#f0fdf4",
+    borderWidth: 1,
+    borderColor: "#bbf7d0",
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 16,
+  },
+  biometricInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 10,
+  },
+  biometricUserText: {
+    fontSize: 12,
+    color: "#166534",
+  },
+  biometricBtn: {
+    backgroundColor: Colors.primaryDark,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 10,
+  },
+  biometricBtnText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 14,
+    gap: 8,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#cbd5e1",
+  },
+  dividerText: {
+    fontSize: 11,
+    color: Colors.textMuted,
     fontWeight: "600",
   },
   loginBtn: {
