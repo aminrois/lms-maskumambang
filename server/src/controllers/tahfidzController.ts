@@ -490,6 +490,7 @@ export const getSantriTahfidz = async (req: Request, res: Response, next: NextFu
     const authUser = getAuthInfo(req);
 
     let targetKelasIds: number[] = [];
+    let userLembagaIds: number[] = [];
 
     // Jika filter kelas_id spesifik diberikan
     if (kelas_id) {
@@ -500,11 +501,14 @@ export const getSantriTahfidz = async (req: Request, res: Response, next: NextFu
         where: { pegawai_id: Number(pegawai_id) },
         select: { kelas_id: true },
       });
-      targetKelasIds = pengampuRows.map(p => p.kelas_id);
+      targetKelasIds = pengampuRows.map((p) => p.kelas_id);
     } else {
       // Cek apakah user adalah Guru Tahfidz (bukan Super Admin / Direktur)
       const userRoles = authUser?.roles || [];
-      const isGlobal = userRoles.includes('Super Admin') || userRoles.includes('Direktur') || userRoles.includes('Kepala Sekolah');
+      const isGlobal =
+        userRoles.includes('Super Admin') ||
+        userRoles.includes('Direktur') ||
+        userRoles.includes('Kepala Sekolah');
 
       if (!isGlobal && authUser?.user_id) {
         const userPegawaiId = await resolvePegawaiId(authUser.pegawai_id, authUser.user_id);
@@ -513,33 +517,47 @@ export const getSantriTahfidz = async (req: Request, res: Response, next: NextFu
             where: { pegawai_id: userPegawaiId },
             select: { kelas_id: true },
           });
-          targetKelasIds = pengampuRows.map(p => p.kelas_id);
+          targetKelasIds = pengampuRows.map((p) => p.kelas_id);
+
+          // Jika guru belum ditugaskan kelas tertentu, ambil lembaga dari profil pegawai
+          if (targetKelasIds.length === 0) {
+            const pl = await prisma.pegawaiLembaga.findMany({
+              where: { pegawai_id: userPegawaiId },
+              select: { lembaga_id: true },
+            });
+            userLembagaIds = pl.map((p) => p.lembaga_id);
+          }
         }
       }
     }
 
-    const whereSiswa: any = { status: 'Aktif' };
+    const whereSiswa: any = {
+      NOT: { status: 'Tidak Aktif' },
+    };
+
     if (targetKelasIds.length > 0) {
       whereSiswa.kelas_id = { in: targetKelasIds };
     } else if (lembaga_id) {
       whereSiswa.kelas = { lembaga_id: Number(lembaga_id) };
+    } else if (userLembagaIds.length > 0) {
+      whereSiswa.kelas = { lembaga_id: { in: userLembagaIds } };
     }
 
     const santriList = await prisma.siswa.findMany({
       where: whereSiswa,
       include: {
         kelas: {
-          include: { lembaga: true }
+          include: { lembaga: true },
         },
         tahfidz_target: {
-          where: { status: 'Aktif' }
+          where: { status: 'Aktif' },
         },
         tahfidz_setoran: {
           take: 1,
           orderBy: { tanggal: 'desc' },
           include: {
-            pegawai: { select: { nama: true } }
-          }
+            pegawai: { select: { nama: true } },
+          },
         },
       },
       orderBy: [

@@ -8,6 +8,7 @@ import routes from './routes';
 import { errorHandler } from './middlewares/errorHandler';
 import { deduplicateLessonPlans } from './scripts/cleanDuplicateLessonPlans';
 import { syncLessonPlansWithJadwal } from './scripts/syncLessonPlansWithJadwal';
+import { initTahfidzModule } from './scripts/initTahfidzModule';
 
 dotenv.config();
 
@@ -74,10 +75,11 @@ const server = app.listen(PORT, () => {
   // Run initial cleanup for duplicates and schedule sync in background
   (async () => {
     try {
+      await initTahfidzModule();
       await deduplicateLessonPlans();
       await syncLessonPlansWithJadwal();
     } catch (err) {
-      console.error('Initial lesson plan sync error:', err);
+      console.error('Initial startup background tasks error:', err);
     }
   })();
 });
