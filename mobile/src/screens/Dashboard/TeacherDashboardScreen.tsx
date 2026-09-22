@@ -170,7 +170,7 @@ export const TeacherDashboardScreen = () => {
                 {/* Notification Bell */}
                 <TouchableOpacity
                   style={styles.headerIconBtn}
-                  onPress={() => setShowBeritaModal(true)}
+                  onPress={() => navigation.navigate("Berita")}
                   activeOpacity={0.8}
                 >
                   <Bell size={20} color="#FFFFFF" />
@@ -332,7 +332,6 @@ export const TeacherDashboardScreen = () => {
                 <BookOpen size={24} color="#FFFFFF" />
               </View>
               <Text style={styles.gridCardTitle}>LMS</Text>
-              <Text style={styles.gridCardSub}>Materi & Tugas</Text>
             </TouchableOpacity>
 
             {/* 2. Setoran Hafalan */}
@@ -345,7 +344,6 @@ export const TeacherDashboardScreen = () => {
                 <ScrollText size={24} color="#FFFFFF" />
               </View>
               <Text style={styles.gridCardTitle}>Setoran Hafalan</Text>
-              <Text style={styles.gridCardSub}>Pantau Progress</Text>
             </TouchableOpacity>
 
             {/* 3. Jadwal Kegiatan */}
@@ -358,7 +356,6 @@ export const TeacherDashboardScreen = () => {
                 <Calendar size={24} color="#FFFFFF" />
               </View>
               <Text style={styles.gridCardTitle}>Jadwal Kegiatan</Text>
-              <Text style={styles.gridCardSub}>Pesantren & Kelas</Text>
             </TouchableOpacity>
 
             {/* 4. Jadwal Sholat */}
@@ -371,7 +368,6 @@ export const TeacherDashboardScreen = () => {
                 <Clock size={24} color="#FFFFFF" />
               </View>
               <Text style={styles.gridCardTitle}>Jadwal Sholat</Text>
-              <Text style={styles.gridCardSub}>Lengkap & Akurat</Text>
             </TouchableOpacity>
           </View>
 
@@ -386,7 +382,6 @@ export const TeacherDashboardScreen = () => {
                 <Compass size={24} color="#FFFFFF" />
               </View>
               <Text style={styles.gridCardTitle}>Arah Kiblat</Text>
-              <Text style={styles.gridCardSub}>Kompas & Peta</Text>
             </TouchableOpacity>
 
             {/* 6. Doa & Dzikir */}
@@ -399,20 +394,18 @@ export const TeacherDashboardScreen = () => {
                 <BookMarked size={24} color="#FFFFFF" />
               </View>
               <Text style={styles.gridCardTitle}>Doa & Dzikir</Text>
-              <Text style={styles.gridCardSub}>Harian</Text>
             </TouchableOpacity>
 
             {/* 7. Berita */}
             <TouchableOpacity
               style={styles.gridCard}
-              onPress={() => setShowBeritaModal(true)}
+              onPress={() => navigation.navigate("Berita")}
               activeOpacity={0.8}
             >
               <View style={[styles.gridIconCircle, { backgroundColor: "#f43f5e" }]}>
                 <Newspaper size={24} color="#FFFFFF" />
               </View>
               <Text style={styles.gridCardTitle}>Berita</Text>
-              <Text style={styles.gridCardSub}>Info Terbaru</Text>
             </TouchableOpacity>
 
             {/* 8. Lainnya */}
@@ -425,7 +418,6 @@ export const TeacherDashboardScreen = () => {
                 <MoreHorizontal size={24} color="#FFFFFF" />
               </View>
               <Text style={styles.gridCardTitle}>Lainnya</Text>
-              <Text style={styles.gridCardSub}>Fitur Lengkap</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -445,7 +437,6 @@ export const TeacherDashboardScreen = () => {
                 <BookOpen size={16} color="#15803d" />
                 <Text style={styles.dualCardTitle}>Progress Hafalan</Text>
               </View>
-              <Text style={styles.dualCardLink}>Lihat Detail ›</Text>
             </View>
 
             <View style={styles.hafalanContentRow}>
@@ -482,7 +473,6 @@ export const TeacherDashboardScreen = () => {
                 <GraduationCap size={16} color="#1d4ed8" />
                 <Text style={styles.dualCardTitle}>Kelas di LMS</Text>
               </View>
-              <Text style={styles.dualCardLink}>Lihat Semua ›</Text>
             </View>
 
             <View style={styles.lmsClassBox}>
@@ -552,7 +542,7 @@ export const TeacherDashboardScreen = () => {
             {/* List 1 */}
             <TouchableOpacity
               style={styles.infoItem}
-              onPress={() => setShowBeritaModal(true)}
+              onPress={() => navigation.navigate("Berita")}
               activeOpacity={0.7}
             >
               <View style={styles.infoItemIcon}>
@@ -567,7 +557,7 @@ export const TeacherDashboardScreen = () => {
             {/* List 2 */}
             <TouchableOpacity
               style={styles.infoItem}
-              onPress={() => setShowBeritaModal(true)}
+              onPress={() => navigation.navigate("Berita")}
               activeOpacity={0.7}
             >
               <View style={styles.infoItemIcon}>
@@ -582,7 +572,7 @@ export const TeacherDashboardScreen = () => {
             {/* List 3 */}
             <TouchableOpacity
               style={[styles.infoItem, { borderBottomWidth: 0 }]}
-              onPress={() => setShowBeritaModal(true)}
+              onPress={() => navigation.navigate("Berita")}
               activeOpacity={0.7}
             >
               <View style={styles.infoItemIcon}>
