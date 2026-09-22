@@ -563,7 +563,7 @@ export const getSantriTahfidz = async (req: Request, res: Response, next: NextFu
         },
         tahfidz_setoran: {
           take: 1,
-          orderBy: { tanggal: 'desc' },
+          orderBy: { created_at: 'desc' },
           include: {
             pegawai: { select: { nama: true } },
           },

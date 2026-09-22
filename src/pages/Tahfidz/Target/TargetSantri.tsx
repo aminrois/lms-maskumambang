@@ -13,9 +13,36 @@ import {
   Bookmark,
   Search,
   BarChart3,
-  Flame
+  Flame,
+  Calendar,
+  Sparkles,
+  History,
 } from "lucide-react";
 import { tahfidzService, type TahfidzTargetItem } from "../../../lib/api/services/tahfidzService";
+
+const formatSetoranDetail = (s: any) => {
+  if (!s) return "Belum ada setoran";
+  if (s.kategori === "Al-Quran") {
+    const surat = s.surat_mulai_nama || (s.surat_mulai ? `Surat ${s.surat_mulai}` : "Al-Qur'an");
+    const ayat = s.ayat_mulai && s.ayat_selesai && s.ayat_mulai !== s.ayat_selesai
+      ? `Ayat ${s.ayat_mulai}-${s.ayat_selesai}`
+      : s.ayat_mulai ? `Ayat ${s.ayat_mulai}` : "";
+    return `QS. ${surat}${ayat ? ` : ${ayat}` : ""} (${s.total_ayat || 0} Ayat)`;
+  }
+  if (s.kategori === "Hadits") {
+    const no = s.hadits_no_mulai && s.hadits_no_selesai && s.hadits_no_mulai !== s.hadits_no_selesai
+      ? `No. ${s.hadits_no_mulai}-${s.hadits_no_selesai}`
+      : s.hadits_no_mulai ? `No. ${s.hadits_no_mulai}` : "";
+    return `${s.kitab_hadits || "Hadits"}${no ? ` (${no})` : ""}`;
+  }
+  if (s.kategori === "Matan Ilmu") {
+    const bait = s.bait_mulai && s.bait_selesai && s.bait_mulai !== s.bait_selesai
+      ? `Bait ${s.bait_mulai}-${s.bait_selesai}`
+      : s.bait_mulai ? `Bait ${s.bait_mulai}` : "";
+    return `${s.nama_matan || "Matan"}${bait ? ` (${bait})` : ""}`;
+  }
+  return `${s.kategori || "Setoran"}`;
+};
 
 const TargetSantriTahfidz: React.FC = () => {
   const queryClient = useQueryClient();
@@ -23,6 +50,7 @@ const TargetSantriTahfidz: React.FC = () => {
   const [selectedKelasId, setSelectedKelasId] = useState<string>("");
   const [selectedSiswaId, setSelectedSiswaId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [chartCategory, setChartCategory] = useState<"all" | "Al-Quran" | "Hadits" | "Matan Ilmu">("all");
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -141,7 +169,7 @@ const TargetSantriTahfidz: React.FC = () => {
     setFormKategori(target.kategori);
     setFormDeskripsi(target.target_deskripsi);
     setFormNominal(String(target.target_nominal));
-    setFormSatuan(target.satuan);
+    setFormSatuan(target.kategori === "Al-Quran" ? "Juz" : target.satuan);
     setFormTanggalMulai(target.tanggal_mulai);
     setFormTanggalTarget(target.tanggal_target || "");
     setFormStatus(target.status);
@@ -158,6 +186,27 @@ const TargetSantriTahfidz: React.FC = () => {
     );
   }, [santriList, searchQuery]);
 
+  // Filtered timeline data for chart
+  const filteredTimeline = useMemo(() => {
+    const raw = statistikData?.timelineChart || [];
+    return raw.map((item: any) => {
+      let val = 0;
+      if (chartCategory === "all") val = (item.quran_ayat || 0) + (item.hadits_count || 0) + (item.matan_bait || 0);
+      else if (chartCategory === "Al-Quran") val = item.quran_ayat || 0;
+      else if (chartCategory === "Hadits") val = item.hadits_count || 0;
+      else if (chartCategory === "Matan Ilmu") val = item.matan_bait || 0;
+      return {
+        ...item,
+        displayVal: val,
+      };
+    });
+  }, [statistikData?.timelineChart, chartCategory]);
+
+  const maxChartValue = useMemo(() => {
+    if (filteredTimeline.length === 0) return 10;
+    const max = Math.max(...filteredTimeline.map((t: any) => t.displayVal || 0));
+    return Math.max(10, Math.ceil(max * 1.2));
+  }, [filteredTimeline]);
 
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto">
@@ -173,7 +222,7 @@ const TargetSantriTahfidz: React.FC = () => {
               Target Kustom & Visualisasi Grafik
             </h1>
             <p className="text-blue-100 text-sm max-w-2xl leading-relaxed">
-              Tentukan target capaian hafalan untuk setiap santri secara individual (Al-Qur'an, Hadits, & Matan). Pantau kemajuan progres grafik hafalan secara berkala.
+              Tentukan target capaian hafalan untuk setiap santri secara individual (Al-Qur'an dalam <strong>Juz</strong>, Hadits, & Matan). Pantau kemajuan progres grafik hafalan secara berkala.
             </p>
           </div>
 
@@ -231,7 +280,7 @@ const TargetSantriTahfidz: React.FC = () => {
             </div>
 
             {/* List Santri */}
-            <div className="max-h-[500px] overflow-y-auto space-y-2 pr-1">
+            <div className="max-h-[520px] overflow-y-auto space-y-2 pr-1">
               {isLoadingSantri ? (
                 <div className="text-center py-8 text-xs text-slate-400">Memuat data santri...</div>
               ) : filteredSantri.length === 0 ? (
@@ -240,32 +289,43 @@ const TargetSantriTahfidz: React.FC = () => {
                 filteredSantri.map((s: any) => {
                   const isSelected = s.siswa_id === selectedSiswaId;
                   const activeTargetCount = s.tahfidz_target?.length || 0;
+                  const lastSetoran = s.tahfidz_setoran?.[0];
                   return (
                     <button
                       type="button"
                       key={s.siswa_id}
                       onClick={() => setSelectedSiswaId(s.siswa_id)}
-                      className={`w-full text-left p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                      className={`w-full text-left p-3.5 rounded-2xl border transition-all cursor-pointer space-y-2 ${
                         isSelected
-                          ? "bg-blue-50/90 border-blue-400 shadow-xs text-blue-950"
+                          ? "bg-blue-50/90 border-blue-400 shadow-xs text-blue-950 ring-2 ring-blue-500/20"
                           : "bg-slate-50/50 border-slate-200/60 hover:bg-slate-100 text-slate-700"
                       }`}
                     >
-                      <div className="truncate pr-2">
-                        <span className="font-bold text-xs block truncate">{s.nama}</span>
-                        <span className="text-[10px] text-slate-400 block font-mono">
-                          {s.kelas?.nama_kelas || "-"} • NISN: {s.nisn || "-"}
+                      <div className="flex items-center justify-between">
+                        <div className="truncate pr-2">
+                          <span className="font-bold text-xs block truncate">{s.nama}</span>
+                          <span className="text-[10px] text-slate-400 block font-mono">
+                            {s.kelas?.nama_kelas || "-"} • NISN: {s.nisn || "-"}
+                          </span>
+                        </div>
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                            activeTargetCount > 0
+                              ? "bg-emerald-100 text-emerald-800"
+                              : "bg-slate-200/80 text-slate-600"
+                          }`}
+                        >
+                          {activeTargetCount} Target
                         </span>
                       </div>
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
-                          activeTargetCount > 0
-                            ? "bg-emerald-100 text-emerald-800"
-                            : "bg-slate-200/80 text-slate-600"
-                        }`}
-                      >
-                        {activeTargetCount} Target
-                      </span>
+
+                      {/* Info Hafalan Terakhir */}
+                      <div className="flex items-center gap-1.5 text-[10px] bg-white/90 px-2.5 py-1.5 rounded-xl border border-slate-200/60 text-slate-600 truncate">
+                        <span className="font-bold text-emerald-700 shrink-0">📖 Terakhir:</span>
+                        <span className="truncate font-medium text-slate-700">
+                          {formatSetoranDetail(lastSetoran)}
+                        </span>
+                      </div>
                     </button>
                   );
                 })
@@ -310,6 +370,62 @@ const TargetSantriTahfidz: React.FC = () => {
                     <span>Set Target Baru</span>
                   </button>
                 </div>
+
+                {/* Banner Informasi Hafalan Terakhir */}
+                {(() => {
+                  const lastSetoran = statistikData.recentSetoran?.[0] || statistikData.siswa?.tahfidz_setoran?.[0];
+                  return (
+                    <div className="p-4 bg-gradient-to-r from-emerald-50/80 via-teal-50/50 to-blue-50/80 rounded-2xl border border-emerald-200/70 shadow-xs space-y-2.5">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-xs">
+                            <Sparkles className="w-3 h-3" /> Hafalan Terakhir
+                          </span>
+                          <span className="text-xs font-bold text-slate-800">
+                            {lastSetoran ? lastSetoran.kategori : "Belum Ada Setoran"}
+                          </span>
+                        </div>
+                        {lastSetoran && (
+                          <div className="flex items-center gap-2 text-[11px] text-slate-500 font-medium">
+                            <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                            <span>{new Date(lastSetoran.tanggal).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</span>
+                            <span className="text-slate-300">•</span>
+                            <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-md text-[10px] font-bold">
+                              {lastSetoran.kelancaran || "Lancar"}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {lastSetoran ? (
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-emerald-100">
+                          <div className="space-y-0.5">
+                            <p className="text-sm font-black text-slate-900 flex items-center gap-1.5">
+                              <span>📖</span> {formatSetoranDetail(lastSetoran)}
+                            </p>
+                            {lastSetoran.catatan_guru && (
+                              <p className="text-xs text-slate-500 italic">
+                                "{lastSetoran.catatan_guru}"
+                              </p>
+                            )}
+                          </div>
+                          <div className="text-left sm:text-right shrink-0 bg-white/70 px-3 py-1.5 rounded-xl border border-emerald-100">
+                            <span className="text-[11px] text-slate-600 font-medium block">
+                              Penyimak: <strong>{lastSetoran.pegawai?.nama || "Guru Tahfidz"}</strong>
+                            </span>
+                            <span className="text-[10px] text-slate-400">
+                              Jenis: <strong className="text-blue-700">{lastSetoran.jenis_hafalan || "Setoran Baru"}</strong>
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-slate-500 italic">
+                          Santri ini belum memiliki riwayat setoran hafalan yang tercatat di sistem.
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Counter Stats Cards */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -383,7 +499,6 @@ const TargetSantriTahfidz: React.FC = () => {
                 ) : (
                   <div className="space-y-3">
                     {statistikData.targets.map((tgt: TahfidzTargetItem) => {
-                      // Hitung progres terhadap target berdasarkan kategori
                       let achievedDisplay = "";
                       let percentage = 0;
 
@@ -485,55 +600,179 @@ const TargetSantriTahfidz: React.FC = () => {
               </div>
 
               {/* Visualisasi Grafik Timeline Riwayat Setoran */}
-              <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                    <BarChart3 className="w-4 h-4 text-blue-600" />
-                    Grafik Aktivitas Setoran Santri
-                  </h3>
-                  <span className="text-[11px] text-slate-400">Timeline Setoran Harian</span>
+              <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                      <BarChart3 className="w-4 h-4 text-blue-600" />
+                      Grafik Aktivitas & Tren Setoran Santri
+                    </h3>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      Pantau volume hafalan santri yang disetorkan pada setiap tanggal
+                    </p>
+                  </div>
+
+                  {/* Filter Kategori Grafik */}
+                  <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+                    <button
+                      type="button"
+                      onClick={() => setChartCategory("all")}
+                      className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
+                        chartCategory === "all" ? "bg-white text-blue-900 shadow-xs" : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      Semua
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setChartCategory("Al-Quran")}
+                      className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
+                        chartCategory === "Al-Quran" ? "bg-emerald-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      Al-Qur'an
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setChartCategory("Hadits")}
+                      className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
+                        chartCategory === "Hadits" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      Hadits
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setChartCategory("Matan Ilmu")}
+                      className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
+                        chartCategory === "Matan Ilmu" ? "bg-amber-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      Matan
+                    </button>
+                  </div>
                 </div>
 
-                {statistikData.timelineChart?.length === 0 ? (
-                  <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                    <p className="text-xs text-slate-400">Belum ada aktivitas setoran untuk santri ini.</p>
+                {filteredTimeline.length === 0 ? (
+                  <div className="p-10 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-1">
+                    <p className="text-xs text-slate-500 font-medium">Belum ada aktivitas setoran pada timeline grafik.</p>
+                    <p className="text-[11px] text-slate-400">Setoran baru santri akan langsung muncul secara otomatis di grafik ini.</p>
                   </div>
                 ) : (
-                  <div className="space-y-3 pt-2">
+                  <div className="space-y-4">
                     {/* Visual Bar Chart per Tanggal */}
-                    <div className="flex items-end gap-2 h-40 pt-6 px-2 overflow-x-auto pb-2 border-b border-slate-100">
-                      {statistikData.timelineChart.map((t: any, idx: number) => {
-                        const totalUnits = (t.quran_ayat || 0) + (t.hadits_count || 0) + (t.matan_bait || 0);
-                        const barHeight = Math.min(100, Math.max(15, totalUnits * 4));
-                        return (
-                          <div key={idx} className="flex flex-col items-center gap-1.5 shrink-0 group">
-                            <div className="text-[9px] font-bold text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                              {totalUnits}
-                            </div>
+                    <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-100">
+                      <div className="flex items-end gap-3 h-48 pt-8 px-2 overflow-x-auto pb-2 border-b border-slate-200">
+                        {filteredTimeline.map((t: any, idx: number) => {
+                          const val = t.displayVal || 0;
+                          const heightPct = Math.min(100, Math.max(10, Math.round((val / maxChartValue) * 100)));
+                          const dateObj = new Date(t.tanggal);
+                          const formattedDate = dateObj.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+
+                          return (
                             <div
-                              className="w-7 bg-linear-to-t from-blue-600 to-emerald-400 rounded-t-lg transition-all group-hover:brightness-110 shadow-xs cursor-pointer"
-                              style={{ height: `${barHeight}%` }}
-                              title={`${t.tanggal}: ${totalUnits} capaian`}
-                            />
-                            <span className="text-[9px] text-slate-400 font-mono rotate-45 origin-left mt-1">
-                              {t.tanggal.slice(5)}
-                            </span>
-                          </div>
-                        );
-                      })}
+                              key={idx}
+                              className="flex flex-col items-center gap-1 min-w-[52px] shrink-0 group relative cursor-pointer"
+                            >
+                              {/* Value Label above bar */}
+                              <span className="text-[10px] font-black text-slate-700 bg-white px-1.5 py-0.5 rounded-md shadow-xs border border-slate-100 group-hover:scale-110 transition-transform">
+                                {val}
+                              </span>
+
+                              {/* Tooltip Hover */}
+                              <div className="absolute -top-16 bg-slate-900 text-white text-[11px] p-2 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-20 shadow-xl border border-slate-700">
+                                <p className="font-bold text-yellow-300">{formattedDate}</p>
+                                <p className="text-[10px] text-slate-200">
+                                  Al-Qur'an: {t.quran_ayat || 0} Ayat • Hadits: {t.hadits_count || 0} • Matan: {t.matan_bait || 0}
+                                </p>
+                              </div>
+
+                              {/* The Bar */}
+                              <div className="w-full flex items-end justify-center h-32">
+                                <div
+                                  style={{ height: `${heightPct}%` }}
+                                  className={`w-7 rounded-t-xl transition-all shadow-xs group-hover:brightness-110 ${
+                                    chartCategory === "Al-Quran"
+                                      ? "bg-gradient-to-t from-emerald-600 to-teal-400"
+                                      : chartCategory === "Hadits"
+                                      ? "bg-gradient-to-t from-blue-600 to-indigo-400"
+                                      : chartCategory === "Matan Ilmu"
+                                      ? "bg-gradient-to-t from-amber-600 to-yellow-400"
+                                      : "bg-gradient-to-t from-blue-600 via-indigo-500 to-emerald-400"
+                                  }`}
+                                />
+                              </div>
+
+                              {/* X Axis Label */}
+                              <span className="text-[10px] font-semibold text-slate-600 mt-1 whitespace-nowrap">
+                                {formattedDate}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Legend */}
+                      <div className="flex flex-wrap items-center justify-center gap-5 text-[11px] text-slate-600 pt-3">
+                        <span className="flex items-center gap-1.5 font-medium">
+                          <span className="w-3 h-3 rounded-md bg-emerald-500" /> Al-Qur'an (Ayat)
+                        </span>
+                        <span className="flex items-center gap-1.5 font-medium">
+                          <span className="w-3 h-3 rounded-md bg-blue-500" /> Hadits
+                        </span>
+                        <span className="flex items-center gap-1.5 font-medium">
+                          <span className="w-3 h-3 rounded-md bg-amber-500" /> Matan Ilmu (Bait)
+                        </span>
+                      </div>
                     </div>
 
-                    <div className="flex items-center justify-center gap-4 text-[11px] text-slate-500 pt-3">
-                      <span className="flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Al-Qur'an (Ayat)
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-blue-500" /> Hadits
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> Matan Ilmu
-                      </span>
-                    </div>
+                    {/* Riwayat 10 Setoran Terakhir */}
+                    {statistikData.recentSetoran && statistikData.recentSetoran.length > 0 && (
+                      <div className="space-y-3 pt-2">
+                        <h4 className="font-bold text-xs text-slate-800 flex items-center gap-1.5">
+                          <History className="w-3.5 h-3.5 text-blue-600" />
+                          Riwayat Setoran Terbaru Santri
+                        </h4>
+
+                        <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                          {statistikData.recentSetoran.map((s: any) => (
+                            <div
+                              key={s.setoran_id}
+                              className="p-3 bg-slate-50 rounded-xl border border-slate-200/70 flex items-center justify-between gap-3 text-xs"
+                            >
+                              <div className="space-y-0.5 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
+                                    s.kategori === "Al-Quran"
+                                      ? "bg-emerald-100 text-emerald-800"
+                                      : s.kategori === "Hadits"
+                                      ? "bg-blue-100 text-blue-800"
+                                      : "bg-amber-100 text-amber-800"
+                                  }`}>
+                                    {s.kategori}
+                                  </span>
+                                  <span className="font-bold text-slate-800 truncate">
+                                    {formatSetoranDetail(s)}
+                                  </span>
+                                </div>
+                                <p className="text-[10px] text-slate-400">
+                                  {new Date(s.tanggal).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })} • Disimak oleh: {s.pegawai?.nama || "Guru"}
+                                </p>
+                              </div>
+
+                              <div className="text-right shrink-0 space-y-0.5">
+                                <span className="inline-block px-2 py-0.5 bg-white border border-slate-200 text-emerald-700 font-bold rounded text-[10px]">
+                                  {s.kelancaran || "Lancar"}
+                                </span>
+                                <span className="block text-[9px] text-slate-400">
+                                  {s.jenis_hafalan || "Setoran Baru"}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
