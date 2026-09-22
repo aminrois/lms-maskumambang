@@ -10,7 +10,7 @@ export interface CityLocation {
 }
 
 export const INDONESIAN_CITIES: CityLocation[] = [
-  { id: "gresik", name: "Gresik (Pesantren Maskumambang)", province: "Jawa Timur", latitude: -6.9325, longitude: 112.5642, timezoneOffset: 7 },
+  { id: "gresik", name: "Gresik", province: "Jawa Timur", latitude: -6.9325, longitude: 112.5642, timezoneOffset: 7 },
   { id: "surabaya", name: "Surabaya", province: "Jawa Timur", latitude: -7.2575, longitude: 112.7521, timezoneOffset: 7 },
   { id: "sidoarjo", name: "Sidoarjo", province: "Jawa Timur", latitude: -7.4478, longitude: 112.7183, timezoneOffset: 7 },
   { id: "lamongan", name: "Lamongan", province: "Jawa Timur", latitude: -7.1199, longitude: 112.4145, timezoneOffset: 7 },
