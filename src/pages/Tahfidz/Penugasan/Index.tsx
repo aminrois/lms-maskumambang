@@ -180,7 +180,7 @@ const PenugasanModal: React.FC<PenugasanModalProps> = ({
               onChange={(e) => {
                 setLembagaId(e.target.value);
                 setPegawaiId("");
-                setKelasId("");
+                setKelasIds([]);
               }}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-blue-500/20 font-medium"
             >
