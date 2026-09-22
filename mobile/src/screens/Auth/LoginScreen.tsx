@@ -11,10 +11,10 @@ import {
   TouchableOpacity,
   Modal,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
-  GraduationCap,
   Lock,
   User,
   Server,
@@ -137,10 +137,14 @@ export const LoginScreen = () => {
         >
           {/* Header Brand */}
           <View style={styles.brandContainer}>
-            <View style={styles.logoCircle}>
-              <GraduationCap size={44} color="#FFFFFF" strokeWidth={2.2} />
+            <View style={styles.logoContainer}>
+              <Image
+                source={require("../../../assets/logo.png")}
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
             </View>
-            <Text style={styles.appName}>{APP_CONFIG.appName}</Text>
+            <Text style={styles.appName}>Maskumambang Superapps</Text>
             <Text style={styles.schoolName}>{APP_CONFIG.schoolName}</Text>
             <View style={styles.taglineBadge}>
               <Text style={styles.taglineText}>Sistem Akademik & KBM Terpadu</Text>
@@ -199,7 +203,7 @@ export const LoginScreen = () => {
             )}
 
             <Input
-              label="Username / Email / NIP / NISN"
+              label="Username"
               placeholder="Masukkan username atau NIP"
               value={identifier}
               onChangeText={(text) => {
@@ -212,7 +216,7 @@ export const LoginScreen = () => {
             />
 
             <Input
-              label="Kata Sandi"
+              label="Password"
               placeholder="Masukkan kata sandi"
               value={kataSandi}
               onChangeText={(text) => {
@@ -224,7 +228,7 @@ export const LoginScreen = () => {
             />
 
             <Button
-              title="Masuk ke Aplikasi"
+              title="Login"
               onPress={handleLogin}
               loading={isLoading && !isBioAuthenticating}
               size="lg"
@@ -327,19 +331,26 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 24,
   },
-  logoCircle: {
-    width: 80,
-    height: 80,
+  logoContainer: {
+    width: 88,
+    height: 88,
     borderRadius: 24,
-    backgroundColor: Colors.primary,
+    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
     marginBottom: 16,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  logoImage: {
+    width: "100%",
+    height: "100%",
   },
   appName: {
     fontSize: 24,
