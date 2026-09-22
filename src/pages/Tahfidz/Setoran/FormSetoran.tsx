@@ -19,7 +19,7 @@ import { tahfidzService } from "../../../lib/api/services/tahfidzService";
 import { useAuthStore } from "../../../store/useAuthStore";
 
 type KategoriHafalan = "Al-Quran" | "Hadits" | "Matan Ilmu";
-type JenisSetoran = "Setoran Baru" | "Setoran Ulang";
+type JenisSetoran = "Setoran Baru" | "Setoran Ulang" | "Ujian";
 
 const FormSetoranTahfidz: React.FC = () => {
   const queryClient = useQueryClient();
@@ -364,7 +364,7 @@ const FormSetoranTahfidz: React.FC = () => {
               {/* Jenis Setoran */}
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1.5">Jenis Setoran</label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2">
                   <button
                     type="button"
                     onClick={() => setJenisSetoran("Setoran Baru")}
@@ -386,6 +386,17 @@ const FormSetoranTahfidz: React.FC = () => {
                     }`}
                   >
                     🔄 Setoran Ulang (Muraja'ah)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setJenisSetoran("Ujian")}
+                    className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center ${
+                      jenisSetoran === "Ujian"
+                        ? "bg-amber-600 text-white border-amber-600 shadow-xs"
+                        : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    📝 Ujian (Ikhtibar/Tasmi')
                   </button>
                 </div>
               </div>

@@ -2,7 +2,7 @@ import {
   LayoutDashboard, Building, Book, GraduationCap, User,
   Calendar, BarChart, FileText, BookOpen, Clock,
   PenTool, Clipboard, Eye, CalendarDays, BookMarked, RotateCcw,
-  Sparkles, Target, History, UserCheck
+  Sparkles, Target, History, UserCheck, Users
 } from "lucide-react";
 
 export type MenuItem = {
@@ -32,6 +32,7 @@ export const allMenuGroups: MenuGroup[] = [
       { name: "Target & Progres", icon: Target, path: "/tahfidz/target", allowedRoles: ['Super Admin', 'Direktur', 'Guru Tahfidz', 'Wali Kelas'], color: "blue" },
       { name: "Riwayat Setoran", icon: History, path: "/tahfidz/riwayat", allowedRoles: ['Super Admin', 'Direktur', 'Guru Tahfidz', 'Wali Kelas', 'Wali Murid'], color: "purple" },
       { name: "Penugasan Kelas", icon: UserCheck, path: "/tahfidz/penugasan", allowedRoles: ['Super Admin', 'Direktur'], color: "amber" },
+      { name: "Kelompok Halaqoh", icon: Users, path: "/tahfidz/halaqah", allowedRoles: ['Super Admin', 'Direktur', 'Guru Tahfidz'], color: "teal" },
     ]
   },
   {

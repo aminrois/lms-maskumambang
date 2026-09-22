@@ -37,7 +37,7 @@ import { QURAN_SURAHS, SurahInfo } from "../../data/quranSurahList";
 import { HADITS_BOOK_PRESETS, MATAN_PRESETS, KELANCARAN_OPTIONS } from "../../data/tahfidzPresets";
 
 type KategoriHafalan = "Al-Quran" | "Hadits" | "Matan Ilmu";
-type JenisSetoran = "Setoran Baru" | "Setoran Ulang";
+type JenisSetoran = "Setoran Baru" | "Setoran Ulang" | "Ujian";
 
 export const TahfidzSetoranScreen = () => {
   const navigation = useNavigation<any>();
@@ -291,13 +291,13 @@ export const TahfidzSetoranScreen = () => {
 
             {/* Jenis Setoran */}
             <Text style={styles.label}>Jenis Setoran</Text>
-            <View style={styles.row}>
+            <View style={[styles.row, { gap: 6 }]}>
               <TouchableOpacity
                 onPress={() => setJenisSetoran("Setoran Baru")}
                 style={[styles.jenisBtn, jenisSetoran === "Setoran Baru" && styles.jenisBtnActiveZiyadah]}
               >
                 <Text style={[styles.jenisBtnText, jenisSetoran === "Setoran Baru" && styles.jenisBtnTextActive]}>
-                  ✨ Ziyadah (Baru)
+                  ✨ Ziyadah
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -305,7 +305,15 @@ export const TahfidzSetoranScreen = () => {
                 style={[styles.jenisBtn, jenisSetoran === "Setoran Ulang" && styles.jenisBtnActiveMurajaah]}
               >
                 <Text style={[styles.jenisBtnText, jenisSetoran === "Setoran Ulang" && styles.jenisBtnTextActive]}>
-                  🔄 Muraja'ah (Ulang)
+                  🔄 Muraja'ah
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setJenisSetoran("Ujian")}
+                style={[styles.jenisBtn, jenisSetoran === "Ujian" && styles.jenisBtnActiveUjian]}
+              >
+                <Text style={[styles.jenisBtnText, jenisSetoran === "Ujian" && styles.jenisBtnTextActive]}>
+                  📝 Ujian
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1024,6 +1032,10 @@ const styles = StyleSheet.create({
   jenisBtnActiveMurajaah: {
     backgroundColor: Colors.primary,
     borderColor: Colors.primary,
+  },
+  jenisBtnActiveUjian: {
+    backgroundColor: "#D97706", // Amber 600
+    borderColor: "#D97706",
   },
   jenisBtnText: {
     fontSize: 12,

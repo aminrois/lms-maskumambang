@@ -17,7 +17,7 @@ export interface SubmitTahfidzPayload {
   siswa_id: number;
   pegawai_id?: number;
   kategori: "Al-Quran" | "Hadits" | "Matan Ilmu";
-  jenis_hafalan: "Setoran Baru" | "Setoran Ulang";
+  jenis_hafalan: "Setoran Baru" | "Setoran Ulang" | "Ujian";
   tanggal: string;
   durasi_menit?: number;
   kelancaran: "Sangat Lancar" | "Lancar" | "Kurang Lancar" | "Belum Lancar";

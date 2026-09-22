@@ -62,6 +62,7 @@ model Lembaga {
   kalender_akademik KalenderAkademik[]
   activity_plan     ActivityPlan[]
   tahfidz_pengampu  TahfidzPengampu[]
+  tahfidz_halaqah   TahfidzHalaqah[]
 
   @@map("lembaga")
 }
@@ -94,6 +95,7 @@ model Pegawai {
   kelas_wali              Kelas[]          @relation("WaliKelasRel")
   tahfidz_pengampu        TahfidzPengampu[]
   tahfidz_setoran         TahfidzSetoran[]
+  tahfidz_halaqah         TahfidzHalaqah[]
 
   @@index([user_id])
   @@index([status])
@@ -186,6 +188,7 @@ model Siswa {
   absensi_harian      AbsensiHarian[]
   tahfidz_target      TahfidzTarget[]
   tahfidz_setoran     TahfidzSetoran[]
+  tahfidz_halaqah_siswa TahfidzHalaqahSiswa[]
 
   @@index([kelas_id])
   @@index([status])
@@ -205,6 +208,7 @@ model TahunAjaran {
   kelas             Kelas[]
   kalender_akademik KalenderAkademik[]
   activity_plan     ActivityPlan[]
+  tahfidz_halaqah   TahfidzHalaqah[]
 
   @@map("tahun_ajaran")
 }
@@ -461,7 +465,7 @@ model TahfidzSetoran {
   siswa_id           Int
   pegawai_id         Int       // Guru Tahfidz yang menyimak
   kategori           String    // 'Al-Quran' | 'Hadits' | 'Matan Ilmu'
-  jenis_hafalan      String    // 'Setoran Baru' | 'Setoran Ulang'
+  jenis_hafalan      String    // 'Setoran Baru' | 'Setoran Ulang' | 'Ujian'
   tanggal            String    // YYYY-MM-DD
   durasi_menit       Int?      // Durasi setoran dalam menit
   kelancaran         String    // 'Sangat Lancar' | 'Lancar' | 'Kurang Lancar' | 'Belum Lancar'
@@ -499,4 +503,40 @@ model TahfidzSetoran {
   @@index([kategori])
   @@index([tanggal])
   @@map("tahfidz_setoran")
+}
+
+model TahfidzHalaqah {
+  halaqah_id      Int                   @id @default(autoincrement())
+  nama_halaqah    String
+  lembaga_id      Int
+  pegawai_id      Int                   // Guru Tahfidz / Ustadz Pengampu
+  tahun_id        Int?
+  deskripsi       String?
+  status          String                @default("Aktif") // 'Aktif' | 'Nonaktif'
+  created_at      DateTime              @default(now())
+  updated_at      DateTime              @updatedAt
+
+  lembaga         Lembaga               @relation(fields: [lembaga_id], references: [lembaga_id], onDelete: Cascade)
+  pegawai         Pegawai               @relation(fields: [pegawai_id], references: [pegawai_id], onDelete: Cascade)
+  tahun_ajaran    TahunAjaran?          @relation(fields: [tahun_id], references: [tahun_id], onDelete: SetNull)
+  anggota         TahfidzHalaqahSiswa[]
+
+  @@index([lembaga_id])
+  @@index([pegawai_id])
+  @@map("tahfidz_halaqah")
+}
+
+model TahfidzHalaqahSiswa {
+  id              Int                   @id @default(autoincrement())
+  halaqah_id      Int
+  siswa_id        Int
+  created_at      DateTime              @default(now())
+
+  halaqah         TahfidzHalaqah        @relation(fields: [halaqah_id], references: [halaqah_id], onDelete: Cascade)
+  siswa           Siswa                 @relation(fields: [siswa_id], references: [siswa_id], onDelete: Cascade)
+
+  @@unique([halaqah_id, siswa_id])
+  @@index([halaqah_id])
+  @@index([siswa_id])
+  @@map("tahfidz_halaqah_siswa")
 }

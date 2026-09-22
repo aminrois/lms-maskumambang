@@ -166,6 +166,7 @@ const RiwayatSetoranTahfidz: React.FC = () => {
               <option value="ALL">Semua Jenis</option>
               <option value="Setoran Baru">Setoran Baru (Ziyadah)</option>
               <option value="Setoran Ulang">Setoran Ulang (Muraja'ah)</option>
+              <option value="Ujian">Ujian (Ikhtibar/Tasmi')</option>
             </select>
           </div>
 

@@ -58,6 +58,7 @@ const TahfidzPenugasan      = React.lazy(() => import("./pages/Tahfidz/Penugasan
 const TahfidzSetoran        = React.lazy(() => import("./pages/Tahfidz/Setoran/FormSetoran"));
 const TahfidzTarget         = React.lazy(() => import("./pages/Tahfidz/Target/TargetSantri"));
 const TahfidzRiwayat        = React.lazy(() => import("./pages/Tahfidz/Riwayat/RiwayatSetoran"));
+const TahfidzHalaqah        = React.lazy(() => import("./pages/Tahfidz/Halaqah/Index"));
 
 // Fallback loading saat halaman sedang di-fetch (lazy chunk loading)
 const PageLoader = () => (
@@ -571,6 +572,17 @@ const App: React.FC = () => {
                   }
                 >
                   <Route path="riwayat" element={<TahfidzRiwayat />} />
+                </Route>
+
+                {/* Kelompok Halaqoh */}
+                <Route
+                  element={
+                    <ProtectedRoute
+                      allowedRoles={["Super Admin", "Direktur", "Guru Tahfidz"]}
+                    />
+                  }
+                >
+                  <Route path="halaqah" element={<TahfidzHalaqah />} />
                 </Route>
               </Route>
             </Route>

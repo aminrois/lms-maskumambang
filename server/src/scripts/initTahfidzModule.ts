@@ -76,7 +76,33 @@ export async function initTahfidzModule(): Promise<void> {
       `CREATE INDEX IF NOT EXISTS "tahfidz_setoran_siswa_id_idx" ON "public"."tahfidz_setoran"("siswa_id");`,
       `CREATE INDEX IF NOT EXISTS "tahfidz_setoran_pegawai_id_idx" ON "public"."tahfidz_setoran"("pegawai_id");`,
       `CREATE INDEX IF NOT EXISTS "tahfidz_setoran_kategori_idx" ON "public"."tahfidz_setoran"("kategori");`,
-      `CREATE INDEX IF NOT EXISTS "tahfidz_setoran_tanggal_idx" ON "public"."tahfidz_setoran"("tanggal");`
+      `CREATE INDEX IF NOT EXISTS "tahfidz_setoran_tanggal_idx" ON "public"."tahfidz_setoran"("tanggal");`,
+
+      // 5. Create tahfidz_halaqah table
+      `CREATE TABLE IF NOT EXISTS "public"."tahfidz_halaqah" (
+        "halaqah_id" SERIAL PRIMARY KEY,
+        "nama_halaqah" TEXT NOT NULL,
+        "lembaga_id" INTEGER NOT NULL REFERENCES "public"."lembaga"("lembaga_id") ON DELETE CASCADE,
+        "pegawai_id" INTEGER NOT NULL REFERENCES "public"."pegawai"("pegawai_id") ON DELETE CASCADE,
+        "tahun_id" INTEGER REFERENCES "public"."tahun_ajaran"("tahun_id") ON DELETE SET NULL,
+        "deskripsi" TEXT,
+        "status" TEXT NOT NULL DEFAULT 'Aktif',
+        "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );`,
+      `CREATE INDEX IF NOT EXISTS "tahfidz_halaqah_lembaga_id_idx" ON "public"."tahfidz_halaqah"("lembaga_id");`,
+      `CREATE INDEX IF NOT EXISTS "tahfidz_halaqah_pegawai_id_idx" ON "public"."tahfidz_halaqah"("pegawai_id");`,
+
+      // 6. Create tahfidz_halaqah_siswa table
+      `CREATE TABLE IF NOT EXISTS "public"."tahfidz_halaqah_siswa" (
+        "id" SERIAL PRIMARY KEY,
+        "halaqah_id" INTEGER NOT NULL REFERENCES "public"."tahfidz_halaqah"("halaqah_id") ON DELETE CASCADE,
+        "siswa_id" INTEGER NOT NULL REFERENCES "public"."siswa"("siswa_id") ON DELETE CASCADE,
+        "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS "tahfidz_halaqah_siswa_halaqah_id_siswa_id_key" ON "public"."tahfidz_halaqah_siswa"("halaqah_id", "siswa_id");`,
+      `CREATE INDEX IF NOT EXISTS "tahfidz_halaqah_siswa_halaqah_id_idx" ON "public"."tahfidz_halaqah_siswa"("halaqah_id");`,
+      `CREATE INDEX IF NOT EXISTS "tahfidz_halaqah_siswa_siswa_id_idx" ON "public"."tahfidz_halaqah_siswa"("siswa_id");`
     ];
 
     for (const sql of sqlStatements) {

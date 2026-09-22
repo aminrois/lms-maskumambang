@@ -870,6 +870,7 @@ export const getStatistikSiswa = async (req: Request, res: Response, next: NextF
 
     let totalSetoranBaru = 0;
     let totalSetoranUlang = 0;
+    let totalUjian = 0;
 
     const kelancaranCount: Record<string, number> = {
       'Sangat Lancar': 0,
@@ -887,6 +888,8 @@ export const getStatistikSiswa = async (req: Request, res: Response, next: NextF
         if (s.kategori === 'Al-Quran' && s.total_ayat) totalAyatQuranZiyadah += s.total_ayat;
         if (s.kategori === 'Hadits' && s.total_hadits) totalHaditsZiyadah += s.total_hadits;
         if (s.kategori === 'Matan Ilmu' && s.total_bait) totalBaitMatanZiyadah += s.total_bait;
+      } else if (s.jenis_hafalan === 'Ujian') {
+        totalUjian++;
       } else {
         totalSetoranUlang++;
       }
@@ -916,6 +919,7 @@ export const getStatistikSiswa = async (req: Request, res: Response, next: NextF
           totalSetoran: setoranList.length,
           totalSetoranBaru,
           totalSetoranUlang,
+          totalUjian,
           totalAyatQuranZiyadah,
           totalJuzQuranZiyadah,
           totalHaditsZiyadah,
@@ -996,6 +1000,332 @@ export const getTahfidzDashboardSummary = async (req: Request, res: Response, ne
         recentActivities,
       },
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ==========================================
+// 6. KELOMPOK HALAQOH
+// ==========================================
+
+export const getHalaqahList = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { lembaga_id, tahun_id, pegawai_id, status, search } = req.query;
+    const authUser = getAuthInfo(req);
+
+    const where: any = {};
+    if (lembaga_id) where.lembaga_id = Number(lembaga_id);
+    if (tahun_id) where.tahun_id = Number(tahun_id);
+    if (status) where.status = String(status);
+
+    if (pegawai_id) {
+      where.pegawai_id = Number(pegawai_id);
+    } else {
+      const userRoles = authUser?.roles || [];
+      const isGlobal =
+        userRoles.includes('Super Admin') ||
+        userRoles.includes('Direktur') ||
+        userRoles.includes('Kepala Sekolah');
+      if (!isGlobal && authUser?.user_id) {
+        const userPegawaiId = await resolvePegawaiId(authUser.pegawai_id, authUser.user_id);
+        if (userPegawaiId) where.pegawai_id = userPegawaiId;
+      }
+    }
+
+    if (search) where.nama_halaqah = { contains: String(search), mode: 'insensitive' };
+
+    const halaqahList = await prisma.tahfidzHalaqah.findMany({
+      where,
+      include: {
+        pegawai: { select: { pegawai_id: true, nama: true, nig: true, no_hp: true } },
+        lembaga: { select: { lembaga_id: true, nama_lembaga: true, singkatan: true } },
+        tahun_ajaran: { select: { tahun_id: true, nama_tahun: true, is_active: true } },
+        anggota: {
+          include: {
+            siswa: {
+              select: {
+                siswa_id: true, nama: true, nis: true, nisn: true, jenis_kelamin: true,
+                kelas: { select: { kelas_id: true, nama_kelas: true } },
+              },
+            },
+          },
+        },
+        _count: { select: { anggota: true } },
+      },
+      orderBy: [{ created_at: 'desc' }],
+    });
+
+    res.json({ success: true, data: halaqahList });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getHalaqahDetail = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const halaqah = await prisma.tahfidzHalaqah.findUnique({
+      where: { halaqah_id: Number(id) },
+      include: {
+        pegawai: { select: { pegawai_id: true, nama: true, nig: true, no_hp: true } },
+        lembaga: true,
+        tahun_ajaran: true,
+        anggota: {
+          include: {
+            siswa: {
+              include: {
+                kelas: true,
+                tahfidz_setoran: {
+                  take: 1,
+                  orderBy: { created_at: 'desc' },
+                  include: { pegawai: { select: { nama: true } } },
+                },
+              },
+            },
+          },
+          orderBy: { siswa: { nama: 'asc' } },
+        },
+      },
+    });
+    if (!halaqah) {
+      res.status(404).json({ success: false, message: 'Kelompok halaqah tidak ditemukan' });
+      return;
+    }
+    res.json({ success: true, data: halaqah });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createHalaqah = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { nama_halaqah, lembaga_id, pegawai_id, tahun_id, deskripsi, status, siswa_ids } = req.body;
+    if (!nama_halaqah || !lembaga_id || !pegawai_id) {
+      res.status(400).json({ success: false, message: 'Nama kelompok, lembaga, dan ustadz pengampu wajib diisi' });
+      return;
+    }
+    let selectedTahunId = tahun_id ? Number(tahun_id) : null;
+    if (!selectedTahunId) {
+      const activeTahun = await prisma.tahunAjaran.findFirst({ where: { is_active: true } });
+      selectedTahunId = activeTahun?.tahun_id || null;
+    }
+    const halaqah = await prisma.$transaction(async (tx) => {
+      const newHalaqah = await tx.tahfidzHalaqah.create({
+        data: {
+          nama_halaqah: String(nama_halaqah).trim(),
+          lembaga_id: Number(lembaga_id),
+          pegawai_id: Number(pegawai_id),
+          tahun_id: selectedTahunId,
+          deskripsi: deskripsi ? String(deskripsi).trim() : null,
+          status: status || 'Aktif',
+        },
+      });
+      if (Array.isArray(siswa_ids) && siswa_ids.length > 0) {
+        const uniqueSiswaIds = Array.from(new Set(siswa_ids.map(Number)));
+        await tx.tahfidzHalaqahSiswa.createMany({
+          data: uniqueSiswaIds.map((sId) => ({ halaqah_id: newHalaqah.halaqah_id, siswa_id: sId })),
+        });
+      }
+      return newHalaqah;
+    });
+    const fullResult = await prisma.tahfidzHalaqah.findUnique({
+      where: { halaqah_id: halaqah.halaqah_id },
+      include: { pegawai: { select: { nama: true } }, lembaga: true, anggota: { include: { siswa: true } } },
+    });
+    res.status(201).json({ success: true, message: 'Kelompok halaqoh berhasil dibuat', data: fullResult });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createKolosalHalaqah = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { mode, lembaga_id, tahun_id, groups, pegawai_ids, siswa_ids, prefix_nama } = req.body;
+    if (!lembaga_id) {
+      res.status(400).json({ success: false, message: 'Lembaga wajib dipilih' });
+      return;
+    }
+    let selectedTahunId = tahun_id ? Number(tahun_id) : null;
+    if (!selectedTahunId) {
+      const activeTahun = await prisma.tahunAjaran.findFirst({ where: { is_active: true } });
+      selectedTahunId = activeTahun?.tahun_id || null;
+    }
+
+    if (mode === 'distribusi_otomatis') {
+      if (!Array.isArray(pegawai_ids) || pegawai_ids.length === 0) {
+        res.status(400).json({ success: false, message: 'Pilih minimal satu Ustadz pengampu' });
+        return;
+      }
+      if (!Array.isArray(siswa_ids) || siswa_ids.length === 0) {
+        res.status(400).json({ success: false, message: 'Pilih santri yang akan didistribusikan' });
+        return;
+      }
+      const rawPegawaiList = await prisma.pegawai.findMany({
+        where: { pegawai_id: { in: pegawai_ids.map(Number) } },
+        select: { pegawai_id: true, nama: true },
+      });
+      const uniqueSiswaIds = Array.from(new Set(siswa_ids.map(Number)));
+      const totalPegawai = rawPegawaiList.length;
+      const studentBuckets: number[][] = Array.from({ length: totalPegawai }, () => []);
+      uniqueSiswaIds.forEach((sId, index) => { studentBuckets[index % totalPegawai].push(sId); });
+
+      const createdList = await prisma.$transaction(async (tx) => {
+        const results = [];
+        for (let i = 0; i < totalPegawai; i++) {
+          const ust = rawPegawaiList[i];
+          const halaqahName = prefix_nama ? `${prefix_nama} - ${ust.nama}` : `Halaqah ${ust.nama}`;
+          const newHalaqah = await tx.tahfidzHalaqah.create({
+            data: {
+              nama_halaqah: halaqahName,
+              lembaga_id: Number(lembaga_id),
+              pegawai_id: ust.pegawai_id,
+              tahun_id: selectedTahunId,
+              status: 'Aktif',
+              deskripsi: `Dibuat secara massal pada ${new Date().toLocaleDateString('id-ID')}`,
+            },
+          });
+          if (studentBuckets[i].length > 0) {
+            await tx.tahfidzHalaqahSiswa.createMany({
+              data: studentBuckets[i].map((sId) => ({ halaqah_id: newHalaqah.halaqah_id, siswa_id: sId })),
+            });
+          }
+          results.push(newHalaqah);
+        }
+        return results;
+      });
+      res.status(201).json({
+        success: true,
+        message: `Berhasil membuat ${createdList.length} kelompok halaqoh dan mendistribusikan ${uniqueSiswaIds.length} santri`,
+        data: createdList,
+      });
+      return;
+    }
+
+    if (Array.isArray(groups) && groups.length > 0) {
+      const createdList = await prisma.$transaction(async (tx) => {
+        const results = [];
+        for (const grp of groups) {
+          if (!grp.nama_halaqah || !grp.pegawai_id) continue;
+          const newHalaqah = await tx.tahfidzHalaqah.create({
+            data: {
+              nama_halaqah: String(grp.nama_halaqah).trim(),
+              lembaga_id: Number(lembaga_id),
+              pegawai_id: Number(grp.pegawai_id),
+              tahun_id: selectedTahunId,
+              deskripsi: grp.deskripsi || null,
+              status: grp.status || 'Aktif',
+            },
+          });
+          if (Array.isArray(grp.siswa_ids) && grp.siswa_ids.length > 0) {
+            const uniqueSiswaIds: number[] = Array.from(new Set(grp.siswa_ids.map((s: any) => Number(s))));
+            await tx.tahfidzHalaqahSiswa.createMany({
+              data: uniqueSiswaIds.map((sId: number) => ({ halaqah_id: newHalaqah.halaqah_id, siswa_id: sId })),
+            });
+          }
+          results.push(newHalaqah);
+        }
+        return results;
+      });
+      res.status(201).json({
+        success: true,
+        message: `Berhasil membuat ${createdList.length} kelompok halaqoh secara massal`,
+        data: createdList,
+      });
+      return;
+    }
+    res.status(400).json({ success: false, message: 'Format data batch/kolosal tidak valid' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateHalaqah = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { nama_halaqah, pegawai_id, tahun_id, deskripsi, status, siswa_ids } = req.body;
+    const existing = await prisma.tahfidzHalaqah.findUnique({ where: { halaqah_id: Number(id) } });
+    if (!existing) {
+      res.status(404).json({ success: false, message: 'Kelompok halaqah tidak ditemukan' });
+      return;
+    }
+    const dataToUpdate: any = {};
+    if (nama_halaqah !== undefined) dataToUpdate.nama_halaqah = String(nama_halaqah).trim();
+    if (pegawai_id !== undefined) dataToUpdate.pegawai_id = Number(pegawai_id);
+    if (tahun_id !== undefined) dataToUpdate.tahun_id = tahun_id ? Number(tahun_id) : null;
+    if (deskripsi !== undefined) dataToUpdate.deskripsi = deskripsi;
+    if (status !== undefined) dataToUpdate.status = status;
+    await prisma.$transaction(async (tx) => {
+      await tx.tahfidzHalaqah.update({ where: { halaqah_id: Number(id) }, data: dataToUpdate });
+      if (Array.isArray(siswa_ids)) {
+        await tx.tahfidzHalaqahSiswa.deleteMany({ where: { halaqah_id: Number(id) } });
+        const uniqueSiswaIds = Array.from(new Set(siswa_ids.map(Number)));
+        if (uniqueSiswaIds.length > 0) {
+          await tx.tahfidzHalaqahSiswa.createMany({
+            data: uniqueSiswaIds.map((sId) => ({ halaqah_id: Number(id), siswa_id: sId })),
+          });
+        }
+      }
+    });
+    const updated = await prisma.tahfidzHalaqah.findUnique({
+      where: { halaqah_id: Number(id) },
+      include: { pegawai: { select: { nama: true } }, lembaga: true, anggota: { include: { siswa: true } } },
+    });
+    res.json({ success: true, message: 'Kelompok halaqoh berhasil diperbarui', data: updated });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteHalaqah = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const existing = await prisma.tahfidzHalaqah.findUnique({ where: { halaqah_id: Number(id) } });
+    if (!existing) {
+      res.status(404).json({ success: false, message: 'Kelompok halaqah tidak ditemukan' });
+      return;
+    }
+    await prisma.tahfidzHalaqah.delete({ where: { halaqah_id: Number(id) } });
+    res.json({ success: true, message: 'Kelompok halaqoh berhasil dihapus' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const addAnggotaHalaqah = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { siswa_ids } = req.body;
+    if (!Array.isArray(siswa_ids) || siswa_ids.length === 0) {
+      res.status(400).json({ success: false, message: 'Pilih santri yang akan ditambahkan' });
+      return;
+    }
+    const halaqah_id = Number(id);
+    const uniqueSiswaIds = Array.from(new Set(siswa_ids.map(Number)));
+    const existingMembers = await prisma.tahfidzHalaqahSiswa.findMany({
+      where: { halaqah_id, siswa_id: { in: uniqueSiswaIds } },
+      select: { siswa_id: true },
+    });
+    const existingSet = new Set(existingMembers.map((m) => m.siswa_id));
+    const toInsert = uniqueSiswaIds.filter((sId) => !existingSet.has(sId));
+    if (toInsert.length > 0) {
+      await prisma.tahfidzHalaqahSiswa.createMany({
+        data: toInsert.map((sId) => ({ halaqah_id, siswa_id: sId })),
+      });
+    }
+    res.json({ success: true, message: `Berhasil menambahkan ${toInsert.length} santri ke kelompok halaqoh` });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const removeAnggotaHalaqah = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id, siswa_id } = req.params;
+    await prisma.tahfidzHalaqahSiswa.deleteMany({
+      where: { halaqah_id: Number(id), siswa_id: Number(siswa_id) },
+    });
+    res.json({ success: true, message: 'Santri berhasil dikeluarkan dari kelompok halaqoh' });
   } catch (error) {
     next(error);
   }

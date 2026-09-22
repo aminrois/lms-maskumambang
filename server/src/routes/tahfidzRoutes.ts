@@ -39,4 +39,14 @@ router.delete('/setoran/:id', tahfidzController.deleteSetoran);
 router.get('/statistik/dashboard', tahfidzController.getTahfidzDashboardSummary);
 router.get('/statistik/siswa/:siswa_id', tahfidzController.getStatistikSiswa);
 
+// 6. Kelompok Halaqoh
+router.get('/halaqah', tahfidzController.getHalaqahList);
+router.get('/halaqah/:id', tahfidzController.getHalaqahDetail);
+router.post('/halaqah', tahfidzController.createHalaqah);
+router.post('/halaqah/kolosal', tahfidzController.createKolosalHalaqah);
+router.patch('/halaqah/:id', tahfidzController.updateHalaqah);
+router.delete('/halaqah/:id', tahfidzController.deleteHalaqah);
+router.post('/halaqah/:id/anggota', tahfidzController.addAnggotaHalaqah);
+router.delete('/halaqah/:id/anggota/:siswa_id', tahfidzController.removeAnggotaHalaqah);
+
 export default router;
