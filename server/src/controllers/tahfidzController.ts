@@ -822,6 +822,99 @@ export const createSetoran = async (req: Request, res: Response, next: NextFunct
   }
 };
 
+export const createSetoranKolosal = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const authUser = getAuthInfo(req);
+    const {
+      siswa_ids,
+      pegawai_id,
+      kategori,
+      jenis_hafalan,
+      tanggal,
+      durasi_menit,
+      kelancaran,
+      catatan_guru,
+      // Al-Quran
+      surat_mulai,
+      surat_mulai_nama,
+      ayat_mulai,
+      surat_selesai,
+      surat_selesai_nama,
+      ayat_selesai,
+      juz,
+      total_ayat,
+      // Hadits
+      kitab_hadits,
+      hadits_no_mulai,
+      hadits_no_selesai,
+      total_hadits,
+      // Matan Ilmu
+      nama_matan,
+      bait_mulai,
+      bait_selesai,
+      total_bait,
+    } = req.body;
+
+    const effectivePegawaiId = await resolvePegawaiId(pegawai_id, authUser?.user_id);
+
+    if (!Array.isArray(siswa_ids) || siswa_ids.length === 0 || !effectivePegawaiId || !kategori || !jenis_hafalan || !kelancaran) {
+      res.status(400).json({
+        success: false,
+        message: 'Daftar Santri, Guru Penilai, Kategori, Jenis Hafalan, dan Kelancaran wajib diisi',
+      });
+      return;
+    }
+
+    const uniqueSiswaIds: number[] = Array.from(new Set(siswa_ids.map((id: any) => Number(id))));
+    const tgl = tanggal || new Date().toISOString().split('T')[0];
+
+    const records = uniqueSiswaIds.map((sId: number) => ({
+      siswa_id: sId,
+      pegawai_id: effectivePegawaiId,
+      kategori,
+      jenis_hafalan,
+      tanggal: tgl,
+      durasi_menit: durasi_menit ? Number(durasi_menit) : null,
+      kelancaran,
+      catatan_guru: catatan_guru || null,
+
+      // Al-Quran
+      surat_mulai: surat_mulai ? Number(surat_mulai) : null,
+      surat_mulai_nama: surat_mulai_nama || null,
+      ayat_mulai: ayat_mulai ? Number(ayat_mulai) : null,
+      surat_selesai: surat_selesai ? Number(surat_selesai) : null,
+      surat_selesai_nama: surat_selesai_nama || null,
+      ayat_selesai: ayat_selesai ? Number(ayat_selesai) : null,
+      juz: juz ? Number(juz) : null,
+      total_ayat: total_ayat ? Number(total_ayat) : null,
+
+      // Hadits
+      kitab_hadits: kitab_hadits || null,
+      hadits_no_mulai: hadits_no_mulai ? Number(hadits_no_mulai) : null,
+      hadits_no_selesai: hadits_no_selesai ? Number(hadits_no_selesai) : null,
+      total_hadits: total_hadits ? Number(total_hadits) : null,
+
+      // Matan Ilmu
+      nama_matan: nama_matan || null,
+      bait_mulai: bait_mulai ? Number(bait_mulai) : null,
+      bait_selesai: bait_selesai ? Number(bait_selesai) : null,
+      total_bait: total_bait ? Number(total_bait) : null,
+    }));
+
+    await prisma.tahfidzSetoran.createMany({
+      data: records,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: `Berhasil mencatat setoran massal untuk ${records.length} santri`,
+      count: records.length,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const deleteSetoran = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id } = req.params;

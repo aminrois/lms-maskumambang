@@ -43,6 +43,7 @@ const RiwayatSetoranTahfidz: React.FC = () => {
         offset: page * pageSize,
       });
     },
+    staleTime: 30 * 1000,
   });
 
   const setoranList: TahfidzSetoranItem[] = data?.data || [];

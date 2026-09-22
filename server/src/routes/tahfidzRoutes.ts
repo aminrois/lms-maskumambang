@@ -33,6 +33,7 @@ router.delete('/target/:id', tahfidzController.deleteTarget);
 // 4. Setoran Hafalan
 router.get('/setoran', tahfidzController.getSetoranList);
 router.post('/setoran', tahfidzController.createSetoran);
+router.post('/setoran/kolosal', tahfidzController.createSetoranKolosal);
 router.delete('/setoran/:id', tahfidzController.deleteSetoran);
 
 // 5. Statistik & Progres

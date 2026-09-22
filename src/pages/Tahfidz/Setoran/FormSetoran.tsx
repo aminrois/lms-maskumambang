@@ -11,19 +11,27 @@ import {
   Clock,
   User,
   Save,
-  Search
+  Search,
+  Users,
+  Zap,
+  CheckSquare,
+  Square
 } from "lucide-react";
 import { QURAN_SURAHS } from "../../../data/quranSurahList";
 import { HADITS_BOOK_PRESETS, MATAN_PRESETS, KELANCARAN_OPTIONS } from "../../../data/tahfidzPresets";
-import { tahfidzService } from "../../../lib/api/services/tahfidzService";
+import { tahfidzService, type HalaqahItem } from "../../../lib/api/services/tahfidzService";
 import { useAuthStore } from "../../../store/useAuthStore";
 
 type KategoriHafalan = "Al-Quran" | "Hadits" | "Matan Ilmu";
 type JenisSetoran = "Setoran Baru" | "Setoran Ulang" | "Ujian";
+type ModeInput = "individu" | "kolosal";
 
 const FormSetoranTahfidz: React.FC = () => {
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
+
+  // Mode Input: Individu vs Kolosal (Kelompok Halaqoh)
+  const [modeInput, setModeInput] = useState<ModeInput>("individu");
 
   // Kategori Tab
   const [kategori, setKategori] = useState<KategoriHafalan>("Al-Quran");
@@ -33,10 +41,15 @@ const FormSetoranTahfidz: React.FC = () => {
   const [kelancaran, setKelancaran] = useState<string>("Lancar");
   const [catatanGuru, setCatatanGuru] = useState<string>("");
 
-  // Santri Selection
+  // Santri Selection (Mode Individu)
   const [selectedKelasId, setSelectedKelasId] = useState<string>("");
   const [selectedSiswaId, setSelectedSiswaId] = useState<string>("");
   const [siswaSearch, setSiswaSearch] = useState<string>("");
+
+  // Kelompok Halaqoh Selection (Mode Kolosal)
+  const [selectedHalaqahId, setSelectedHalaqahId] = useState<string>("");
+  const [selectedKolosalSiswaIds, setSelectedKolosalSiswaIds] = useState<number[]>([]);
+  const [kolosalSearch, setKolosalSearch] = useState<string>("");
 
   // 1. Specific State: Al-Qur'an
   const [suratMulaiNo, setSuratMulaiNo] = useState<number>(1);
@@ -56,7 +69,7 @@ const FormSetoranTahfidz: React.FC = () => {
   const [baitMulai, setBaitMulai] = useState<number>(1);
   const [baitSelesai, setBaitSelesai] = useState<number>(10);
 
-  // Fetch Santri Binaan
+  // Fetch Santri Binaan (Mode Individu) - StaleTime 5 menit untuk optimasi
   const { data: santriList = [], isLoading: isLoadingSantri } = useQuery({
     queryKey: ["tahfidz-santri-binaan", selectedKelasId],
     queryFn: async () => {
@@ -64,7 +77,46 @@ const FormSetoranTahfidz: React.FC = () => {
         selectedKelasId ? { kelas_id: Number(selectedKelasId) } : undefined
       );
     },
+    staleTime: 5 * 60 * 1000,
   });
+
+  // Fetch Daftar Kelompok Halaqoh (Mode Kolosal) - StaleTime 5 menit untuk optimasi
+  const { data: halaqahList = [], isLoading: isLoadingHalaqah } = useQuery<HalaqahItem[]>({
+    queryKey: ["tahfidz-halaqah-list-setoran"],
+    queryFn: async () => {
+      return await tahfidzService.getHalaqahList({ status: "Aktif" });
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Halaqah aktif terpilih
+  const activeHalaqah = useMemo(() => {
+    return halaqahList.find((h) => String(h.halaqah_id) === String(selectedHalaqahId));
+  }, [halaqahList, selectedHalaqahId]);
+
+  // Santri di dalam halaqah terpilih
+  const halaqahSantriList = useMemo(() => {
+    if (!activeHalaqah || !activeHalaqah.anggota) return [];
+    return activeHalaqah.anggota
+      .map((a) => a.siswa)
+      .filter(Boolean) as any[];
+  }, [activeHalaqah]);
+
+  // Set default pilih semua santri saat halaqah berubah
+  useEffect(() => {
+    if (halaqahSantriList.length > 0) {
+      setSelectedKolosalSiswaIds(halaqahSantriList.map((s) => s.siswa_id));
+    } else {
+      setSelectedKolosalSiswaIds([]);
+    }
+  }, [halaqahSantriList]);
+
+  // Auto select halaqah pertama jika belum ada yang terpilih saat buka mode kolosal
+  useEffect(() => {
+    if (modeInput === "kolosal" && halaqahList.length > 0 && !selectedHalaqahId) {
+      setSelectedHalaqahId(String(halaqahList[0].halaqah_id));
+    }
+  }, [modeInput, halaqahList, selectedHalaqahId]);
 
   // Extract unique classes from santriList
   const uniqueKelasList = useMemo(() => {
@@ -77,7 +129,7 @@ const FormSetoranTahfidz: React.FC = () => {
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
   }, [santriList]);
 
-  // Selected Siswa Details
+  // Selected Siswa Details (Mode Individu)
   const activeSiswa = useMemo(() => {
     return santriList.find((s: any) => String(s.siswa_id) === String(selectedSiswaId));
   }, [santriList, selectedSiswaId]);
@@ -96,7 +148,6 @@ const FormSetoranTahfidz: React.FC = () => {
     if (suratMulaiNo === suratSelesaiNo) {
       return Math.max(1, ayatSelesai - ayatMulai + 1);
     }
-    // Jika beda surat
     let total = currentSurahMulai.totalVerses - ayatMulai + 1;
     for (let i = suratMulaiNo + 1; i < suratSelesaiNo; i++) {
       const s = QURAN_SURAHS.find((item) => item.number === i);
@@ -114,7 +165,7 @@ const FormSetoranTahfidz: React.FC = () => {
     return Math.max(1, baitSelesai - baitMulai + 1);
   }, [baitMulai, baitSelesai]);
 
-  // Filtered Siswa Dropdown
+  // Filtered Siswa (Mode Individu)
   const filteredSantri = useMemo(() => {
     if (!siswaSearch.trim()) return santriList;
     const q = siswaSearch.toLowerCase();
@@ -125,57 +176,105 @@ const FormSetoranTahfidz: React.FC = () => {
     );
   }, [santriList, siswaSearch]);
 
-  // Auto select first santri if not selected
+  // Filtered Siswa (Mode Kolosal)
+  const filteredKolosalSantri = useMemo(() => {
+    if (!kolosalSearch.trim()) return halaqahSantriList;
+    const q = kolosalSearch.toLowerCase();
+    return halaqahSantriList.filter((s: any) =>
+      s.nama?.toLowerCase().includes(q) ||
+      s.nisn?.toLowerCase().includes(q) ||
+      s.nis?.toLowerCase().includes(q)
+    );
+  }, [halaqahSantriList, kolosalSearch]);
+
+  // Toggle checklist santri di kolosal
+  const toggleKolosalSiswa = (siswa_id: number) => {
+    setSelectedKolosalSiswaIds((prev) =>
+      prev.includes(siswa_id) ? prev.filter((id) => id !== siswa_id) : [...prev, siswa_id]
+    );
+  };
+
+  const toggleSelectAllKolosal = () => {
+    if (selectedKolosalSiswaIds.length === halaqahSantriList.length) {
+      setSelectedKolosalSiswaIds([]);
+    } else {
+      setSelectedKolosalSiswaIds(halaqahSantriList.map((s) => s.siswa_id));
+    }
+  };
+
+  // Auto select first santri if not selected in Individu
   useEffect(() => {
-    if (santriList.length > 0 && !selectedSiswaId) {
+    if (modeInput === "individu" && santriList.length > 0 && !selectedSiswaId) {
       setSelectedSiswaId(String(santriList[0].siswa_id));
     }
-  }, [santriList, selectedSiswaId]);
+  }, [modeInput, santriList, selectedSiswaId]);
 
-  // Mutation to Submit Setoran
+  // Helper membuat payload umum setoran
+  const buildBasePayload = () => {
+    let payload: any = {
+      pegawai_id: user?.pegawai_id || undefined,
+      kategori,
+      jenis_hafalan: jenisSetoran,
+      tanggal,
+      durasi_menit: Number(durasiMenit) || 15,
+      kelancaran,
+      catatan_guru: catatanGuru.trim(),
+    };
+
+    if (kategori === "Al-Quran") {
+      payload.surat_mulai = suratMulaiNo;
+      payload.surat_mulai_nama = currentSurahMulai.name;
+      payload.ayat_mulai = Number(ayatMulai);
+      payload.surat_selesai = suratSelesaiNo;
+      payload.surat_selesai_nama = currentSurahSelesai.name;
+      payload.ayat_selesai = Number(ayatSelesai);
+      payload.total_ayat = calculatedTotalAyat;
+    } else if (kategori === "Hadits") {
+      const finalKitab = kitabHadits === "Hadits Lainnya (Kustom)" ? customKitabHadits : kitabHadits;
+      payload.kitab_hadits = finalKitab || "Hadits Pilihan";
+      payload.hadits_no_mulai = Number(haditsNoMulai);
+      payload.hadits_no_selesai = Number(haditsNoSelesai);
+      payload.total_hadits = calculatedTotalHadits;
+    } else if (kategori === "Matan Ilmu") {
+      const finalMatan = namaMatan === "Matan Lainnya (Kustom)" ? customNamaMatan : namaMatan;
+      payload.nama_matan = finalMatan || "Matan Ilmu";
+      payload.bait_mulai = Number(baitMulai);
+      payload.bait_selesai = Number(baitSelesai);
+      payload.total_bait = calculatedTotalBait;
+    }
+
+    return payload;
+  };
+
+  // Mutation to Submit Setoran (Individu & Kolosal)
   const submitMutation = useMutation({
     mutationFn: async () => {
-      if (!selectedSiswaId) {
-        throw new Error("Pilih santri terlebih dahulu.");
+      const basePayload = buildBasePayload();
+
+      if (modeInput === "kolosal") {
+        if (selectedKolosalSiswaIds.length === 0) {
+          throw new Error("Pilih minimal 1 santri di dalam kelompok halaqoh ini.");
+        }
+        return await tahfidzService.createSetoranKolosal({
+          ...basePayload,
+          siswa_ids: selectedKolosalSiswaIds,
+        });
+      } else {
+        if (!selectedSiswaId) {
+          throw new Error("Pilih santri terlebih dahulu.");
+        }
+        return await tahfidzService.createSetoran({
+          ...basePayload,
+          siswa_id: Number(selectedSiswaId),
+        });
       }
-
-      let payload: any = {
-        siswa_id: Number(selectedSiswaId),
-        pegawai_id: user?.pegawai_id || undefined,
-        kategori,
-        jenis_hafalan: jenisSetoran,
-        tanggal,
-        durasi_menit: Number(durasiMenit) || 15,
-        kelancaran,
-        catatan_guru: catatanGuru.trim(),
-      };
-
-      if (kategori === "Al-Quran") {
-        payload.surat_mulai = suratMulaiNo;
-        payload.surat_mulai_nama = currentSurahMulai.name;
-        payload.ayat_mulai = Number(ayatMulai);
-        payload.surat_selesai = suratSelesaiNo;
-        payload.surat_selesai_nama = currentSurahSelesai.name;
-        payload.ayat_selesai = Number(ayatSelesai);
-        payload.total_ayat = calculatedTotalAyat;
-      } else if (kategori === "Hadits") {
-        const finalKitab = kitabHadits === "Hadits Lainnya (Kustom)" ? customKitabHadits : kitabHadits;
-        payload.kitab_hadits = finalKitab || "Hadits Pilihan";
-        payload.hadits_no_mulai = Number(haditsNoMulai);
-        payload.hadits_no_selesai = Number(haditsNoSelesai);
-        payload.total_hadits = calculatedTotalHadits;
-      } else if (kategori === "Matan Ilmu") {
-        const finalMatan = namaMatan === "Matan Lainnya (Kustom)" ? customNamaMatan : namaMatan;
-        payload.nama_matan = finalMatan || "Matan Ilmu";
-        payload.bait_mulai = Number(baitMulai);
-        payload.bait_selesai = Number(baitSelesai);
-        payload.total_bait = calculatedTotalBait;
-      }
-
-      return await tahfidzService.createSetoran(payload);
     },
-    onSuccess: () => {
-      toast.success("Catatan setoran hafalan santri berhasil disimpan!");
+    onSuccess: (res: any) => {
+      if (modeInput === "kolosal") {
+        toast.success(res?.message || `Setoran kolosal berhasil disimpan untuk ${selectedKolosalSiswaIds.length} santri!`);
+      } else {
+        toast.success("Catatan setoran hafalan santri berhasil disimpan!");
+      }
       setCatatanGuru("");
       queryClient.invalidateQueries({ queryKey: ["tahfidz-setoran"] });
       queryClient.invalidateQueries({ queryKey: ["tahfidz-santri-binaan"] });
@@ -205,21 +304,44 @@ const FormSetoranTahfidz: React.FC = () => {
               Input Setoran Hafalan Santri
             </h1>
             <p className="text-emerald-100 text-sm max-w-2xl leading-relaxed">
-              Catat setoran hafalan harian santri secara mudah dan terstruktur, mulai dari <strong>Al-Qur'an (114 Surat)</strong>, <strong>Hadits Pilihan</strong>, hingga <strong>Matan Ilmu</strong>.
+              Catat setoran hafalan perorangan atau <strong>secara massal per kelompok halaqoh</strong> dengan cepat dan terstruktur.
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="bg-white/10 backdrop-blur-md px-4 py-3 rounded-2xl border border-white/10 text-center">
-              <span className="block text-[10px] text-emerald-200 font-bold uppercase">Santri Binaan</span>
-              <span className="text-xl font-black text-white">{santriList.length}</span>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            {/* Mode Switcher Tabs */}
+            <div className="bg-black/25 backdrop-blur-md p-1.5 rounded-2xl flex items-center border border-white/15">
+              <button
+                type="button"
+                onClick={() => setModeInput("individu")}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  modeInput === "individu"
+                    ? "bg-white text-emerald-950 shadow-md"
+                    : "text-emerald-100 hover:text-white"
+                }`}
+              >
+                <User className="w-3.5 h-3.5" />
+                <span>Per Santri</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setModeInput("kolosal")}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  modeInput === "kolosal"
+                    ? "bg-amber-500 text-white shadow-md shadow-amber-900/30"
+                    : "text-emerald-100 hover:text-white"
+                }`}
+              >
+                <Zap className="w-3.5 h-3.5" />
+                <span>Kolosal Halaqoh</span>
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* FLOATING STICKY SANTRI TERPILIH (Tampilan Mobile / HP) */}
-      {activeSiswa && (
+      {/* FLOATING STICKY MOBILE SUMMARY */}
+      {modeInput === "individu" && activeSiswa && (
         <div className="sticky top-2 z-30 lg:hidden bg-white/95 backdrop-blur-md p-3 rounded-2xl border border-emerald-300 shadow-lg shadow-emerald-950/10 transition-all animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex items-center justify-between gap-2.5">
             <div className="flex items-center gap-2.5 min-w-0">
@@ -254,16 +376,243 @@ const FormSetoranTahfidz: React.FC = () => {
         </div>
       )}
 
+      {modeInput === "kolosal" && (
+        <div className="sticky top-2 z-30 lg:hidden bg-amber-500 text-white p-3 rounded-2xl shadow-lg transition-all flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            <span className="font-bold text-xs">
+              {activeHalaqah?.nama_halaqah || "Pilih Halaqoh"} • {selectedKolosalSiswaIds.length} Santri Dipilih
+            </span>
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Kolom Kiri: Pemilihan Santri & Informasi Sesi (4 Col) - Sticky di Desktop */}
+        {/* Kolom Kiri: Pemilihan Target Santri / Kelompok Halaqoh (4 Col) */}
         <div className="lg:col-span-4 space-y-5 lg:sticky lg:top-4">
-          {/* Card Pilih Santri */}
-          <div id="pilih-santri-section" className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs space-y-4">
-            <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-              <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
-                <User className="w-4 h-4" />
+          {modeInput === "individu" ? (
+            /* Card Pilih Santri (Mode Individu) */
+            <div id="pilih-santri-section" className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs space-y-4">
+              <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
+                <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+                  <User className="w-4 h-4" />
+                </div>
+                <h2 className="font-bold text-slate-800 text-sm">1. Pilih Santri</h2>
               </div>
-              <h2 className="font-bold text-slate-800 text-sm">1. Pilih Santri</h2>
+
+              {/* Filter Kelas */}
+              {uniqueKelasList.length > 0 && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1">Filter Kelas</label>
+                  <select
+                    value={selectedKelasId}
+                    onChange={(e) => {
+                      setSelectedKelasId(e.target.value);
+                    }}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 font-semibold outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  >
+                    <option value="">Semua Kelas Binaan</option>
+                    {uniqueKelasList.map((k) => (
+                      <option key={k.id} value={k.id}>
+                        {k.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Pencarian Santri */}
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">Cari Nama Santri</label>
+                <div className="relative">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Ketik nama atau NISN..."
+                    value={siswaSearch}
+                    onChange={(e) => setSiswaSearch(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  />
+                </div>
+              </div>
+
+              {/* List Santri Radio */}
+              <div className="max-h-64 overflow-y-auto space-y-1.5 pr-1">
+                {isLoadingSantri ? (
+                  <div className="text-center py-6 text-xs text-slate-400">Memuat santri...</div>
+                ) : filteredSantri.length === 0 ? (
+                  <div className="text-center py-6 text-xs text-slate-400">Tidak ada santri ditemukan.</div>
+                ) : (
+                  filteredSantri.map((siswa: any) => {
+                    const isSelected = String(siswa.siswa_id) === String(selectedSiswaId);
+                    return (
+                      <button
+                        type="button"
+                        key={siswa.siswa_id}
+                        onClick={() => setSelectedSiswaId(String(siswa.siswa_id))}
+                        className={`w-full text-left p-3 rounded-2xl border transition-all flex items-center justify-between cursor-pointer ${
+                          isSelected
+                            ? "bg-emerald-50/80 border-emerald-400 shadow-xs text-emerald-950"
+                            : "bg-slate-50/50 border-slate-200/60 hover:bg-slate-100/60 text-slate-700"
+                        }`}
+                      >
+                        <div className="truncate pr-2">
+                          <span className="font-bold text-xs block truncate">{siswa.nama}</span>
+                          <span className="text-[10px] text-slate-400 block font-mono">
+                            {siswa.kelas?.nama_kelas || "Tanpa Kelas"} • NISN: {siswa.nisn || "-"}
+                          </span>
+                        </div>
+                        {isSelected && (
+                          <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Active Santri Info Box */}
+              {activeSiswa && (
+                <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-100 text-xs text-emerald-900 space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-emerald-600 block">Santri Terpilih</span>
+                  <p className="font-bold text-sm text-emerald-950">{activeSiswa.nama}</p>
+                  <p className="text-[11px] text-emerald-800">
+                    Kelas: <strong>{activeSiswa.kelas?.nama_kelas || "-"}</strong> • Lembaga: {activeSiswa.kelas?.lembaga?.singkatan || "-"}
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Card Pilih Kelompok Halaqoh (Mode Kolosal) */
+            <div id="pilih-santri-section" className="bg-white rounded-3xl p-5 border border-amber-200 shadow-xs space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
+                    <Users className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="font-bold text-slate-800 text-sm">1. Pilih Kelompok Halaqoh</h2>
+                  </div>
+                </div>
+                <span className="px-2 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-black rounded-lg uppercase">
+                  Kolosal
+                </span>
+              </div>
+
+              {/* Dropdown Kelompok Halaqoh */}
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">Pilih Kelompok Halaqoh *</label>
+                {isLoadingHalaqah ? (
+                  <div className="text-xs text-slate-400 py-2">Memuat kelompok halaqoh...</div>
+                ) : halaqahList.length === 0 ? (
+                  <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800">
+                    Belum ada kelompok halaqoh yang dibuat. Silakan buat kelompok terlebih dahulu di menu <strong>Kelompok Halaqoh</strong>.
+                  </div>
+                ) : (
+                  <select
+                    value={selectedHalaqahId}
+                    onChange={(e) => setSelectedHalaqahId(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-800 font-bold outline-none focus:ring-2 focus:ring-amber-500/20"
+                  >
+                    <option value="">-- Pilih Kelompok Halaqoh --</option>
+                    {halaqahList.map((h) => (
+                      <option key={h.halaqah_id} value={h.halaqah_id}>
+                        {h.nama_halaqah} ({h.pegawai?.nama || "Tanpa Ustadz"} - {h.lembaga?.nama_lembaga || h.lembaga?.singkatan || ""})
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              {activeHalaqah && (
+                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-1 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-bold text-slate-400">Pengampu</span>
+                    <span className="font-bold text-slate-700">{activeHalaqah.pegawai?.nama || "-"}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-bold text-slate-400">Lembaga</span>
+                    <span className="font-semibold text-slate-600">{activeHalaqah.lembaga?.nama_lembaga || activeHalaqah.lembaga?.singkatan || "-"}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Checklist Santri di Halaqoh */}
+              {selectedHalaqahId && (
+                <div className="space-y-3 pt-2 border-t border-slate-100">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <label className="text-xs font-bold text-slate-700">Daftar Santri</label>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                        {selectedKolosalSiswaIds.length}/{halaqahSantriList.length} Dipilih
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={toggleSelectAllKolosal}
+                      className="text-[11px] font-bold text-amber-700 hover:text-amber-800 cursor-pointer"
+                    >
+                      {selectedKolosalSiswaIds.length === halaqahSantriList.length ? "Batal Semua" : "Pilih Semua"}
+                    </button>
+                  </div>
+
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="Cari santri di halaqoh..."
+                      value={kolosalSearch}
+                      onChange={(e) => setKolosalSearch(e.target.value)}
+                      className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl outline-none focus:ring-2 focus:ring-amber-500/20"
+                    />
+                  </div>
+
+                  <div className="max-h-56 overflow-y-auto space-y-1.5 pr-1">
+                    {filteredKolosalSantri.length === 0 ? (
+                      <div className="text-center py-6 text-xs text-slate-400">Tidak ada santri di kelompok ini.</div>
+                    ) : (
+                      filteredKolosalSantri.map((s: any) => {
+                        const isChecked = selectedKolosalSiswaIds.includes(s.siswa_id);
+                        return (
+                          <div
+                            key={s.siswa_id}
+                            onClick={() => toggleKolosalSiswa(s.siswa_id)}
+                            className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer ${
+                              isChecked
+                                ? "bg-amber-50/70 border-amber-300 text-amber-950 font-medium"
+                                : "bg-white border-slate-200 text-slate-600 opacity-60 hover:opacity-100"
+                            }`}
+                          >
+                            <div className="min-w-0 pr-2">
+                              <p className="text-xs font-bold truncate">{s.nama}</p>
+                              <p className="text-[10px] text-slate-400 truncate">
+                                {s.kelas?.nama_kelas || "-"} • NISN: {s.nisn || "-"}
+                              </p>
+                            </div>
+                            {isChecked ? (
+                              <CheckSquare className="w-4 h-4 text-amber-600 shrink-0" />
+                            ) : (
+                              <Square className="w-4 h-4 text-slate-300 shrink-0" />
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Card Parameter Sesi */}
+          <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs space-y-4">
+            <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
+              <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
+                <Clock className="w-4 h-4" />
+              </div>
+              <h2 className="font-bold text-slate-800 text-sm">2. Parameter Sesi</h2>
             </div>
 
             {/* Filter Kelas */}
@@ -316,11 +665,10 @@ const FormSetoranTahfidz: React.FC = () => {
                       type="button"
                       key={siswa.siswa_id}
                       onClick={() => setSelectedSiswaId(String(siswa.siswa_id))}
-                      className={`w-full text-left p-3 rounded-2xl border transition-all flex items-center justify-between cursor-pointer ${
-                        isSelected
-                          ? "bg-emerald-50/80 border-emerald-400 shadow-xs text-emerald-950"
-                          : "bg-slate-50/50 border-slate-200/60 hover:bg-slate-100/60 text-slate-700"
-                      }`}
+                      className={`w-full text-left p-3 rounded-2xl border transition-all flex items-center justify-between cursor-pointer ${isSelected
+                        ? "bg-emerald-50/80 border-emerald-400 shadow-xs text-emerald-950"
+                        : "bg-slate-50/50 border-slate-200/60 hover:bg-slate-100/60 text-slate-700"
+                        }`}
                     >
                       <div className="truncate pr-2">
                         <span className="font-bold text-xs block truncate">{siswa.nama}</span>
@@ -368,35 +716,32 @@ const FormSetoranTahfidz: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setJenisSetoran("Setoran Baru")}
-                    className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center ${
-                      jenisSetoran === "Setoran Baru"
-                        ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
-                        : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
-                    }`}
+                    className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center ${jenisSetoran === "Setoran Baru"
+                      ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                      : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                      }`}
                   >
-                    ✨ Setoran Baru (Ziyadah)
+                    Setoran Baru
                   </button>
                   <button
                     type="button"
                     onClick={() => setJenisSetoran("Setoran Ulang")}
-                    className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center ${
-                      jenisSetoran === "Setoran Ulang"
-                        ? "bg-blue-600 text-white border-blue-600 shadow-xs"
-                        : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
-                    }`}
+                    className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center ${jenisSetoran === "Setoran Ulang"
+                      ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                      : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                      }`}
                   >
-                    🔄 Setoran Ulang (Muraja'ah)
+                    Setoran Ulang
                   </button>
                   <button
                     type="button"
                     onClick={() => setJenisSetoran("Ujian")}
-                    className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center ${
-                      jenisSetoran === "Ujian"
-                        ? "bg-amber-600 text-white border-amber-600 shadow-xs"
-                        : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
-                    }`}
+                    className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center ${jenisSetoran === "Ujian"
+                      ? "bg-amber-600 text-white border-amber-600 shadow-xs"
+                      : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                      }`}
                   >
-                    📝 Ujian (Ikhtibar/Tasmi')
+                    Ujian
                   </button>
                 </div>
               </div>
@@ -437,11 +782,10 @@ const FormSetoranTahfidz: React.FC = () => {
             <button
               type="button"
               onClick={() => setKategori("Al-Quran")}
-              className={`flex-1 py-3 px-4 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                kategori === "Al-Quran"
-                  ? "bg-emerald-600 text-white shadow-md shadow-emerald-700/20"
-                  : "text-slate-600 hover:bg-slate-50"
-              }`}
+              className={`flex-1 py-3 px-4 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${kategori === "Al-Quran"
+                ? "bg-emerald-600 text-white shadow-md shadow-emerald-700/20"
+                : "text-slate-600 hover:bg-slate-50"
+                }`}
             >
               <BookOpen className="w-4 h-4" />
               <span>Hafalan Al-Qur'an</span>
@@ -450,11 +794,10 @@ const FormSetoranTahfidz: React.FC = () => {
             <button
               type="button"
               onClick={() => setKategori("Hadits")}
-              className={`flex-1 py-3 px-4 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                kategori === "Hadits"
-                  ? "bg-emerald-600 text-white shadow-md shadow-emerald-700/20"
-                  : "text-slate-600 hover:bg-slate-50"
-              }`}
+              className={`flex-1 py-3 px-4 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${kategori === "Hadits"
+                ? "bg-emerald-600 text-white shadow-md shadow-emerald-700/20"
+                : "text-slate-600 hover:bg-slate-50"
+                }`}
             >
               <ScrollText className="w-4 h-4" />
               <span>Hafalan Hadits</span>
@@ -463,11 +806,10 @@ const FormSetoranTahfidz: React.FC = () => {
             <button
               type="button"
               onClick={() => setKategori("Matan Ilmu")}
-              className={`flex-1 py-3 px-4 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                kategori === "Matan Ilmu"
-                  ? "bg-emerald-600 text-white shadow-md shadow-emerald-700/20"
-                  : "text-slate-600 hover:bg-slate-50"
-              }`}
+              className={`flex-1 py-3 px-4 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${kategori === "Matan Ilmu"
+                ? "bg-emerald-600 text-white shadow-md shadow-emerald-700/20"
+                : "text-slate-600 hover:bg-slate-50"
+                }`}
             >
               <Bookmark className="w-4 h-4" />
               <span>Hafalan Matan Ilmu</span>
@@ -728,11 +1070,10 @@ const FormSetoranTahfidz: React.FC = () => {
                         type="button"
                         key={opt.value}
                         onClick={() => setKelancaran(opt.value)}
-                        className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center ${
-                          isSelected
-                            ? "bg-slate-900 text-white border-slate-900 shadow-sm"
-                            : `${opt.color} hover:opacity-80`
-                        }`}
+                        className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center ${isSelected
+                          ? "bg-slate-900 text-white border-slate-900 shadow-sm"
+                          : `${opt.color} hover:opacity-80`
+                          }`}
                       >
                         {opt.label}
                       </button>
@@ -756,19 +1097,34 @@ const FormSetoranTahfidz: React.FC = () => {
             </div>
 
             {/* ACTION SUBMIT */}
-            <div className="pt-4 flex items-center justify-between border-t border-slate-100">
+            <div className="pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-slate-100">
               <span className="text-xs text-slate-400">
                 Menyimak sebagai: <strong>{user?.username || "Guru Tahfidz"}</strong>
               </span>
 
-              <button
-                type="submit"
-                disabled={submitMutation.isPending || !selectedSiswaId}
-                className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-2xl shadow-lg shadow-emerald-700/20 transition-all cursor-pointer disabled:opacity-50"
-              >
-                <Save className="w-4 h-4" />
-                <span>{submitMutation.isPending ? "Menyimpan Setoran..." : "Simpan Catatan Setoran"}</span>
-              </button>
+              {modeInput === "kolosal" ? (
+                <button
+                  type="submit"
+                  disabled={submitMutation.isPending || selectedKolosalSiswaIds.length === 0}
+                  className="flex items-center justify-center gap-2 px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-2xl shadow-lg shadow-amber-700/20 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  <Zap className="w-4 h-4" />
+                  <span>
+                    {submitMutation.isPending
+                      ? "Menyimpan Kolosal..."
+                      : `Simpan Setoran Kolosal (${selectedKolosalSiswaIds.length} Santri)`}
+                  </span>
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={submitMutation.isPending || !selectedSiswaId}
+                  className="flex items-center justify-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-2xl shadow-lg shadow-emerald-700/20 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{submitMutation.isPending ? "Menyimpan Setoran..." : "Simpan Catatan Setoran"}</span>
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -73,6 +73,7 @@ const TargetSantriTahfidz: React.FC = () => {
         selectedKelasId ? { kelas_id: Number(selectedKelasId) } : undefined
       );
     },
+    staleTime: 5 * 60 * 1000,
   });
 
   // Extract unique classes
@@ -101,6 +102,7 @@ const TargetSantriTahfidz: React.FC = () => {
       return await tahfidzService.getStatistikSiswa(selectedSiswaId);
     },
     enabled: !!selectedSiswaId,
+    staleTime: 60 * 1000,
   });
 
   // Mutations for Target CRUD

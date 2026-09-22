@@ -41,14 +41,20 @@ const KelompokHalaqahPage: React.FC = () => {
 
   const { data: lembagaList = [] } = useQuery<any[]>({
     queryKey: ["lembaga-list"],
-    queryFn: async () => { const res = await apiClient.get("/lembaga"); return res.data?.data || []; },
-    staleTime: 60000,
+    queryFn: async () => {
+      const res = await apiClient.get("/lembaga");
+      return Array.isArray(res.data) ? res.data : res.data?.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: tahunList = [] } = useQuery<any[]>({
     queryKey: ["tahun-ajaran-list"],
-    queryFn: async () => { const res = await apiClient.get("/tahun-ajaran"); return res.data?.data || []; },
-    staleTime: 60000,
+    queryFn: async () => {
+      const res = await apiClient.get("/tahun-ajaran");
+      return Array.isArray(res.data) ? res.data : res.data?.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
   });
 
   const activeTahunId = useMemo(() => {
@@ -125,12 +131,12 @@ const KelompokHalaqahPage: React.FC = () => {
           <select value={lembagaId} onChange={(e) => setLembagaId(e.target.value)}
             className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500/20 min-w-[130px]">
             <option value="">Semua Lembaga</option>
-            {(lembagaList as any[]).map((l) => <option key={l.lembaga_id} value={l.lembaga_id}>{l.nama || l.nama_lembaga}</option>)}
+            {(lembagaList as any[]).map((l) => <option key={l.lembaga_id} value={l.lembaga_id}>{l.nama_lembaga || l.nama}</option>)}
           </select>
           <select value={tahunId} onChange={(e) => setTahunId(e.target.value)}
             className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500/20 min-w-[130px]">
             <option value="">Semua Tahun</option>
-            {(tahunList as any[]).map((t) => <option key={t.tahun_id} value={t.tahun_id}>{t.nama} {t.is_active ? "(Aktif)" : ""}</option>)}
+            {(tahunList as any[]).map((t) => <option key={t.tahun_id} value={t.tahun_id}>{t.nama_tahun || t.nama} {t.is_active ? "(Aktif)" : ""}</option>)}
           </select>
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
             className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500/20">
@@ -249,7 +255,7 @@ function HalaqahCard({ halaqah, onView, onEdit, onDelete }: { halaqah: HalaqahIt
           <div className="min-w-0">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Ustadz Pengampu</p>
             <p className="font-bold text-xs text-slate-800 truncate">
-              {[halaqah.pegawai?.gelar_depan, halaqah.pegawai?.nama, halaqah.pegawai?.gelar_belakang].filter(Boolean).join(" ")}
+              {halaqah.pegawai?.nama || "-"}
             </p>
           </div>
         </div>
@@ -349,7 +355,7 @@ function HalaqahFormModal({ initial, guruList, lembagaList, tahunList, santriAll
               <label className="block text-xs font-bold text-slate-600 mb-1.5">Lembaga *</label>
               <select value={lembagaId} onChange={(e) => setLembagaId(e.target.value)} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500/20 bg-slate-50">
                 <option value="">-- Pilih Lembaga --</option>
-                {lembagaList.map((l) => <option key={l.lembaga_id} value={l.lembaga_id}>{l.nama || l.nama_lembaga}</option>)}
+                {lembagaList.map((l) => <option key={l.lembaga_id} value={l.lembaga_id}>{l.nama_lembaga || l.nama}</option>)}
               </select>
             </div>
             <div>
@@ -363,7 +369,7 @@ function HalaqahFormModal({ initial, guruList, lembagaList, tahunList, santriAll
               <label className="block text-xs font-bold text-slate-600 mb-1.5">Tahun Ajaran</label>
               <select value={tahunId} onChange={(e) => setTahunId(e.target.value)} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500/20 bg-slate-50">
                 <option value="">-- Pilih Tahun --</option>
-                {tahunList.map((t) => <option key={t.tahun_id} value={t.tahun_id}>{t.nama} {t.is_active ? "(Aktif)" : ""}</option>)}
+                {tahunList.map((t) => <option key={t.tahun_id} value={t.tahun_id}>{t.nama_tahun || t.nama} {t.is_active ? "(Aktif)" : ""}</option>)}
               </select>
             </div>
             <div>
@@ -490,14 +496,14 @@ function KolosalModal({ guruList, lembagaList, tahunList, santriAll, activeLemba
               <label className="block text-xs font-bold text-slate-600 mb-1.5">Lembaga *</label>
               <select value={lembagaId} onChange={(e) => setLembagaId(e.target.value)} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 outline-none bg-slate-50">
                 <option value="">-- Pilih --</option>
-                {lembagaList.map((l) => <option key={l.lembaga_id} value={l.lembaga_id}>{l.nama || l.nama_lembaga}</option>)}
+                {lembagaList.map((l) => <option key={l.lembaga_id} value={l.lembaga_id}>{l.nama_lembaga || l.nama}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-600 mb-1.5">Tahun Ajaran</label>
               <select value={tahunId} onChange={(e) => setTahunId(e.target.value)} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 outline-none bg-slate-50">
                 <option value="">-- Pilih --</option>
-                {tahunList.map((t) => <option key={t.tahun_id} value={t.tahun_id}>{t.nama} {t.is_active ? "(Aktif)" : ""}</option>)}
+                {tahunList.map((t) => <option key={t.tahun_id} value={t.tahun_id}>{t.nama_tahun || t.nama} {t.is_active ? "(Aktif)" : ""}</option>)}
               </select>
             </div>
             <div>
@@ -618,7 +624,7 @@ function DetailDrawer({ halaqah, onClose }: { halaqah: HalaqahItem; onClose: () 
             </div>
             <div>
               <p className="text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Ustadz Pengampu</p>
-              <p className="font-bold text-sm">{[h.pegawai?.gelar_depan, h.pegawai?.nama, h.pegawai?.gelar_belakang].filter(Boolean).join(" ")}</p>
+              <p className="font-bold text-sm">{h.pegawai?.nama || "-"}</p>
               {h.pegawai?.no_hp && <p className="text-[11px] text-emerald-200">{h.pegawai.no_hp}</p>}
             </div>
           </div>

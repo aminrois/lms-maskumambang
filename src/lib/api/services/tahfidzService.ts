@@ -136,9 +136,9 @@ export interface HalaqahItem {
   deskripsi?: string;
   status: 'Aktif' | 'Tidak Aktif';
   created_at?: string;
-  pegawai?: { pegawai_id: number; nama: string; gelar_depan?: string; gelar_belakang?: string; foto?: string; no_hp?: string };
-  lembaga?: { lembaga_id: number; nama: string; kode?: string };
-  tahun_ajaran?: { tahun_id: number; nama: string; is_active: boolean };
+  pegawai?: { pegawai_id: number; nama: string; nig?: string; no_hp?: string; foto?: string };
+  lembaga?: { lembaga_id: number; nama?: string; nama_lembaga?: string; singkatan?: string; kode?: string };
+  tahun_ajaran?: { tahun_id: number; nama?: string; nama_tahun?: string; is_active: boolean };
   anggota?: HalaqahAnggota[];
   _count?: { anggota: number };
 }
@@ -237,6 +237,11 @@ export const tahfidzService = {
 
   createSetoran: async (payload: Partial<TahfidzSetoranItem>) => {
     const res = await apiClient.post('/tahfidz/setoran', payload);
+    return res.data;
+  },
+
+  createSetoranKolosal: async (payload: Partial<TahfidzSetoranItem> & { siswa_ids: number[] }) => {
+    const res = await apiClient.post('/tahfidz/setoran/kolosal', payload);
     return res.data;
   },
 
