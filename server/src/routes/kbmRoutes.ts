@@ -26,6 +26,7 @@ router.delete('/jurnal-mengajar/:id', authenticate, kbmController.deleteJurnalMe
 
 // Absensi Pelajaran
 router.get('/absensi-pelajaran', authenticate, kbmController.getAbsensiPelajarans);
+router.post('/absensi-pelajaran/submit-sesi', authenticate, kbmController.submitAbsensiPelajaranSesi);
 router.post('/absensi-pelajaran', authenticate, kbmController.createAbsensiPelajaran);
 router.patch('/absensi-pelajaran/:id', authenticate, kbmController.updateAbsensiPelajaran);
 

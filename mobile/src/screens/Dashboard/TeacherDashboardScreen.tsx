@@ -342,7 +342,7 @@ export const TeacherDashboardScreen = () => {
             {/* 1. LMS */}
             <TouchableOpacity
               style={styles.gridCard}
-              onPress={() => navigation.navigate("JadwalTab")}
+              onPress={() => navigation.navigate("LmsTab")}
               activeOpacity={0.8}
             >
               <View style={[styles.gridIconCircle, { backgroundColor: "#10b981" }]}>

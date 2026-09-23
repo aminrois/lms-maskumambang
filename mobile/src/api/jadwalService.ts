@@ -10,7 +10,8 @@ export interface JadwalItem {
   mapel_id: number;
   kelas_id: number;
   pegawai_id: number;
-  tahun_ajaran_id: number;
+  tahun_ajaran_id?: number;
+  ruangan?: string;
   mapel?: {
     mapel_id: number;
     nama_mapel: string;

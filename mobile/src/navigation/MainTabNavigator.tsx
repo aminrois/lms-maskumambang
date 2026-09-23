@@ -14,6 +14,7 @@ import {
 import { TeacherDashboardScreen } from "../screens/Dashboard/TeacherDashboardScreen";
 import { ParentDashboardScreen } from "../screens/Dashboard/ParentDashboardScreen";
 import { JadwalScreen } from "../screens/Jadwal/JadwalScreen";
+import { LmsScreen } from "../screens/LMS/LmsScreen";
 import { ProfileScreen } from "../screens/Profile/ProfileScreen";
 import { useAuthStore } from "../store/useAuthStore";
 import { Colors } from "../constants/colors";
@@ -75,7 +76,7 @@ export const MainTabNavigator = () => {
         {/* 2. LMS */}
         <Tab.Screen
           name="LmsTab"
-          component={JadwalScreen}
+          component={LmsScreen}
           options={{
             tabBarLabel: "LMS",
             tabBarIcon: ({ color }) => <BookOpen size={22} color={color} />,

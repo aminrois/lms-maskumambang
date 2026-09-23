@@ -148,10 +148,15 @@ export const deleteLessonPlanDetail = async (req: Request, res: Response, next: 
 // JURNAL MENGAJAR
 export const getJurnalMengajars = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { jadwal_id, tanggal } = req.query;
+    const { jadwal_id, tanggal, pegawai_id, kelas_id } = req.query;
     const where: any = {};
     if (jadwal_id) where.jadwal_id = Number(jadwal_id);
     if (tanggal) where.tanggal = String(tanggal);
+    if (pegawai_id || kelas_id) {
+      where.jadwal = {};
+      if (pegawai_id) where.jadwal.pegawai_id = Number(pegawai_id);
+      if (kelas_id) where.jadwal.kelas_id = Number(kelas_id);
+    }
 
     const list = await prisma.jurnalMengajar.findMany({
       where,
@@ -160,8 +165,11 @@ export const getJurnalMengajars = async (req: Request, res: Response, next: Next
           include: { kelas: true, mapel: true, pegawai: true },
         },
         lesson_plan_detail: true,
+        absensi_pelajaran: {
+          include: { siswa: true },
+        },
       },
-      orderBy: { tanggal: 'desc' },
+      orderBy: [{ tanggal: 'desc' }, { jurnal_id: 'desc' }],
     });
     res.json(list);
   } catch (error) {
@@ -263,6 +271,118 @@ export const createAbsensiPelajaran = async (req: Request, res: Response, next: 
     data.jurnal_id = Number(data.jurnal_id);
     const item = await prisma.absensiPelajaran.create({ data });
     res.status(201).json(item);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const submitAbsensiPelajaranSesi = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const {
+      jadwal_id,
+      pertemuan_ke,
+      tanggal,
+      catatan_tambahan,
+      catatan_guru,
+      materi_diajarkan,
+      lesson_plan_detail_id,
+      status,
+      detail_absensi = [],
+    } = req.body;
+
+    if (!jadwal_id) {
+      res.status(400).json({ success: false, message: 'jadwal_id wajib diisi' });
+      return;
+    }
+
+    const jadwalIdNum = Number(jadwal_id);
+    const pertemuanNum = pertemuan_ke ? Number(pertemuan_ke) : 1;
+    const todayStr = tanggal ? String(tanggal) : new Date().toISOString().split('T')[0];
+    const finalCatatan = (catatan_tambahan || catatan_guru || materi_diajarkan || '').trim();
+    const lessonPlanDetailIdNum = lesson_plan_detail_id ? Number(lesson_plan_detail_id) : null;
+
+    const formatter = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Jakarta',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    });
+    const currentTime = formatter.format(new Date()).replace(/\./g, ':');
+
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Cek apakah sudah ada jurnal mengajar untuk jadwal & pertemuan ini
+      let existingJurnal = await tx.jurnalMengajar.findFirst({
+        where: {
+          jadwal_id: jadwalIdNum,
+          pertemuan_ke: pertemuanNum,
+        },
+      });
+
+      let jurnalId: number;
+
+      if (existingJurnal) {
+        const updated = await tx.jurnalMengajar.update({
+          where: { jurnal_id: existingJurnal.jurnal_id },
+          data: {
+            tanggal: todayStr,
+            catatan_tambahan: finalCatatan || existingJurnal.catatan_tambahan,
+            lesson_plan_detail_id: lessonPlanDetailIdNum || existingJurnal.lesson_plan_detail_id,
+            status: status || existingJurnal.status || 'Sesuai',
+          },
+        });
+        jurnalId = updated.jurnal_id;
+      } else {
+        const created = await tx.jurnalMengajar.create({
+          data: {
+            jadwal_id: jadwalIdNum,
+            pertemuan_ke: pertemuanNum,
+            tanggal: todayStr,
+            catatan_tambahan: finalCatatan,
+            lesson_plan_detail_id: lessonPlanDetailIdNum,
+            status: status || 'Sesuai',
+          },
+        });
+        jurnalId = created.jurnal_id;
+      }
+
+      // 2. Simpan detail absensi siswa
+      if (Array.isArray(detail_absensi) && detail_absensi.length > 0) {
+        await tx.absensiPelajaran.deleteMany({
+          where: { jurnal_id: jurnalId },
+        });
+
+        const absensiData = detail_absensi.map((item: any) => ({
+          siswa_id: Number(item.siswa_id),
+          jurnal_id: jurnalId,
+          status: String(item.status || 'Hadir'),
+          waktu_kehadiran: String(item.waktu_kehadiran || currentTime),
+        }));
+
+        await tx.absensiPelajaran.createMany({
+          data: absensiData,
+        });
+      }
+
+      return tx.jurnalMengajar.findUnique({
+        where: { jurnal_id: jurnalId },
+        include: {
+          jadwal: {
+            include: { kelas: true, mapel: true, pegawai: true },
+          },
+          lesson_plan_detail: true,
+          absensi_pelajaran: {
+            include: { siswa: true },
+          },
+        },
+      });
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Presensi dan jurnal mengajar berhasil disimpan',
+      data: result,
+    });
   } catch (error) {
     next(error);
   }

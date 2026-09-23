@@ -1,4 +1,3 @@
-// mobile/src/screens/Jadwal/JadwalScreen.tsx
 import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
@@ -9,7 +8,8 @@ import {
   RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Calendar, Clock, BookOpen, Users } from "lucide-react-native";
+import { useNavigation } from "@react-navigation/native";
+import { Calendar, Clock, BookOpen, Users, ChevronRight } from "lucide-react-native";
 import { Header } from "../../components/ui/Header";
 import { Card } from "../../components/ui/Card";
 import { Badge } from "../../components/ui/Badge";
@@ -20,6 +20,7 @@ import { jadwalService, JadwalItem } from "../../api/jadwalService";
 const DAYS = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 
 export const JadwalScreen = () => {
+  const navigation = useNavigation<any>();
   const { user } = useAuthStore();
   const [activeDay, setActiveDay] = useState("Senin");
   const [jadwalList, setJadwalList] = useState<JadwalItem[]>([]);
@@ -52,7 +53,7 @@ export const JadwalScreen = () => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
-      <Header title="Jadwal Pelajaran" subtitle="Jadwal mengajar mingguan Anda" />
+      <Header title="Jadwal Pelajaran" subtitle="Jadwal mengajar mingguan & presensi" />
 
       {/* Tabs Hari */}
       <View style={styles.dayTabsWrapper}>
@@ -120,6 +121,24 @@ export const JadwalScreen = () => {
                   <Badge label={item.mapel.kode_mapel} variant="neutral" size="sm" />
                 )}
               </View>
+
+              {/* Action Isi Presensi */}
+              <TouchableOpacity
+                style={styles.presensiActionBtn}
+                onPress={() =>
+                  navigation.navigate("AbsensiMapel", {
+                    jadwalId: item.jadwal_id,
+                    kelasId: item.kelas_id,
+                    mapelId: item.mapel_id,
+                    kelasNama: item.kelas?.nama_kelas,
+                    mapelNama: item.mapel?.nama_mapel,
+                  })
+                }
+                activeOpacity={0.85}
+              >
+                <Text style={styles.presensiActionText}>📝 Isi Presensi & Jurnal</Text>
+                <ChevronRight size={15} color="#FFFFFF" />
+              </TouchableOpacity>
             </Card>
           ))
         )}
@@ -239,5 +258,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.textSub,
     fontWeight: "600",
+  },
+  presensiActionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#1D4ED8",
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    marginTop: 10,
+  },
+  presensiActionText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "800",
   },
 });

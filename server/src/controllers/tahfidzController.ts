@@ -826,6 +826,7 @@ export const createSetoranKolosal = async (req: Request, res: Response, next: Ne
   try {
     const authUser = getAuthInfo(req);
     const {
+      items,
       siswa_ids,
       pegawai_id,
       kategori,
@@ -857,49 +858,111 @@ export const createSetoranKolosal = async (req: Request, res: Response, next: Ne
 
     const effectivePegawaiId = await resolvePegawaiId(pegawai_id, authUser?.user_id);
 
-    if (!Array.isArray(siswa_ids) || siswa_ids.length === 0 || !effectivePegawaiId || !kategori || !jenis_hafalan || !kelancaran) {
+    if (!effectivePegawaiId) {
       res.status(400).json({
         success: false,
-        message: 'Daftar Santri, Guru Penilai, Kategori, Jenis Hafalan, dan Kelancaran wajib diisi',
+        message: 'Guru Penilai tidak ditemukan atau tidak valid',
       });
       return;
     }
 
-    const uniqueSiswaIds: number[] = Array.from(new Set(siswa_ids.map((id: any) => Number(id))));
-    const tgl = tanggal || new Date().toISOString().split('T')[0];
+    const tglDefault = tanggal || new Date().toISOString().split('T')[0];
+    let records: any[] = [];
 
-    const records = uniqueSiswaIds.map((sId: number) => ({
-      siswa_id: sId,
-      pegawai_id: effectivePegawaiId,
-      kategori,
-      jenis_hafalan,
-      tanggal: tgl,
-      durasi_menit: durasi_menit ? Number(durasi_menit) : null,
-      kelancaran,
-      catatan_guru: catatan_guru || null,
+    // Mode 1: Individual items per student (Setiap santri punya capaian/nilai masing-masing)
+    if (Array.isArray(items) && items.length > 0) {
+      records = items
+        .filter((it: any) => it && it.siswa_id)
+        .map((it: any) => ({
+          siswa_id: Number(it.siswa_id),
+          pegawai_id: effectivePegawaiId,
+          kategori: it.kategori || kategori || 'Al-Quran',
+          jenis_hafalan: it.jenis_hafalan || jenis_hafalan || 'Setoran Baru',
+          tanggal: it.tanggal || tglDefault,
+          durasi_menit: it.durasi_menit !== undefined && it.durasi_menit !== '' ? Number(it.durasi_menit) : (durasi_menit ? Number(durasi_menit) : null),
+          kelancaran: it.kelancaran || kelancaran || 'Lancar',
+          catatan_guru: it.catatan_guru !== undefined ? it.catatan_guru : (catatan_guru || null),
 
-      // Al-Quran
-      surat_mulai: surat_mulai ? Number(surat_mulai) : null,
-      surat_mulai_nama: surat_mulai_nama || null,
-      ayat_mulai: ayat_mulai ? Number(ayat_mulai) : null,
-      surat_selesai: surat_selesai ? Number(surat_selesai) : null,
-      surat_selesai_nama: surat_selesai_nama || null,
-      ayat_selesai: ayat_selesai ? Number(ayat_selesai) : null,
-      juz: juz ? Number(juz) : null,
-      total_ayat: total_ayat ? Number(total_ayat) : null,
+          // Al-Quran
+          surat_mulai: it.surat_mulai ? Number(it.surat_mulai) : (surat_mulai ? Number(surat_mulai) : null),
+          surat_mulai_nama: it.surat_mulai_nama || surat_mulai_nama || null,
+          ayat_mulai: it.ayat_mulai !== undefined && it.ayat_mulai !== '' ? Number(it.ayat_mulai) : (ayat_mulai ? Number(ayat_mulai) : null),
+          surat_selesai: it.surat_selesai ? Number(it.surat_selesai) : (surat_selesai ? Number(surat_selesai) : null),
+          surat_selesai_nama: it.surat_selesai_nama || surat_selesai_nama || null,
+          ayat_selesai: it.ayat_selesai !== undefined && it.ayat_selesai !== '' ? Number(it.ayat_selesai) : (ayat_selesai ? Number(ayat_selesai) : null),
+          juz: it.juz ? Number(it.juz) : (juz ? Number(juz) : null),
+          total_ayat: it.total_ayat ? Number(it.total_ayat) : (total_ayat ? Number(total_ayat) : null),
 
-      // Hadits
-      kitab_hadits: kitab_hadits || null,
-      hadits_no_mulai: hadits_no_mulai ? Number(hadits_no_mulai) : null,
-      hadits_no_selesai: hadits_no_selesai ? Number(hadits_no_selesai) : null,
-      total_hadits: total_hadits ? Number(total_hadits) : null,
+          // Hadits
+          kitab_hadits: it.kitab_hadits || kitab_hadits || null,
+          hadits_no_mulai: it.hadits_no_mulai ? Number(it.hadits_no_mulai) : (hadits_no_mulai ? Number(hadits_no_mulai) : null),
+          hadits_no_selesai: it.hadits_no_selesai ? Number(it.hadits_no_selesai) : (hadits_no_selesai ? Number(hadits_no_selesai) : null),
+          total_hadits: it.total_hadits ? Number(it.total_hadits) : (total_hadits ? Number(total_hadits) : null),
 
-      // Matan Ilmu
-      nama_matan: nama_matan || null,
-      bait_mulai: bait_mulai ? Number(bait_mulai) : null,
-      bait_selesai: bait_selesai ? Number(bait_selesai) : null,
-      total_bait: total_bait ? Number(total_bait) : null,
-    }));
+          // Matan Ilmu
+          nama_matan: it.nama_matan || nama_matan || null,
+          bait_mulai: it.bait_mulai ? Number(it.bait_mulai) : (bait_mulai ? Number(bait_mulai) : null),
+          bait_selesai: it.bait_selesai ? Number(it.bait_selesai) : (bait_selesai ? Number(bait_selesai) : null),
+          total_bait: it.total_bait ? Number(it.total_bait) : (total_bait ? Number(total_bait) : null),
+        }));
+    } else if (Array.isArray(siswa_ids) && siswa_ids.length > 0) {
+      // Mode 2: Uniform bulk entries
+      if (!kategori || !jenis_hafalan || !kelancaran) {
+        res.status(400).json({
+          success: false,
+          message: 'Kategori, Jenis Hafalan, dan Kelancaran wajib diisi untuk setoran masal',
+        });
+        return;
+      }
+
+      const uniqueSiswaIds: number[] = Array.from(new Set(siswa_ids.map((id: any) => Number(id))));
+      records = uniqueSiswaIds.map((sId: number) => ({
+        siswa_id: sId,
+        pegawai_id: effectivePegawaiId,
+        kategori,
+        jenis_hafalan,
+        tanggal: tglDefault,
+        durasi_menit: durasi_menit ? Number(durasi_menit) : null,
+        kelancaran,
+        catatan_guru: catatan_guru || null,
+
+        // Al-Quran
+        surat_mulai: surat_mulai ? Number(surat_mulai) : null,
+        surat_mulai_nama: surat_mulai_nama || null,
+        ayat_mulai: ayat_mulai ? Number(ayat_mulai) : null,
+        surat_selesai: surat_selesai ? Number(surat_selesai) : null,
+        surat_selesai_nama: surat_selesai_nama || null,
+        ayat_selesai: ayat_selesai ? Number(ayat_selesai) : null,
+        juz: juz ? Number(juz) : null,
+        total_ayat: total_ayat ? Number(total_ayat) : null,
+
+        // Hadits
+        kitab_hadits: kitab_hadits || null,
+        hadits_no_mulai: hadits_no_mulai ? Number(hadits_no_mulai) : null,
+        hadits_no_selesai: hadits_no_selesai ? Number(hadits_no_selesai) : null,
+        total_hadits: total_hadits ? Number(total_hadits) : null,
+
+        // Matan Ilmu
+        nama_matan: nama_matan || null,
+        bait_mulai: bait_mulai ? Number(bait_mulai) : null,
+        bait_selesai: bait_selesai ? Number(bait_selesai) : null,
+        total_bait: total_bait ? Number(total_bait) : null,
+      }));
+    } else {
+      res.status(400).json({
+        success: false,
+        message: 'Daftar santri atau item setoran wajib diisi',
+      });
+      return;
+    }
+
+    if (records.length === 0) {
+      res.status(400).json({
+        success: false,
+        message: 'Tidak ada data setoran santri yang valid untuk disimpan',
+      });
+      return;
+    }
 
     await prisma.tahfidzSetoran.createMany({
       data: records,
@@ -907,7 +970,7 @@ export const createSetoranKolosal = async (req: Request, res: Response, next: Ne
 
     res.status(201).json({
       success: true,
-      message: `Berhasil mencatat setoran massal untuk ${records.length} santri`,
+      message: `Berhasil mencatat setoran hafalan untuk ${records.length} santri`,
       count: records.length,
     });
   } catch (error) {

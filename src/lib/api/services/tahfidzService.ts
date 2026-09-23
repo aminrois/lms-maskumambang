@@ -240,7 +240,11 @@ export const tahfidzService = {
     return res.data;
   },
 
-  createSetoranKolosal: async (payload: Partial<TahfidzSetoranItem> & { siswa_ids: number[] }) => {
+  createSetoranKolosal: async (payload: {
+    items?: Array<Partial<TahfidzSetoranItem> & { siswa_id: number }>;
+    siswa_ids?: number[];
+    [key: string]: any;
+  }) => {
     const res = await apiClient.post('/tahfidz/setoran/kolosal', payload);
     return res.data;
   },
