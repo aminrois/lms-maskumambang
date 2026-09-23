@@ -19,7 +19,7 @@ import {
   ChevronDown,
   ChevronUp,
   FolderOpen,
-  FolderClose,
+  FolderClosed,
   Copy,
   SlidersHorizontal
 } from "lucide-react";
@@ -95,11 +95,11 @@ const FormSetoranTahfidz: React.FC = () => {
   const [suratSelesaiNoIndividu, setSuratSelesaiNoIndividu] = useState<number>(1);
   const [ayatSelesaiIndividu, setAyatSelesaiIndividu] = useState<number>(7);
   const [kitabHaditsIndividu, setKitabHaditsIndividu] = useState<string>("Hadits Arbain/Khamsin");
-  const [customKitabHaditsIndividu, setCustomKitabHaditsIndividu] = useState<string>("");
+  const [customKitabHaditsIndividu] = useState<string>("");
   const [haditsNoMulaiIndividu, setHaditsNoMulaiIndividu] = useState<number>(1);
   const [haditsNoSelesaiIndividu, setHaditsNoSelesaiIndividu] = useState<number>(5);
   const [namaMatanIndividu, setNamaMatanIndividu] = useState<string>("Tuhfatul Athfal");
-  const [customNamaMatanIndividu, setCustomNamaMatanIndividu] = useState<string>("");
+  const [customNamaMatanIndividu] = useState<string>("");
   const [baitMulaiIndividu, setBaitMulaiIndividu] = useState<number>(1);
   const [baitSelesaiIndividu, setBaitSelesaiIndividu] = useState<number>(10);
 
@@ -619,7 +619,7 @@ const FormSetoranTahfidz: React.FC = () => {
                     onClick={() => handleExpandAll(false)}
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 rounded-xl text-xs font-bold transition-colors cursor-pointer"
                   >
-                    <FolderClose className="w-3.5 h-3.5" />
+                    <FolderClosed className="w-3.5 h-3.5" />
                     <span>Tutup Semua</span>
                   </button>
                 </div>
