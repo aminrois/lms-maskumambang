@@ -165,9 +165,9 @@ const RiwayatSetoranTahfidz: React.FC = () => {
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 outline-none"
             >
               <option value="ALL">Semua Jenis</option>
-              <option value="Setoran Baru">Setoran Baru (Ziyadah)</option>
-              <option value="Setoran Ulang">Setoran Ulang (Muraja'ah)</option>
-              <option value="Ujian">Ujian (Ikhtibar/Tasmi')</option>
+              <option value="Setoran Baru">Setoran Baru</option>
+              <option value="Setoran Ulang">Setoran Ulang</option>
+              <option value="Ujian">Ujian</option>
             </select>
           </div>
 
@@ -317,10 +317,16 @@ const RiwayatSetoranTahfidz: React.FC = () => {
                           className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold ${
                             item.jenis_hafalan === "Setoran Baru"
                               ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                              : "bg-blue-50 text-blue-700 border border-blue-200"
+                              : item.jenis_hafalan === "Setoran Ulang"
+                              ? "bg-blue-50 text-blue-700 border border-blue-200"
+                              : "bg-purple-50 text-purple-700 border border-purple-200"
                           }`}
                         >
-                          {item.jenis_hafalan === "Setoran Baru" ? "✨ Ziyadah (Baru)" : "🔄 Muraja'ah (Ulang)"}
+                          {item.jenis_hafalan === "Setoran Baru"
+                            ? "✨ Setoran Baru"
+                            : item.jenis_hafalan === "Setoran Ulang"
+                            ? "🔄 Setoran Ulang"
+                            : "📝 Ujian"}
                         </span>
                       </td>
 

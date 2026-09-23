@@ -194,7 +194,7 @@ const KelompokHalaqahPage: React.FC = () => {
 
       {showFormModal && (
         <HalaqahFormModal initial={editTarget} guruList={guruList as any[]} lembagaList={lembagaList as any[]}
-          tahunList={tahunList as any[]} santriAll={santriAll as any[]} activeTahunId={activeTahunId}
+          santriAll={santriAll as any[]}
           onClose={() => { setShowFormModal(false); setEditTarget(null); }}
           onSuccess={() => { setShowFormModal(false); setEditTarget(null); queryClient.invalidateQueries({ queryKey: ["halaqah-list"] }); }} />
       )}
@@ -298,14 +298,13 @@ function HalaqahCard({ halaqah, onView, onEdit, onDelete }: { halaqah: HalaqahIt
   );
 }
 
-function HalaqahFormModal({ initial, guruList, lembagaList, tahunList, santriAll, activeTahunId, onClose, onSuccess }: {
-  initial: HalaqahItem | null; guruList: any[]; lembagaList: any[]; tahunList: any[]; santriAll: any[]; activeTahunId: string; onClose: () => void; onSuccess: () => void;
+function HalaqahFormModal({ initial, guruList, lembagaList, santriAll, onClose, onSuccess }: {
+  initial: HalaqahItem | null; guruList: any[]; lembagaList: any[]; santriAll: any[]; onClose: () => void; onSuccess: () => void;
 }) {
   const isEdit = !!initial;
   const [nama, setNama] = useState(initial?.nama_halaqah || "");
   const [lembagaId, setLembagaId] = useState(initial?.lembaga_id?.toString() || "");
   const [pegawaiId, setPegawaiId] = useState(initial?.pegawai_id?.toString() || "");
-  const [tahunId, setTahunId] = useState(initial?.tahun_id?.toString() || activeTahunId || "");
   const [deskripsi, setDeskripsi] = useState(initial?.deskripsi || "");
   const [status, setStatus] = useState(initial?.status || "Aktif");
   const [selectedSiswaIds, setSelectedSiswaIds] = useState<number[]>(initial?.anggota?.map((a) => a.siswa_id) || []);
@@ -326,7 +325,14 @@ function HalaqahFormModal({ initial, guruList, lembagaList, tahunList, santriAll
   const mutation = useMutation({
     mutationFn: async () => {
       if (!nama.trim() || !lembagaId || !pegawaiId) throw new Error("Nama kelompok, lembaga, dan ustadz pengampu wajib diisi");
-      const payload = { nama_halaqah: nama.trim(), lembaga_id: Number(lembagaId), pegawai_id: Number(pegawaiId), tahun_id: tahunId ? Number(tahunId) : undefined, deskripsi: deskripsi.trim() || undefined, status, siswa_ids: selectedSiswaIds };
+      const payload = {
+        nama_halaqah: nama.trim(),
+        lembaga_id: Number(lembagaId),
+        pegawai_id: Number(pegawaiId),
+        deskripsi: deskripsi.trim() || undefined,
+        status,
+        siswa_ids: selectedSiswaIds,
+      };
       if (isEdit && initial) return tahfidzService.updateHalaqah(initial.halaqah_id, payload);
       return tahfidzService.createHalaqah(payload);
     },
@@ -363,13 +369,6 @@ function HalaqahFormModal({ initial, guruList, lembagaList, tahunList, santriAll
               <select value={pegawaiId} onChange={(e) => setPegawaiId(e.target.value)} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500/20 bg-slate-50">
                 <option value="">-- Pilih Ustadz --</option>
                 {guruList.map((g) => <option key={g.pegawai_id} value={g.pegawai_id}>{g.nama}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1.5">Tahun Ajaran</label>
-              <select value={tahunId} onChange={(e) => setTahunId(e.target.value)} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500/20 bg-slate-50">
-                <option value="">-- Pilih Tahun --</option>
-                {tahunList.map((t) => <option key={t.tahun_id} value={t.tahun_id}>{t.nama_tahun || t.nama} {t.is_active ? "(Aktif)" : ""}</option>)}
               </select>
             </div>
             <div>

@@ -475,7 +475,7 @@ const TargetSantriTahfidz: React.FC = () => {
                       {statistikData.summary?.totalSetoran || 0}
                     </span>
                     <span className="text-[10px] text-purple-700 block">
-                      ({statistikData.summary?.totalSetoranBaru || 0} Ziyadah)
+                      ({statistikData.summary?.totalSetoranBaru || 0} Setoran Baru)
                     </span>
                   </div>
                 </div>

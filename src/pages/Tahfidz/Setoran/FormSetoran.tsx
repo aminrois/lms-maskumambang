@@ -60,9 +60,7 @@ interface SantriKolosalState {
 const JENIS_PENILAIAN_OPTIONS = [
   "Setoran Baru",
   "Setoran Ulang",
-  "Ujian",
-  "Ziyadah",
-  "Muraja'ah"
+  "Ujian"
 ];
 
 const FormSetoranTahfidz: React.FC = () => {
