@@ -143,19 +143,16 @@ export const LoginScreen = () => {
                 resizeMode="contain"
               />
             </View>
-            <Text style={styles.appName}>Maskumambang Superapps</Text>
-            <Text style={styles.schoolName}>{APP_CONFIG.schoolName}</Text>
+            <Text style={styles.appName}>MASDICO</Text>
+            <Text style={styles.schoolName}>Maskumambang Digital Ecosystem</Text>
             <View style={styles.taglineBadge}>
-              <Text style={styles.taglineText}>Sistem Akademik & KBM Terpadu</Text>
+              <Text style={styles.taglineText}>Satu Aplikasi, Banyak Manfaat untuk Masa Depan</Text>
             </View>
           </View>
 
           {/* Form Card */}
           <View style={styles.formCard}>
-            <Text style={styles.formTitle}>Selamat Datang</Text>
-            <Text style={styles.formSubtitle}>
-              Masuk dengan akun Guru, Pegawai, atau Siswa
-            </Text>
+
 
             {error ? (
               <View style={styles.errorBanner}>
@@ -330,49 +327,56 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   logoContainer: {
-    width: 88,
-    height: 88,
-    borderRadius: 24,
+    width: 80,
+    height: 80,
+    borderRadius: 22,
     backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
+    shadowColor: "#162E6E",
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.12,
     shadowRadius: 12,
     elevation: 4,
     marginBottom: 16,
-    padding: 8,
+    padding: 10,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: "#EEF2F6",
   },
   logoImage: {
     width: "100%",
     height: "100%",
   },
   appName: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "900",
-    color: Colors.primaryDark,
-    letterSpacing: 0.5,
+    color: "#162E6E",
+    letterSpacing: 2,
+    textAlign: "center",
+    fontFamily: Platform.OS === "ios" ? "System" : undefined,
   },
   schoolName: {
-    fontSize: 14,
+    fontSize: 13.5,
     fontWeight: "600",
-    color: Colors.textSub,
+    color: "#475569",
     marginTop: 4,
+    textAlign: "center",
+    letterSpacing: 0.3,
   },
   taglineBadge: {
-    marginTop: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    backgroundColor: Colors.primaryLight,
+    marginTop: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    backgroundColor: "#EFF6FF",
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#DBEAFE",
   },
   taglineText: {
     fontSize: 11,
     fontWeight: "700",
-    color: Colors.primary,
+    color: "#1D4ED8",
+    letterSpacing: 0.2,
   },
   formCard: {
     backgroundColor: "#FFFFFF",

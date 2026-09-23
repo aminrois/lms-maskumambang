@@ -1,6 +1,6 @@
 // mobile/src/navigation/AppNavigator.tsx
 import React, { useEffect } from "react";
-import { View, ActivityIndicator, StyleSheet } from "react-native";
+import { View, ActivityIndicator, StyleSheet, Image, StatusBar } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { LoginScreen } from "../screens/Auth/LoginScreen";
@@ -23,7 +23,15 @@ export const AppNavigator = () => {
   if (isLoading) {
     return (
       <View style={styles.splashContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+        <Image
+          source={require("../../assets/splash.png")}
+          style={StyleSheet.absoluteFill}
+          resizeMode="cover"
+        />
+        <View style={styles.splashLoader}>
+          <ActivityIndicator size="small" color="#162E6E" />
+        </View>
       </View>
     );
   }
@@ -75,8 +83,13 @@ export const AppNavigator = () => {
 const styles = StyleSheet.create({
   splashContainer: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
+  },
+  splashLoader: {
+    position: "absolute",
+    bottom: 60,
+    alignSelf: "center",
   },
 });
