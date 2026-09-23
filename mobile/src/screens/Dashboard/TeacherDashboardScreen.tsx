@@ -43,6 +43,7 @@ import {
   Info,
   Sparkles,
   Share2,
+  Wallet,
 } from "lucide-react-native";
 import { Colors } from "../../constants/colors";
 import { useAuthStore } from "../../store/useAuthStore";
@@ -209,9 +210,11 @@ export const TeacherDashboardScreen = () => {
 
             {/* User Greeting */}
             <View style={styles.greetingBox}>
-              <Text style={styles.greetingSub}>Assalamu'alaikum</Text>
+              <Text style={styles.greetingSub}>Assalamu'alaikum Warahmatullah,</Text>
               <Text style={styles.greetingName}>{userName}</Text>
-              <Text style={styles.greetingRole}>{userRole}</Text>
+              <View style={styles.rolePill}>
+                <Text style={styles.rolePillText}>{userRole}</Text>
+              </View>
             </View>
           </SafeAreaView>
         </View>
@@ -337,71 +340,56 @@ export const TeacherDashboardScreen = () => {
         </View>
 
         {/* ═══════════════════════════════════════════════════════
-            3. QUICK ACTION 8-GRID MENU
+            3. QUICK ACTION 8-GRID MENU (Sama seperti Wali Santri)
         ════════════════════════════════════════════════════════ */}
         <View style={styles.menuGridContainer}>
           <View style={styles.menuGridRow}>
-            {/* 1. LMS */}
+            {/* 1. LMS Guru */}
             <TouchableOpacity
               style={styles.gridCard}
               onPress={() => navigation.navigate("LmsTab")}
               activeOpacity={0.8}
             >
               <View style={[styles.gridIconCircle, { backgroundColor: "#10b981" }]}>
-                <BookOpen size={24} color="#FFFFFF" />
+                <GraduationCap size={24} color="#FFFFFF" />
               </View>
-              <Text style={styles.gridCardTitle}>LMS</Text>
+              <Text style={styles.gridCardTitle}>LMS Guru</Text>
             </TouchableOpacity>
 
-            {/* 2. Setoran Hafalan (Guru Tahfidz) or Jadwal Pelajaran (Guru Mapel) */}
+            {/* 2. Setoran Hafalan */}
             <TouchableOpacity
               style={styles.gridCard}
-              onPress={() =>
-                isTahfidzUser
-                  ? navigation.navigate("TahfidzSetoran")
-                  : navigation.navigate("JadwalTab")
-              }
+              onPress={() => navigation.navigate("TahfidzSetoran")}
               activeOpacity={0.8}
             >
-              <View
-                style={[
-                  styles.gridIconCircle,
-                  { backgroundColor: isTahfidzUser ? "#3b82f6" : "#059669" },
-                ]}
-              >
-                {isTahfidzUser ? (
-                  <ScrollText size={24} color="#FFFFFF" />
-                ) : (
-                  <Calendar size={24} color="#FFFFFF" />
-                )}
+              <View style={[styles.gridIconCircle, { backgroundColor: "#3b82f6" }]}>
+                <ScrollText size={24} color="#FFFFFF" />
               </View>
-              <Text style={styles.gridCardTitle}>
-                {isTahfidzUser ? "Setoran Hafalan" : "Jadwal Pelajaran"}
-              </Text>
+              <Text style={styles.gridCardTitle}>Setoran Hafalan</Text>
             </TouchableOpacity>
 
-            {/* 3. Jadwal Kegiatan */}
+            {/* 3. Presensi Guru */}
             <TouchableOpacity
               style={styles.gridCard}
               onPress={() => navigation.navigate("JadwalTab")}
               activeOpacity={0.8}
             >
               <View style={[styles.gridIconCircle, { backgroundColor: "#8b5cf6" }]}>
-                <Calendar size={24} color="#FFFFFF" />
+                <CheckCircle2 size={24} color="#FFFFFF" />
               </View>
-              <Text style={styles.gridCardTitle}>Jadwal Kegiatan</Text>
+              <Text style={styles.gridCardTitle}>Presensi Guru</Text>
             </TouchableOpacity>
 
-            {/* 4. Jadwal Sholat */}
+            {/* 4. Jadwal Mengajar */}
             <TouchableOpacity
               style={styles.gridCard}
-              onPress={() => setShowSholatModal(true)}
+              onPress={() => navigation.navigate("JadwalTab")}
               activeOpacity={0.8}
             >
               <View style={[styles.gridIconCircle, { backgroundColor: "#059669" }]}>
-                <Clock size={24} color="#FFFFFF" />
+                <Calendar size={24} color="#FFFFFF" />
               </View>
-              <Text style={styles.gridCardTitle}>Jadwal Sholat</Text>
+              <Text style={styles.gridCardTitle}>Jadwal Mengajar</Text>
             </TouchableOpacity>
           </View>
 
@@ -442,16 +430,19 @@ export const TeacherDashboardScreen = () => {
               <Text style={styles.gridCardTitle}>Berita</Text>
             </TouchableOpacity>
 
-            {/* 8. Lainnya */}
+            {/* 8. Keuangan */}
             <TouchableOpacity
               style={styles.gridCard}
               onPress={() => setShowLainnyaModal(true)}
               activeOpacity={0.8}
             >
-              <View style={[styles.gridIconCircle, { backgroundColor: "#64748b" }]}>
-                <MoreHorizontal size={24} color="#FFFFFF" />
+              <View style={[styles.gridIconCircle, { backgroundColor: "#6366f1" }]}>
+                <Wallet size={24} color="#FFFFFF" />
+                <View style={styles.soonBadge}>
+                  <Text style={styles.soonBadgeText}>SOON</Text>
+                </View>
               </View>
-              <Text style={styles.gridCardTitle}>Lainnya</Text>
+              <Text style={styles.gridCardTitle}>Keuangan</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1260,16 +1251,25 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   greetingName: {
-    fontSize: 22,
-    fontWeight: "900",
+    fontSize: 20,
+    fontWeight: "800",
     color: "#FFFFFF",
     marginTop: 2,
   },
-  greetingRole: {
-    fontSize: 12,
-    color: "#cbd5e1",
-    fontWeight: "600",
-    marginTop: 2,
+  rolePill: {
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(16, 185, 129, 0.25)",
+    borderColor: "#10B981",
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 2,
+    borderRadius: 12,
+    marginTop: 6,
+  },
+  rolePillText: {
+    color: "#A7F3D0",
+    fontSize: 11,
+    fontWeight: "700",
   },
 
   // 2. Waktu Sholat Card
@@ -1421,53 +1421,51 @@ const styles = StyleSheet.create({
   // 3. Quick Action Grid Menu
   menuGridContainer: {
     paddingHorizontal: 16,
-    marginTop: 18,
+    marginTop: 16,
   },
   menuGridRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    gap: 10,
   },
   gridCard: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    paddingVertical: 14,
-    paddingHorizontal: 6,
+    width: (width - 32 - 36) / 4,
     alignItems: "center",
-    shadowColor: "#0F172A",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: "#EEF2F6",
   },
   gridIconCircle: {
-    width: 46,
-    height: 46,
+    width: 48,
+    height: 48,
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 8,
+    marginBottom: 6,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
     elevation: 3,
   },
   gridCardTitle: {
+    color: "#1E293B",
     fontSize: 11,
-    fontWeight: "800",
-    color: "#0F172A",
+    fontWeight: "600",
     textAlign: "center",
   },
-  gridCardSub: {
-    fontSize: 8.5,
-    color: "#64748B",
-    fontWeight: "500",
-    marginTop: 2,
-    textAlign: "center",
+  soonBadge: {
+    position: "absolute",
+    top: -4,
+    right: -6,
+    backgroundColor: "#ef4444",
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: "#ffffff",
+  },
+  soonBadgeText: {
+    color: "#ffffff",
+    fontSize: 7,
+    fontWeight: "900",
+    letterSpacing: 0.5,
   },
 
   // 4. Dual Middle Cards
