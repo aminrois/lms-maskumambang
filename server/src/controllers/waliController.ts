@@ -129,7 +129,7 @@ export const getPerkembanganAnak = async (req: Request, res: Response, next: Nex
       }),
       prisma.tahfidzSetoran.findMany({
         where: { siswa_id: sId },
-        take: 15,
+        take: 50,
         orderBy: { tanggal: 'desc' },
         include: { pegawai: { select: { nama: true } } },
       }),

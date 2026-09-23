@@ -1,6 +1,7 @@
-// mobile/src/utils/jadwalHelper.ts
 import { JadwalItem, GroupedJadwalSesi } from "../api/jadwalService";
 import { LessonPlanItem } from "../api/absensiService";
+
+export type { GroupedJadwalSesi };
 
 /**
  * Checks if a lesson plan is fully approved by both Kepsek and Direktur

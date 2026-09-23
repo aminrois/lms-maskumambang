@@ -79,6 +79,7 @@ export interface PerkembanganAnakData {
       target_deskripsi: string;
       target_nominal: number;
       satuan: string;
+      status?: string;
     } | null;
     targets: any[];
     recentSetoran: any[];

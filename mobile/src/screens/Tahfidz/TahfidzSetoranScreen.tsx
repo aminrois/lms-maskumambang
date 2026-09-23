@@ -32,13 +32,13 @@ import {
   Layers,
   History,
   Target,
-  Copy,
   FolderClosed,
-  ChevronRight,
   TrendingUp,
   Award,
-  Filter,
   Lock,
+  Plus,
+  Edit3,
+  Trash2,
 } from "lucide-react-native";
 import { Header } from "../../components/ui/Header";
 import { Card } from "../../components/ui/Card";
@@ -79,12 +79,22 @@ interface SantriKolosalState {
   catatan: string;
 }
 
+interface TargetItemData {
+  target_id: number;
+  siswa_id: number;
+  kategori: string;
+  target_nominal: number;
+  target_deskripsi?: string;
+  status: string;
+  created_at?: string;
+}
+
 export const TahfidzSetoranScreen = () => {
   const navigation = useNavigation<any>();
   const { user } = useAuthStore();
   const hasInputPermission = canInputTahfidz(user);
 
-  // Main navigation tab (default to riwayat if not a tahfidz teacher)
+  // Main navigation tab
   const [activeTab, setActiveTab] = useState<ActiveTab>(() => (hasInputPermission ? "input" : "riwayat"));
   const [modeInput, setModeInput] = useState<ModeInput>("kolosal");
 
@@ -96,7 +106,7 @@ export const TahfidzSetoranScreen = () => {
   const [kelancaranGlobal, setKelancaranGlobal] = useState<"Sangat Lancar" | "Lancar" | "Kurang Lancar" | "Belum Lancar">("Lancar");
   const [catatanGlobal, setCatatanGlobal] = useState<string>("");
 
-  // Global Template / Template Range
+  // Default templates for initial values
   const [templateSuratMulaiNo, setTemplateSuratMulaiNo] = useState<number>(1);
   const [templateAyatMulai, setTemplateAyatMulai] = useState<string>("1");
   const [templateSuratSelesaiNo, setTemplateSuratSelesaiNo] = useState<number>(1);
@@ -141,6 +151,15 @@ export const TahfidzSetoranScreen = () => {
   // Target Tab State
   const [dashboardSummary, setDashboardSummary] = useState<any>(null);
   const [targetLoading, setTargetLoading] = useState(false);
+  const [targetSantriList, setTargetSantriList] = useState<any[]>([]);
+  const [isTargetModalOpen, setIsTargetModalOpen] = useState(false);
+  const [targetFormSiswaId, setTargetFormSiswaId] = useState<number | null>(null);
+  const [targetFormEditingId, setTargetFormEditingId] = useState<number | null>(null);
+  const [targetFormKategori, setTargetFormKategori] = useState<"Al-Quran" | "Hadits" | "Matan Ilmu">("Al-Quran");
+  const [targetFormNominal, setTargetFormNominal] = useState("30");
+  const [targetFormDeskripsi, setTargetFormDeskripsi] = useState("Khatam 30 Juz");
+  const [targetFormStatus, setTargetFormStatus] = useState("Aktif");
+  const [savingTarget, setSavingTarget] = useState(false);
 
   // Common UI State
   const [loading, setLoading] = useState(true);
@@ -155,15 +174,34 @@ export const TahfidzSetoranScreen = () => {
         tahfidzService.getSantriTahfidz(),
         tahfidzService.getHalaqahList(),
       ]);
-      setSantriList(santriData);
+
+      // Merge all santri from direct santriData and halaqah members to guarantee completeness
+      const allSantriMap = new Map<number, TahfidzSiswaItem>();
+      santriData.forEach((s: TahfidzSiswaItem) => allSantriMap.set(s.siswa_id, s));
+      halaqahData.forEach((h: HalaqahItem) => {
+        h.anggota?.forEach((ang) => {
+          if (ang.siswa && !allSantriMap.has(ang.siswa_id)) {
+            allSantriMap.set(ang.siswa_id, {
+              siswa_id: ang.siswa_id,
+              nama: ang.siswa.nama,
+              nisn: ang.siswa.nisn,
+              nis: ang.siswa.nis,
+              kelas: ang.siswa.kelas,
+            });
+          }
+        });
+      });
+
+      const combinedSantriList = Array.from(allSantriMap.values());
+      setSantriList(combinedSantriList);
       setHalaqahList(halaqahData);
 
-      if (santriData.length > 0 && !selectedSiswaId) {
-        setSelectedSiswaId(santriData[0].siswa_id);
+      if (combinedSantriList.length > 0 && !selectedSiswaId) {
+        setSelectedSiswaId(combinedSantriList[0].siswa_id);
       }
 
-      // Initialize kolosal cards
-      const initialCards: SantriKolosalState[] = santriData.map((s: TahfidzSiswaItem) => ({
+      // Initialize kolosal cards for all santri
+      const initialCards: SantriKolosalState[] = combinedSantriList.map((s: TahfidzSiswaItem) => ({
         siswa_id: s.siswa_id,
         nama: s.nama,
         kelas_nama: s.kelas?.nama_kelas,
@@ -262,8 +300,10 @@ export const TahfidzSetoranScreen = () => {
   const displayedKolosalCards = useMemo(() => {
     if (selectedHalaqahId === "ALL") return kolosalCards;
     const targetHalaqah = halaqahList.find((h) => h.halaqah_id === selectedHalaqahId);
-    if (!targetHalaqah || !targetHalaqah.anggota) return kolosalCards;
-    const allowedSiswaIds = new Set(targetHalaqah.anggota.map((a) => a.siswa_id));
+    if (!targetHalaqah) return kolosalCards;
+
+    // Get all member IDs of this halaqah
+    const allowedSiswaIds = new Set(targetHalaqah.anggota?.map((a) => a.siswa_id) || []);
     return kolosalCards.filter((c) => allowedSiswaIds.has(c.siswa_id));
   }, [kolosalCards, selectedHalaqahId, halaqahList]);
 
@@ -285,36 +325,6 @@ export const TahfidzSetoranScreen = () => {
     setKolosalCards((prev) =>
       prev.map((c) => (c.siswa_id === siswa_id ? { ...c, ...updates } : c))
     );
-  };
-
-  // Apply Global Template to All Selected Cards
-  const applyTemplateToAll = () => {
-    const selectedCount = kolosalCards.filter((c) => c.selected).length;
-    if (selectedCount === 0) {
-      Alert.alert("Peringatan", "Pilih minimal 1 santri terlebih dahulu.");
-      return;
-    }
-    setKolosalCards((prev) =>
-      prev.map((c) => {
-        if (!c.selected) return c;
-        return {
-          ...c,
-          suratMulaiNo: templateSuratMulaiNo,
-          ayatMulai: templateAyatMulai,
-          suratSelesaiNo: templateSuratSelesaiNo,
-          ayatSelesai: templateAyatSelesai,
-          kitabHadits: templateKitabHadits,
-          haditsNoMulai: templateHaditsMulai,
-          haditsNoSelesai: templateHaditsSelesai,
-          namaMatan: templateNamaMatan,
-          baitMulai: templateBaitMulai,
-          baitSelesai: templateBaitSelesai,
-          kelancaran: kelancaranGlobal,
-          catatan: catatanGlobal,
-        };
-      })
-    );
-    Alert.alert("Sukses", `Pengaturan berhasil diterapkan ke ${selectedCount} santri terpilih.`);
   };
 
   // Surah Helper
@@ -488,6 +498,63 @@ export const TahfidzSetoranScreen = () => {
     }
   };
 
+  // Open Modal Tambah/Edit Target
+  const handleOpenTargetModal = (siswaId: number, existingTarget?: TargetItemData) => {
+    setTargetFormSiswaId(siswaId);
+    if (existingTarget) {
+      setTargetFormEditingId(existingTarget.target_id);
+      setTargetFormKategori(existingTarget.kategori as any);
+      setTargetFormNominal(String(existingTarget.target_nominal));
+      setTargetFormDeskripsi(existingTarget.target_deskripsi || "");
+      setTargetFormStatus(existingTarget.status || "Aktif");
+    } else {
+      setTargetFormEditingId(null);
+      setTargetFormKategori("Al-Quran");
+      setTargetFormNominal("30");
+      setTargetFormDeskripsi("Khatam 30 Juz Al-Qur'an");
+      setTargetFormStatus("Aktif");
+    }
+    setIsTargetModalOpen(true);
+  };
+
+  // Save Target Handler
+  const handleSaveTarget = async () => {
+    if (!targetFormSiswaId) return;
+    const nominal = Number(targetFormNominal);
+    if (!nominal || nominal <= 0) {
+      Alert.alert("Peringatan", "Harap masukkan target nominal yang valid (angka > 0).");
+      return;
+    }
+
+    try {
+      setSavingTarget(true);
+      if (targetFormEditingId) {
+        await tahfidzService.updateTarget(targetFormEditingId, {
+          kategori: targetFormKategori,
+          target_nominal: nominal,
+          target_deskripsi: targetFormDeskripsi.trim() || undefined,
+          status: targetFormStatus,
+        });
+        Alert.alert("Berhasil", "Target hafalan santri berhasil diperbarui.");
+      } else {
+        await tahfidzService.createTarget({
+          siswa_id: targetFormSiswaId,
+          kategori: targetFormKategori,
+          target_nominal: nominal,
+          target_deskripsi: targetFormDeskripsi.trim() || undefined,
+          status: targetFormStatus,
+        });
+        Alert.alert("Berhasil", "Target hafalan santri berhasil dibuat.");
+      }
+      setIsTargetModalOpen(false);
+      fetchTargetData();
+    } catch (err: any) {
+      Alert.alert("Gagal Menyimpan Target", err.response?.data?.message || err.message || "Terjadi kesalahan.");
+    } finally {
+      setSavingTarget(false);
+    }
+  };
+
   // Filtered Riwayat
   const filteredRiwayat = useMemo(() => {
     if (!riwayatSearch.trim()) return riwayatList;
@@ -505,7 +572,7 @@ export const TahfidzSetoranScreen = () => {
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <Header
         title="Tahfidz & Hafalan"
-        subtitle="Manajemen Setoran, Halaqoh & Capaian"
+        subtitle="Manajemen Setoran, Halaqoh & Target"
         showBack
         onBack={() => navigation.goBack()}
       />
@@ -586,659 +653,655 @@ export const TahfidzSetoranScreen = () => {
                 </Text>
               </Card>
             ) : (
-            <View style={styles.tabContent}>
-              {/* MODE SWITCHER (Individu vs Kolosal) */}
-              <View style={styles.modeToggleContainer}>
-                <TouchableOpacity
-                  style={[styles.modeToggleBtn, modeInput === "kolosal" && styles.modeToggleBtnActive]}
-                  onPress={() => setModeInput("kolosal")}
-                >
-                  <Layers size={15} color={modeInput === "kolosal" ? "#fff" : "#475569"} />
-                  <Text style={[styles.modeToggleText, modeInput === "kolosal" && styles.modeToggleTextActive]}>
-                    Mode Kolosal (Halaqoh)
-                  </Text>
-                </TouchableOpacity>
+              <View style={styles.tabContent}>
+                {/* MODE SWITCHER (Individu vs Kolosal) */}
+                <View style={styles.modeToggleContainer}>
+                  <TouchableOpacity
+                    style={[styles.modeToggleBtn, modeInput === "kolosal" && styles.modeToggleBtnActive]}
+                    onPress={() => setModeInput("kolosal")}
+                  >
+                    <Layers size={15} color={modeInput === "kolosal" ? "#fff" : "#475569"} />
+                    <Text style={[styles.modeToggleText, modeInput === "kolosal" && styles.modeToggleTextActive]}>
+                      Mode Kolosal (Halaqoh)
+                    </Text>
+                  </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={[styles.modeToggleBtn, modeInput === "individu" && styles.modeToggleBtnActive]}
-                  onPress={() => setModeInput("individu")}
-                >
-                  <User size={15} color={modeInput === "individu" ? "#fff" : "#475569"} />
-                  <Text style={[styles.modeToggleText, modeInput === "individu" && styles.modeToggleTextActive]}>
-                    Mode Individu
-                  </Text>
-                </TouchableOpacity>
-              </View>
+                  <TouchableOpacity
+                    style={[styles.modeToggleBtn, modeInput === "individu" && styles.modeToggleBtnActive]}
+                    onPress={() => setModeInput("individu")}
+                  >
+                    <User size={15} color={modeInput === "individu" ? "#fff" : "#475569"} />
+                    <Text style={[styles.modeToggleText, modeInput === "individu" && styles.modeToggleTextActive]}>
+                      Mode Individu
+                    </Text>
+                  </TouchableOpacity>
+                </View>
 
-              {/* GLOBAL SESSION CONTROLS */}
-              <Card style={styles.card}>
-                <View style={styles.cardHeader}>
-                  <View style={styles.stepBadge}>
-                    <Clock size={14} color="#15803d" />
+                {/* GLOBAL SESSION CONTROLS */}
+                <Card style={styles.card}>
+                  <View style={styles.cardHeader}>
+                    <View style={styles.stepBadge}>
+                      <Clock size={14} color="#15803d" />
+                    </View>
+                    <Text style={styles.sectionHeading}>Pengaturan Sesi & Kategori</Text>
                   </View>
-                  <Text style={styles.sectionHeading}>Pengaturan Sesi & Kategori</Text>
-                </View>
 
-                {/* Kategori Hafalan */}
-                <Text style={styles.fieldLabel}>Kategori Hafalan</Text>
-                <View style={styles.kategoriGrid}>
-                  <TouchableOpacity
-                    style={[styles.kategoriBtn, kategori === "Al-Quran" && styles.kategoriBtnActive]}
-                    onPress={() => setKategori("Al-Quran")}
-                  >
-                    <BookOpen size={16} color={kategori === "Al-Quran" ? "#15803d" : "#64748b"} />
-                    <Text style={[styles.kategoriBtnText, kategori === "Al-Quran" && styles.kategoriBtnTextActive]}>
-                      Al-Qur'an
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.kategoriBtn, kategori === "Hadits" && styles.kategoriBtnActive]}
-                    onPress={() => setKategori("Hadits")}
-                  >
-                    <ScrollText size={16} color={kategori === "Hadits" ? "#1d4ed8" : "#64748b"} />
-                    <Text style={[styles.kategoriBtnText, kategori === "Hadits" && styles.kategoriBtnTextActiveHadits]}>
-                      Hadits
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.kategoriBtn, kategori === "Matan Ilmu" && styles.kategoriBtnActive]}
-                    onPress={() => setKategori("Matan Ilmu")}
-                  >
-                    <Bookmark size={16} color={kategori === "Matan Ilmu" ? "#b45309" : "#64748b"} />
-                    <Text style={[styles.kategoriBtnText, kategori === "Matan Ilmu" && styles.kategoriBtnTextActiveMatan]}>
-                      Matan Ilmu
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* Jenis Setoran (Setoran Baru, Setoran Ulang, Ujian) */}
-                <Text style={styles.fieldLabel}>Jenis Penilaian</Text>
-                <View style={styles.jenisGrid}>
-                  {(["Setoran Baru", "Setoran Ulang", "Ujian"] as JenisSetoran[]).map((j) => (
+                  {/* Kategori Hafalan */}
+                  <Text style={styles.fieldLabel}>Kategori Hafalan</Text>
+                  <View style={styles.kategoriGrid}>
                     <TouchableOpacity
-                      key={j}
-                      style={[styles.jenisBtn, jenisSetoran === j && styles.jenisBtnActive]}
-                      onPress={() => setJenisSetoran(j)}
+                      style={[styles.kategoriBtn, kategori === "Al-Quran" && styles.kategoriBtnActive]}
+                      onPress={() => setKategori("Al-Quran")}
                     >
-                      <Text style={[styles.jenisBtnText, jenisSetoran === j && styles.jenisBtnTextActive]}>
-                        {j}
+                      <BookOpen size={16} color={kategori === "Al-Quran" ? "#15803d" : "#64748b"} />
+                      <Text style={[styles.kategoriBtnText, kategori === "Al-Quran" && styles.kategoriBtnTextActive]}>
+                        Al-Qur'an
                       </Text>
                     </TouchableOpacity>
-                  ))}
-                </View>
-
-                {/* Tanggal & Durasi */}
-                <View style={styles.rowTwoCols}>
-                  <View style={styles.colHalf}>
-                    <Text style={styles.fieldLabel}>Tanggal</Text>
-                    <View style={styles.inputWithIcon}>
-                      <Calendar size={14} color="#64748b" />
-                      <TextInput
-                        style={styles.textInputInBox}
-                        value={tanggal}
-                        onChangeText={setTanggal}
-                        placeholder="YYYY-MM-DD"
-                      />
-                    </View>
-                  </View>
-
-                  <View style={styles.colHalf}>
-                    <Text style={styles.fieldLabel}>Durasi (Menit)</Text>
-                    <View style={styles.inputWithIcon}>
-                      <Clock size={14} color="#64748b" />
-                      <TextInput
-                        style={styles.textInputInBox}
-                        value={durasiMenit}
-                        onChangeText={setDurasiMenit}
-                        keyboardType="numeric"
-                      />
-                    </View>
-                  </View>
-                </View>
-              </Card>
-
-              {/* ─────────────────────────────────────────────────────────────
-                  MODE INDIVIDU
-              ───────────────────────────────────────────────────────────── */}
-              {modeInput === "individu" && (
-                <>
-                  <Card style={styles.card}>
-                    <View style={styles.cardHeader}>
-                      <View style={styles.stepBadge}>
-                        <User size={14} color="#15803d" />
-                      </View>
-                      <Text style={styles.sectionHeading}>Pilih Santri</Text>
-                    </View>
 
                     <TouchableOpacity
-                      style={styles.dropdownTrigger}
-                      onPress={() => setIsSantriModalOpen(true)}
+                      style={[styles.kategoriBtn, kategori === "Hadits" && styles.kategoriBtnActive]}
+                      onPress={() => setKategori("Hadits")}
                     >
-                      <View style={styles.dropdownTextWrapper}>
-                        <Text style={styles.dropdownMainText}>
-                          {activeSiswa?.nama || "Pilih Santri..."}
-                        </Text>
-                        {activeSiswa?.kelas?.nama_kelas && (
-                          <Text style={styles.dropdownSubText}>
-                            {activeSiswa.kelas.nama_kelas} • NISN: {activeSiswa.nisn || "-"}
-                          </Text>
-                        )}
-                      </View>
-                      <ChevronDown size={18} color="#64748b" />
+                      <ScrollText size={16} color={kategori === "Hadits" ? "#1d4ed8" : "#64748b"} />
+                      <Text style={[styles.kategoriBtnText, kategori === "Hadits" && styles.kategoriBtnTextActiveHadits]}>
+                        Hadits
+                      </Text>
                     </TouchableOpacity>
-                  </Card>
 
-                  {/* Range Detail (Al-Quran / Hadits / Matan) */}
-                  <Card style={styles.card}>
-                    <View style={styles.cardHeader}>
-                      <View style={styles.stepBadge}>
-                        <BookOpen size={14} color="#15803d" />
-                      </View>
-                      <Text style={styles.sectionHeading}>Rincian Hafalan</Text>
-                    </View>
+                    <TouchableOpacity
+                      style={[styles.kategoriBtn, kategori === "Matan Ilmu" && styles.kategoriBtnActive]}
+                      onPress={() => setKategori("Matan Ilmu")}
+                    >
+                      <Bookmark size={16} color={kategori === "Matan Ilmu" ? "#b45309" : "#64748b"} />
+                      <Text style={[styles.kategoriBtnText, kategori === "Matan Ilmu" && styles.kategoriBtnTextActiveMatan]}>
+                        Matan Ilmu
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
 
-                    {kategori === "Al-Quran" && (
-                      <View style={styles.rangeBox}>
-                        <View style={styles.rowTwoCols}>
-                          <View style={styles.colHalf}>
-                            <Text style={styles.fieldLabel}>Surat Mulai</Text>
-                            <TouchableOpacity
-                              style={styles.selectorTrigger}
-                              onPress={() => setSurahPickerTarget({ type: "template_mulai" })}
-                            >
-                              <Text style={styles.selectorText} numberOfLines={1}>
-                                {getSurahName(templateSuratMulaiNo)}
-                              </Text>
-                              <ChevronDown size={14} color="#64748b" />
-                            </TouchableOpacity>
-                          </View>
-                          <View style={styles.colHalf}>
-                            <Text style={styles.fieldLabel}>Ayat Mulai</Text>
-                            <TextInput
-                              style={styles.numInput}
-                              value={templateAyatMulai}
-                              onChangeText={setTemplateAyatMulai}
-                              keyboardType="numeric"
-                            />
-                          </View>
-                        </View>
-
-                        <View style={[styles.rowTwoCols, { marginTop: 10 }]}>
-                          <View style={styles.colHalf}>
-                            <Text style={styles.fieldLabel}>Surat Selesai</Text>
-                            <TouchableOpacity
-                              style={styles.selectorTrigger}
-                              onPress={() => setSurahPickerTarget({ type: "template_selesai" })}
-                            >
-                              <Text style={styles.selectorText} numberOfLines={1}>
-                                {getSurahName(templateSuratSelesaiNo)}
-                              </Text>
-                              <ChevronDown size={14} color="#64748b" />
-                            </TouchableOpacity>
-                          </View>
-                          <View style={styles.colHalf}>
-                            <Text style={styles.fieldLabel}>Ayat Selesai</Text>
-                            <TextInput
-                              style={styles.numInput}
-                              value={templateAyatSelesai}
-                              onChangeText={setTemplateAyatSelesai}
-                              keyboardType="numeric"
-                            />
-                          </View>
-                        </View>
-                      </View>
-                    )}
-
-                    {kategori === "Hadits" && (
-                      <View style={styles.rangeBox}>
-                        <Text style={styles.fieldLabel}>Kitab Hadits</Text>
-                        <TouchableOpacity
-                          style={styles.selectorTrigger}
-                          onPress={() => {
-                            setHaditsPickerTarget("template");
-                            setIsHaditsModalOpen(true);
-                          }}
-                        >
-                          <Text style={styles.selectorText}>{templateKitabHadits}</Text>
-                          <ChevronDown size={14} color="#64748b" />
-                        </TouchableOpacity>
-
-                        <View style={[styles.rowTwoCols, { marginTop: 10 }]}>
-                          <View style={styles.colHalf}>
-                            <Text style={styles.fieldLabel}>Hadits No. Mulai</Text>
-                            <TextInput
-                              style={styles.numInput}
-                              value={templateHaditsMulai}
-                              onChangeText={setTemplateHaditsMulai}
-                              keyboardType="numeric"
-                            />
-                          </View>
-                          <View style={styles.colHalf}>
-                            <Text style={styles.fieldLabel}>Hadits No. Selesai</Text>
-                            <TextInput
-                              style={styles.numInput}
-                              value={templateHaditsSelesai}
-                              onChangeText={setTemplateHaditsSelesai}
-                              keyboardType="numeric"
-                            />
-                          </View>
-                        </View>
-                      </View>
-                    )}
-
-                    {kategori === "Matan Ilmu" && (
-                      <View style={styles.rangeBox}>
-                        <Text style={styles.fieldLabel}>Nama Matan</Text>
-                        <TouchableOpacity
-                          style={styles.selectorTrigger}
-                          onPress={() => {
-                            setMatanPickerTarget("template");
-                            setIsMatanModalOpen(true);
-                          }}
-                        >
-                          <Text style={styles.selectorText}>{templateNamaMatan}</Text>
-                          <ChevronDown size={14} color="#64748b" />
-                        </TouchableOpacity>
-
-                        <View style={[styles.rowTwoCols, { marginTop: 10 }]}>
-                          <View style={styles.colHalf}>
-                            <Text style={styles.fieldLabel}>Bait Mulai</Text>
-                            <TextInput
-                              style={styles.numInput}
-                              value={templateBaitMulai}
-                              onChangeText={setTemplateBaitMulai}
-                              keyboardType="numeric"
-                            />
-                          </View>
-                          <View style={styles.colHalf}>
-                            <Text style={styles.fieldLabel}>Bait Selesai</Text>
-                            <TextInput
-                              style={styles.numInput}
-                              value={templateBaitSelesai}
-                              onChangeText={setTemplateBaitSelesai}
-                              keyboardType="numeric"
-                            />
-                          </View>
-                        </View>
-                      </View>
-                    )}
-
-                    {/* Kelancaran */}
-                    <Text style={[styles.fieldLabel, { marginTop: 12 }]}>Tingkat Kelancaran</Text>
-                    <View style={styles.kelancaranGrid}>
-                      {KELANCARAN_OPTIONS.map((k) => (
-                        <TouchableOpacity
-                          key={k.value}
-                          style={[
-                            styles.kelancaranBtn,
-                            kelancaranGlobal === k.value && styles.kelancaranBtnActive,
-                          ]}
-                          onPress={() => setKelancaranGlobal(k.value as any)}
-                        >
-                          <Text
-                            style={[
-                              styles.kelancaranBtnText,
-                              kelancaranGlobal === k.value && styles.kelancaranBtnTextActive,
-                            ]}
-                          >
-                            {k.label}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-
-                    {/* Catatan */}
-                    <Text style={[styles.fieldLabel, { marginTop: 12 }]}>Catatan Guru</Text>
-                    <TextInput
-                      style={styles.textArea}
-                      value={catatanGlobal}
-                      onChangeText={setCatatanGlobal}
-                      placeholder="Catatan tajwid, makhraj, atau kelancaran..."
-                      multiline
-                      numberOfLines={3}
-                    />
-                  </Card>
-
-                  <Button
-                    title={submitting ? "Menyimpan..." : "Simpan Setoran Individu"}
-                    onPress={handleSubmitIndividu}
-                    loading={submitting}
-                    icon={<Save size={16} color="#fff" />}
-                    style={{ marginTop: 8 }}
-                  />
-                </>
-              )}
-
-              {/* ─────────────────────────────────────────────────────────────
-                  MODE KOLOSAL (HALAQOH CARDS)
-              ───────────────────────────────────────────────────────────── */}
-              {modeInput === "kolosal" && (
-                <>
-                  {/* Halaqah Filter & Quick Apply Toolbar */}
-                  <Card style={styles.card}>
-                    <View style={styles.cardHeader}>
-                      <View style={styles.stepBadge}>
-                        <FolderClosed size={14} color="#15803d" />
-                      </View>
-                      <Text style={styles.sectionHeading}>Pilih Halaqoh / Kelompok</Text>
-                    </View>
-
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.halaqahPills}>
+                  {/* Jenis Setoran (Setoran Baru, Setoran Ulang, Ujian) */}
+                  <Text style={styles.fieldLabel}>Jenis Penilaian</Text>
+                  <View style={styles.jenisGrid}>
+                    {(["Setoran Baru", "Setoran Ulang", "Ujian"] as JenisSetoran[]).map((j) => (
                       <TouchableOpacity
-                        style={[
-                          styles.halaqahPill,
-                          selectedHalaqahId === "ALL" && styles.halaqahPillActive,
-                        ]}
-                        onPress={() => setSelectedHalaqahId("ALL")}
+                        key={j}
+                        style={[styles.jenisBtn, jenisSetoran === j && styles.jenisBtnActive]}
+                        onPress={() => setJenisSetoran(j)}
                       >
-                        <Text
-                          style={[
-                            styles.halaqahPillText,
-                            selectedHalaqahId === "ALL" && styles.halaqahPillTextActive,
-                          ]}
-                        >
-                          Semua Santri ({santriList.length})
+                        <Text style={[styles.jenisBtnText, jenisSetoran === j && styles.jenisBtnTextActive]}>
+                          {j}
                         </Text>
                       </TouchableOpacity>
+                    ))}
+                  </View>
 
-                      {halaqahList.map((h) => (
+                  {/* Tanggal & Durasi */}
+                  <View style={styles.rowTwoCols}>
+                    <View style={styles.colHalf}>
+                      <Text style={styles.fieldLabel}>Tanggal</Text>
+                      <View style={styles.inputWithIcon}>
+                        <Calendar size={14} color="#64748b" />
+                        <TextInput
+                          style={styles.textInputInBox}
+                          value={tanggal}
+                          onChangeText={setTanggal}
+                          placeholder="YYYY-MM-DD"
+                        />
+                      </View>
+                    </View>
+
+                    <View style={styles.colHalf}>
+                      <Text style={styles.fieldLabel}>Durasi (Menit)</Text>
+                      <View style={styles.inputWithIcon}>
+                        <Clock size={14} color="#64748b" />
+                        <TextInput
+                          style={styles.textInputInBox}
+                          value={durasiMenit}
+                          onChangeText={setDurasiMenit}
+                          keyboardType="numeric"
+                        />
+                      </View>
+                    </View>
+                  </View>
+                </Card>
+
+                {/* ─────────────────────────────────────────────────────────────
+                    MODE INDIVIDU
+                ───────────────────────────────────────────────────────────── */}
+                {modeInput === "individu" && (
+                  <>
+                    <Card style={styles.card}>
+                      <View style={styles.cardHeader}>
+                        <View style={styles.stepBadge}>
+                          <User size={14} color="#15803d" />
+                        </View>
+                        <Text style={styles.sectionHeading}>Pilih Santri</Text>
+                      </View>
+
+                      <TouchableOpacity
+                        style={styles.dropdownTrigger}
+                        onPress={() => setIsSantriModalOpen(true)}
+                      >
+                        <View style={styles.dropdownTextWrapper}>
+                          <Text style={styles.dropdownMainText}>
+                            {activeSiswa?.nama || "Pilih Santri..."}
+                          </Text>
+                          {activeSiswa?.kelas?.nama_kelas && (
+                            <Text style={styles.dropdownSubText}>
+                              {activeSiswa.kelas.nama_kelas} • NISN: {activeSiswa.nisn || "-"}
+                            </Text>
+                          )}
+                        </View>
+                        <ChevronDown size={18} color="#64748b" />
+                      </TouchableOpacity>
+                    </Card>
+
+                    {/* Range Detail (Al-Quran / Hadits / Matan) */}
+                    <Card style={styles.card}>
+                      <View style={styles.cardHeader}>
+                        <View style={styles.stepBadge}>
+                          <BookOpen size={14} color="#15803d" />
+                        </View>
+                        <Text style={styles.sectionHeading}>Rincian Hafalan</Text>
+                      </View>
+
+                      {kategori === "Al-Quran" && (
+                        <View style={styles.rangeBox}>
+                          <View style={styles.rowTwoCols}>
+                            <View style={styles.colHalf}>
+                              <Text style={styles.fieldLabel}>Surat Mulai</Text>
+                              <TouchableOpacity
+                                style={styles.selectorTrigger}
+                                onPress={() => setSurahPickerTarget({ type: "template_mulai" })}
+                              >
+                                <Text style={styles.selectorText} numberOfLines={1}>
+                                  {getSurahName(templateSuratMulaiNo)}
+                                </Text>
+                                <ChevronDown size={14} color="#64748b" />
+                              </TouchableOpacity>
+                            </View>
+                            <View style={styles.colHalf}>
+                              <Text style={styles.fieldLabel}>Ayat Mulai</Text>
+                              <TextInput
+                                style={styles.numInput}
+                                value={templateAyatMulai}
+                                onChangeText={setTemplateAyatMulai}
+                                keyboardType="numeric"
+                              />
+                            </View>
+                          </View>
+
+                          <View style={[styles.rowTwoCols, { marginTop: 10 }]}>
+                            <View style={styles.colHalf}>
+                              <Text style={styles.fieldLabel}>Surat Selesai</Text>
+                              <TouchableOpacity
+                                style={styles.selectorTrigger}
+                                onPress={() => setSurahPickerTarget({ type: "template_selesai" })}
+                              >
+                                <Text style={styles.selectorText} numberOfLines={1}>
+                                  {getSurahName(templateSuratSelesaiNo)}
+                                </Text>
+                                <ChevronDown size={14} color="#64748b" />
+                              </TouchableOpacity>
+                            </View>
+                            <View style={styles.colHalf}>
+                              <Text style={styles.fieldLabel}>Ayat Selesai</Text>
+                              <TextInput
+                                style={styles.numInput}
+                                value={templateAyatSelesai}
+                                onChangeText={setTemplateAyatSelesai}
+                                keyboardType="numeric"
+                              />
+                            </View>
+                          </View>
+                        </View>
+                      )}
+
+                      {kategori === "Hadits" && (
+                        <View style={styles.rangeBox}>
+                          <Text style={styles.fieldLabel}>Kitab Hadits</Text>
+                          <TouchableOpacity
+                            style={styles.selectorTrigger}
+                            onPress={() => {
+                              setHaditsPickerTarget("template");
+                              setIsHaditsModalOpen(true);
+                            }}
+                          >
+                            <Text style={styles.selectorText}>{templateKitabHadits}</Text>
+                            <ChevronDown size={14} color="#64748b" />
+                          </TouchableOpacity>
+
+                          <View style={[styles.rowTwoCols, { marginTop: 10 }]}>
+                            <View style={styles.colHalf}>
+                              <Text style={styles.fieldLabel}>Hadits No. Mulai</Text>
+                              <TextInput
+                                style={styles.numInput}
+                                value={templateHaditsMulai}
+                                onChangeText={setTemplateHaditsMulai}
+                                keyboardType="numeric"
+                              />
+                            </View>
+                            <View style={styles.colHalf}>
+                              <Text style={styles.fieldLabel}>Hadits No. Selesai</Text>
+                              <TextInput
+                                style={styles.numInput}
+                                value={templateHaditsSelesai}
+                                onChangeText={setTemplateHaditsSelesai}
+                                keyboardType="numeric"
+                              />
+                            </View>
+                          </View>
+                        </View>
+                      )}
+
+                      {kategori === "Matan Ilmu" && (
+                        <View style={styles.rangeBox}>
+                          <Text style={styles.fieldLabel}>Nama Matan</Text>
+                          <TouchableOpacity
+                            style={styles.selectorTrigger}
+                            onPress={() => {
+                              setMatanPickerTarget("template");
+                              setIsMatanModalOpen(true);
+                            }}
+                          >
+                            <Text style={styles.selectorText}>{templateNamaMatan}</Text>
+                            <ChevronDown size={14} color="#64748b" />
+                          </TouchableOpacity>
+
+                          <View style={[styles.rowTwoCols, { marginTop: 10 }]}>
+                            <View style={styles.colHalf}>
+                              <Text style={styles.fieldLabel}>Bait Mulai</Text>
+                              <TextInput
+                                style={styles.numInput}
+                                value={templateBaitMulai}
+                                onChangeText={setTemplateBaitMulai}
+                                keyboardType="numeric"
+                              />
+                            </View>
+                            <View style={styles.colHalf}>
+                              <Text style={styles.fieldLabel}>Bait Selesai</Text>
+                              <TextInput
+                                style={styles.numInput}
+                                value={templateBaitSelesai}
+                                onChangeText={setTemplateBaitSelesai}
+                                keyboardType="numeric"
+                              />
+                            </View>
+                          </View>
+                        </View>
+                      )}
+
+                      {/* Kelancaran */}
+                      <Text style={[styles.fieldLabel, { marginTop: 12 }]}>Tingkat Kelancaran</Text>
+                      <View style={styles.kelancaranGrid}>
+                        {KELANCARAN_OPTIONS.map((k) => (
+                          <TouchableOpacity
+                            key={k.value}
+                            style={[
+                              styles.kelancaranBtn,
+                              kelancaranGlobal === k.value && styles.kelancaranBtnActive,
+                            ]}
+                            onPress={() => setKelancaranGlobal(k.value as any)}
+                          >
+                            <Text
+                              style={[
+                                styles.kelancaranBtnText,
+                                kelancaranGlobal === k.value && styles.kelancaranBtnTextActive,
+                              ]}
+                            >
+                              {k.label}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+
+                      {/* Catatan */}
+                      <Text style={[styles.fieldLabel, { marginTop: 12 }]}>Catatan Guru</Text>
+                      <TextInput
+                        style={styles.textArea}
+                        value={catatanGlobal}
+                        onChangeText={setCatatanGlobal}
+                        placeholder="Catatan tajwid, makhraj, atau kelancaran..."
+                        multiline
+                        numberOfLines={3}
+                      />
+                    </Card>
+
+                    <Button
+                      title={submitting ? "Menyimpan..." : "Simpan Setoran Individu"}
+                      onPress={handleSubmitIndividu}
+                      loading={submitting}
+                      icon={<Save size={16} color="#fff" />}
+                      style={{ marginTop: 8 }}
+                    />
+                  </>
+                )}
+
+                {/* ─────────────────────────────────────────────────────────────
+                    MODE KOLOSAL (HALAQOH CARDS - DIRECT & CLEAN)
+                ───────────────────────────────────────────────────────────── */}
+                {modeInput === "kolosal" && (
+                  <>
+                    {/* Halaqah Filter Bar */}
+                    <Card style={styles.card}>
+                      <View style={styles.cardHeader}>
+                        <View style={styles.stepBadge}>
+                          <FolderClosed size={14} color="#15803d" />
+                        </View>
+                        <Text style={styles.sectionHeading}>Pilih Kelompok Halaqoh</Text>
+                      </View>
+
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.halaqahPills}>
                         <TouchableOpacity
-                          key={h.halaqah_id}
                           style={[
                             styles.halaqahPill,
-                            selectedHalaqahId === h.halaqah_id && styles.halaqahPillActive,
+                            selectedHalaqahId === "ALL" && styles.halaqahPillActive,
                           ]}
-                          onPress={() => setSelectedHalaqahId(h.halaqah_id)}
+                          onPress={() => setSelectedHalaqahId("ALL")}
                         >
                           <Text
                             style={[
                               styles.halaqahPillText,
-                              selectedHalaqahId === h.halaqah_id && styles.halaqahPillTextActive,
+                              selectedHalaqahId === "ALL" && styles.halaqahPillTextActive,
                             ]}
                           >
-                            {h.nama_halaqah} ({h.anggota?.length || 0})
+                            Semua Santri ({santriList.length})
                           </Text>
                         </TouchableOpacity>
-                      ))}
-                    </ScrollView>
 
-                    {/* Quick Apply Header Bar */}
-                    <View style={styles.quickApplyBar}>
-                      <View style={styles.quickApplyInfo}>
-                        <Text style={styles.quickApplyTitle}>Template Massal (Salin ke Santri)</Text>
-                        <Text style={styles.quickApplyDesc}>
-                          {kategori === "Al-Quran"
-                            ? `${getSurahName(templateSuratMulaiNo)}: ${templateAyatMulai} s/d ${getSurahName(templateSuratSelesaiNo)}: ${templateAyatSelesai}`
-                            : kategori === "Hadits"
-                            ? `${templateKitabHadits} (No. ${templateHaditsMulai}-${templateHaditsSelesai})`
-                            : `${templateNamaMatan} (Bait ${templateBaitMulai}-${templateBaitSelesai})`}
-                        </Text>
-                      </View>
-                      <TouchableOpacity style={styles.applyBtn} onPress={applyTemplateToAll}>
-                        <Copy size={13} color="#fff" />
-                        <Text style={styles.applyBtnText}>Terapkan ke Semua</Text>
-                      </TouchableOpacity>
-                    </View>
-
-                    {/* Checkbox Select All / Deselect All */}
-                    <View style={styles.selectionRow}>
-                      <TouchableOpacity
-                        style={styles.selectionBtn}
-                        onPress={() => toggleSelectAll(true)}
-                      >
-                        <CheckCircle size={14} color="#15803d" />
-                        <Text style={styles.selectionBtnText}>Pilih Semua</Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={styles.selectionBtn}
-                        onPress={() => toggleSelectAll(false)}
-                      >
-                        <X size={14} color="#ef4444" />
-                        <Text style={[styles.selectionBtnText, { color: "#ef4444" }]}>
-                          Hapus Pilihan
-                        </Text>
-                      </TouchableOpacity>
-
-                      <Text style={styles.selectedCountText}>
-                        {displayedKolosalCards.filter((c) => c.selected).length} Santri Aktif
-                      </Text>
-                    </View>
-                  </Card>
-
-                  {/* CARDS LIST PER SANTRI */}
-                  {displayedKolosalCards.map((card, idx) => (
-                    <View
-                      key={card.siswa_id}
-                      style={[
-                        styles.kolosalCard,
-                        card.selected ? styles.kolosalCardActive : styles.kolosalCardInactive,
-                      ]}
-                    >
-                      {/* Card Header */}
-                      <View style={styles.cardSantriHeader}>
-                        <TouchableOpacity
-                          style={styles.cardCheckboxRow}
-                          onPress={() => toggleSelectCard(card.siswa_id)}
-                        >
-                          <View
-                            style={[
-                              styles.checkbox,
-                              card.selected && styles.checkboxChecked,
-                            ]}
-                          >
-                            {card.selected && <Check size={12} color="#fff" />}
-                          </View>
-                          <View style={{ marginLeft: 8, flex: 1 }}>
-                            <Text style={styles.cardSantriName}>{card.nama}</Text>
-                            <Text style={styles.cardSantriMeta}>
-                              {card.kelas_nama || "Santri"} • Santri #{idx + 1}
-                            </Text>
-                          </View>
-                        </TouchableOpacity>
-                      </View>
-
-                      {card.selected && (
-                        <View style={styles.cardBody}>
-                          {/* Al-Quran Controls */}
-                          {kategori === "Al-Quran" && (
-                            <View style={styles.cardRangeRow}>
-                              <View style={styles.cardCol}>
-                                <Text style={styles.cardMiniLabel}>Surat Mulai</Text>
-                                <TouchableOpacity
-                                  style={styles.cardSelector}
-                                  onPress={() =>
-                                    setSurahPickerTarget({
-                                      type: "card_mulai",
-                                      siswaId: card.siswa_id,
-                                    })
-                                  }
-                                >
-                                  <Text style={styles.cardSelectorText} numberOfLines={1}>
-                                    {getSurahName(card.suratMulaiNo)}
-                                  </Text>
-                                </TouchableOpacity>
-                              </View>
-
-                              <View style={{ width: 60 }}>
-                                <Text style={styles.cardMiniLabel}>Ayat</Text>
-                                <TextInput
-                                  style={styles.cardNumInput}
-                                  value={card.ayatMulai}
-                                  onChangeText={(val) =>
-                                    updateCardState(card.siswa_id, { ayatMulai: val })
-                                  }
-                                  keyboardType="numeric"
-                                />
-                              </View>
-
-                              <View style={styles.cardCol}>
-                                <Text style={styles.cardMiniLabel}>Surat Selesai</Text>
-                                <TouchableOpacity
-                                  style={styles.cardSelector}
-                                  onPress={() =>
-                                    setSurahPickerTarget({
-                                      type: "card_selesai",
-                                      siswaId: card.siswa_id,
-                                    })
-                                  }
-                                >
-                                  <Text style={styles.cardSelectorText} numberOfLines={1}>
-                                    {getSurahName(card.suratSelesaiNo)}
-                                  </Text>
-                                </TouchableOpacity>
-                              </View>
-
-                              <View style={{ width: 60 }}>
-                                <Text style={styles.cardMiniLabel}>Ayat</Text>
-                                <TextInput
-                                  style={styles.cardNumInput}
-                                  value={card.ayatSelesai}
-                                  onChangeText={(val) =>
-                                    updateCardState(card.siswa_id, { ayatSelesai: val })
-                                  }
-                                  keyboardType="numeric"
-                                />
-                              </View>
-                            </View>
-                          )}
-
-                          {/* Hadits Controls */}
-                          {kategori === "Hadits" && (
-                            <View>
-                              <TouchableOpacity
-                                style={[styles.cardSelector, { marginBottom: 6 }]}
-                                onPress={() => {
-                                  setHaditsPickerTarget(card.siswa_id);
-                                  setIsHaditsModalOpen(true);
-                                }}
-                              >
-                                <Text style={styles.cardSelectorText}>{card.kitabHadits}</Text>
-                              </TouchableOpacity>
-                              <View style={styles.rowTwoCols}>
-                                <View style={styles.colHalf}>
-                                  <Text style={styles.cardMiniLabel}>Hadits Mulai</Text>
-                                  <TextInput
-                                    style={styles.cardNumInput}
-                                    value={card.haditsNoMulai}
-                                    onChangeText={(v) =>
-                                      updateCardState(card.siswa_id, { haditsNoMulai: v })
-                                    }
-                                    keyboardType="numeric"
-                                  />
-                                </View>
-                                <View style={styles.colHalf}>
-                                  <Text style={styles.cardMiniLabel}>Hadits Selesai</Text>
-                                  <TextInput
-                                    style={styles.cardNumInput}
-                                    value={card.haditsNoSelesai}
-                                    onChangeText={(v) =>
-                                      updateCardState(card.siswa_id, { haditsNoSelesai: v })
-                                    }
-                                    keyboardType="numeric"
-                                  />
-                                </View>
-                              </View>
-                            </View>
-                          )}
-
-                          {/* Matan Controls */}
-                          {kategori === "Matan Ilmu" && (
-                            <View>
-                              <TouchableOpacity
-                                style={[styles.cardSelector, { marginBottom: 6 }]}
-                                onPress={() => {
-                                  setMatanPickerTarget(card.siswa_id);
-                                  setIsMatanModalOpen(true);
-                                }}
-                              >
-                                <Text style={styles.cardSelectorText}>{card.namaMatan}</Text>
-                              </TouchableOpacity>
-                              <View style={styles.rowTwoCols}>
-                                <View style={styles.colHalf}>
-                                  <Text style={styles.cardMiniLabel}>Bait Mulai</Text>
-                                  <TextInput
-                                    style={styles.cardNumInput}
-                                    value={card.baitMulai}
-                                    onChangeText={(v) =>
-                                      updateCardState(card.siswa_id, { baitMulai: v })
-                                    }
-                                    keyboardType="numeric"
-                                  />
-                                </View>
-                                <View style={styles.colHalf}>
-                                  <Text style={styles.cardMiniLabel}>Bait Selesai</Text>
-                                  <TextInput
-                                    style={styles.cardNumInput}
-                                    value={card.baitSelesai}
-                                    onChangeText={(v) =>
-                                      updateCardState(card.siswa_id, { baitSelesai: v })
-                                    }
-                                    keyboardType="numeric"
-                                  />
-                                </View>
-                              </View>
-                            </View>
-                          )}
-
-                          {/* Kelancaran Selector per Card */}
-                          <View style={styles.cardKelancaranRow}>
-                            {KELANCARAN_OPTIONS.map((k) => (
-                              <TouchableOpacity
-                                key={k.value}
+                        {halaqahList.map((h) => {
+                          const count = h.anggota?.length || h._count?.anggota || 0;
+                          return (
+                            <TouchableOpacity
+                              key={h.halaqah_id}
+                              style={[
+                                styles.halaqahPill,
+                                selectedHalaqahId === h.halaqah_id && styles.halaqahPillActive,
+                              ]}
+                              onPress={() => setSelectedHalaqahId(h.halaqah_id)}
+                            >
+                              <Text
                                 style={[
-                                  styles.cardKelancaranPill,
-                                  card.kelancaran === k.value && styles.cardKelancaranPillActive,
+                                  styles.halaqahPillText,
+                                  selectedHalaqahId === h.halaqah_id && styles.halaqahPillTextActive,
                                 ]}
-                                onPress={() =>
-                                  updateCardState(card.siswa_id, { kelancaran: k.value as any })
-                                }
                               >
-                                <Text
-                                  style={[
-                                    styles.cardKelancaranText,
-                                    card.kelancaran === k.value && styles.cardKelancaranTextActive,
-                                  ]}
-                                >
-                                  {k.label}
+                                {h.nama_halaqah} ({count})
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </ScrollView>
+
+                      {/* Checkbox Select All / Deselect All */}
+                      <View style={styles.selectionRow}>
+                        <TouchableOpacity
+                          style={styles.selectionBtn}
+                          onPress={() => toggleSelectAll(true)}
+                        >
+                          <CheckCircle size={14} color="#15803d" />
+                          <Text style={styles.selectionBtnText}>Pilih Semua</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={styles.selectionBtn}
+                          onPress={() => toggleSelectAll(false)}
+                        >
+                          <X size={14} color="#ef4444" />
+                          <Text style={[styles.selectionBtnText, { color: "#ef4444" }]}>
+                            Hapus Pilihan
+                          </Text>
+                        </TouchableOpacity>
+
+                        <Text style={styles.selectedCountText}>
+                          {displayedKolosalCards.filter((c) => c.selected).length} Santri Aktif
+                        </Text>
+                      </View>
+                    </Card>
+
+                    {displayedKolosalCards.length === 0 ? (
+                      <View style={styles.emptyBox}>
+                        <Users size={32} color="#94a3b8" />
+                        <Text style={styles.emptyTitle}>Belum Ada Santri di Kelompok Ini</Text>
+                        <Text style={styles.emptySubtitle}>
+                          Pilih kelompok lain atau tambahkan anggota santri ke halaqah ini.
+                        </Text>
+                      </View>
+                    ) : (
+                      displayedKolosalCards.map((card, idx) => (
+                        <View
+                          key={card.siswa_id}
+                          style={[
+                            styles.kolosalCard,
+                            card.selected ? styles.kolosalCardActive : styles.kolosalCardInactive,
+                          ]}
+                        >
+                          {/* Card Header */}
+                          <View style={styles.cardSantriHeader}>
+                            <TouchableOpacity
+                              style={styles.cardCheckboxRow}
+                              onPress={() => toggleSelectCard(card.siswa_id)}
+                            >
+                              <View
+                                style={[
+                                  styles.checkbox,
+                                  card.selected && styles.checkboxChecked,
+                                ]}
+                              >
+                                {card.selected && <Check size={12} color="#fff" />}
+                              </View>
+                              <View style={{ marginLeft: 8, flex: 1 }}>
+                                <Text style={styles.cardSantriName}>{card.nama}</Text>
+                                <Text style={styles.cardSantriMeta}>
+                                  {card.kelas_nama || "Santri"} • #{idx + 1}
                                 </Text>
-                              </TouchableOpacity>
-                            ))}
+                              </View>
+                            </TouchableOpacity>
                           </View>
 
-                          {/* Catatan Per Santri */}
-                          <TextInput
-                            style={styles.cardTextInput}
-                            placeholder="Catatan individu santri (opsional)..."
-                            value={card.catatan}
-                            onChangeText={(val) =>
-                              updateCardState(card.siswa_id, { catatan: val })
-                            }
-                          />
-                        </View>
-                      )}
-                    </View>
-                  ))}
+                          {card.selected && (
+                            <View style={styles.cardBody}>
+                              {/* Al-Quran Controls */}
+                              {kategori === "Al-Quran" && (
+                                <View style={styles.cardRangeRow}>
+                                  <View style={styles.cardCol}>
+                                    <Text style={styles.cardMiniLabel}>Surat Mulai</Text>
+                                    <TouchableOpacity
+                                      style={styles.cardSelector}
+                                      onPress={() =>
+                                        setSurahPickerTarget({
+                                          type: "card_mulai",
+                                          siswaId: card.siswa_id,
+                                        })
+                                      }
+                                    >
+                                      <Text style={styles.cardSelectorText} numberOfLines={1}>
+                                        {getSurahName(card.suratMulaiNo)}
+                                      </Text>
+                                    </TouchableOpacity>
+                                  </View>
 
-                  {/* Batch Submit Button */}
-                  <Button
-                    title={
-                      submitting
-                        ? "Menyimpan Massal..."
-                        : `Simpan Setoran Kolosal (${
-                            displayedKolosalCards.filter((c) => c.selected).length
-                          } Santri)`
-                    }
-                    onPress={handleSubmitKolosal}
-                    loading={submitting}
-                    icon={<Save size={16} color="#fff" />}
-                    style={{ marginTop: 12, marginBottom: 20 }}
-                  />
-                </>
-              )}
-            </View>
+                                  <View style={{ width: 55 }}>
+                                    <Text style={styles.cardMiniLabel}>Ayat</Text>
+                                    <TextInput
+                                      style={styles.cardNumInput}
+                                      value={card.ayatMulai}
+                                      onChangeText={(val) =>
+                                        updateCardState(card.siswa_id, { ayatMulai: val })
+                                      }
+                                      keyboardType="numeric"
+                                    />
+                                  </View>
+
+                                  <View style={styles.cardCol}>
+                                    <Text style={styles.cardMiniLabel}>Surat Selesai</Text>
+                                    <TouchableOpacity
+                                      style={styles.cardSelector}
+                                      onPress={() =>
+                                        setSurahPickerTarget({
+                                          type: "card_selesai",
+                                          siswaId: card.siswa_id,
+                                        })
+                                      }
+                                    >
+                                      <Text style={styles.cardSelectorText} numberOfLines={1}>
+                                        {getSurahName(card.suratSelesaiNo)}
+                                      </Text>
+                                    </TouchableOpacity>
+                                  </View>
+
+                                  <View style={{ width: 55 }}>
+                                    <Text style={styles.cardMiniLabel}>Ayat</Text>
+                                    <TextInput
+                                      style={styles.cardNumInput}
+                                      value={card.ayatSelesai}
+                                      onChangeText={(val) =>
+                                        updateCardState(card.siswa_id, { ayatSelesai: val })
+                                      }
+                                      keyboardType="numeric"
+                                    />
+                                  </View>
+                                </View>
+                              )}
+
+                              {/* Hadits Controls */}
+                              {kategori === "Hadits" && (
+                                <View>
+                                  <TouchableOpacity
+                                    style={[styles.cardSelector, { marginBottom: 6 }]}
+                                    onPress={() => {
+                                      setHaditsPickerTarget(card.siswa_id);
+                                      setIsHaditsModalOpen(true);
+                                    }}
+                                  >
+                                    <Text style={styles.cardSelectorText}>{card.kitabHadits}</Text>
+                                  </TouchableOpacity>
+                                  <View style={styles.rowTwoCols}>
+                                    <View style={styles.colHalf}>
+                                      <Text style={styles.cardMiniLabel}>Hadits Mulai</Text>
+                                      <TextInput
+                                        style={styles.cardNumInput}
+                                        value={card.haditsNoMulai}
+                                        onChangeText={(v) =>
+                                          updateCardState(card.siswa_id, { haditsNoMulai: v })
+                                        }
+                                        keyboardType="numeric"
+                                      />
+                                    </View>
+                                    <View style={styles.colHalf}>
+                                      <Text style={styles.cardMiniLabel}>Hadits Selesai</Text>
+                                      <TextInput
+                                        style={styles.cardNumInput}
+                                        value={card.haditsNoSelesai}
+                                        onChangeText={(v) =>
+                                          updateCardState(card.siswa_id, { haditsNoSelesai: v })
+                                        }
+                                        keyboardType="numeric"
+                                      />
+                                    </View>
+                                  </View>
+                                </View>
+                              )}
+
+                              {/* Matan Controls */}
+                              {kategori === "Matan Ilmu" && (
+                                <View>
+                                  <TouchableOpacity
+                                    style={[styles.cardSelector, { marginBottom: 6 }]}
+                                    onPress={() => {
+                                      setMatanPickerTarget(card.siswa_id);
+                                      setIsMatanModalOpen(true);
+                                    }}
+                                  >
+                                    <Text style={styles.cardSelectorText}>{card.namaMatan}</Text>
+                                  </TouchableOpacity>
+                                  <View style={styles.rowTwoCols}>
+                                    <View style={styles.colHalf}>
+                                      <Text style={styles.cardMiniLabel}>Bait Mulai</Text>
+                                      <TextInput
+                                        style={styles.cardNumInput}
+                                        value={card.baitMulai}
+                                        onChangeText={(v) =>
+                                          updateCardState(card.siswa_id, { baitMulai: v })
+                                        }
+                                        keyboardType="numeric"
+                                      />
+                                    </View>
+                                    <View style={styles.colHalf}>
+                                      <Text style={styles.cardMiniLabel}>Bait Selesai</Text>
+                                      <TextInput
+                                        style={styles.cardNumInput}
+                                        value={card.baitSelesai}
+                                        onChangeText={(v) =>
+                                          updateCardState(card.siswa_id, { baitSelesai: v })
+                                        }
+                                        keyboardType="numeric"
+                                      />
+                                    </View>
+                                  </View>
+                                </View>
+                              )}
+
+                              {/* Kelancaran Selector per Card */}
+                              <View style={styles.cardKelancaranRow}>
+                                {KELANCARAN_OPTIONS.map((k) => (
+                                  <TouchableOpacity
+                                    key={k.value}
+                                    style={[
+                                      styles.cardKelancaranPill,
+                                      card.kelancaran === k.value && styles.cardKelancaranPillActive,
+                                    ]}
+                                    onPress={() =>
+                                      updateCardState(card.siswa_id, { kelancaran: k.value as any })
+                                    }
+                                  >
+                                    <Text
+                                      style={[
+                                        styles.cardKelancaranText,
+                                        card.kelancaran === k.value && styles.cardKelancaranTextActive,
+                                      ]}
+                                    >
+                                      {k.label}
+                                    </Text>
+                                  </TouchableOpacity>
+                                ))}
+                              </View>
+
+                              {/* Catatan Per Santri */}
+                              <TextInput
+                                style={styles.cardTextInput}
+                                placeholder="Catatan individu santri (opsional)..."
+                                value={card.catatan}
+                                onChangeText={(val) =>
+                                  updateCardState(card.siswa_id, { catatan: val })
+                                }
+                              />
+                            </View>
+                          )}
+                        </View>
+                      ))
+                    )}
+
+                    {/* Batch Submit Button */}
+                    {displayedKolosalCards.length > 0 && (
+                      <Button
+                        title={
+                          submitting
+                            ? "Menyimpan Massal..."
+                            : `Simpan Setoran Kolosal (${
+                                displayedKolosalCards.filter((c) => c.selected).length
+                              } Santri)`
+                        }
+                        onPress={handleSubmitKolosal}
+                        loading={submitting}
+                        icon={<Save size={16} color="#fff" />}
+                        style={{ marginTop: 12, marginBottom: 20 }}
+                      />
+                    )}
+                  </>
+                )}
+              </View>
             )
           )}
 
@@ -1410,7 +1473,7 @@ export const TahfidzSetoranScreen = () => {
           )}
 
           {/* ═══════════════════════════════════════════════════════════════════
-              TAB 4: TARGET & CAPAIAN SANTRI
+              TAB 4: TARGET & CAPAIAN SANTRI (WITH CREATE & EDIT TARGET)
           ═══════════════════════════════════════════════════════════════════ */}
           {activeTab === "target" && (
             <View style={styles.tabContent}>
@@ -1419,7 +1482,7 @@ export const TahfidzSetoranScreen = () => {
                 <View style={[styles.statBox, { backgroundColor: "#ecfdf5", borderColor: "#a7f3d0" }]}>
                   <BookOpen size={20} color="#15803d" />
                   <Text style={styles.statNumber}>
-                    {dashboardSummary?.totalSetoran || santriList.length}
+                    {santriList.length}
                   </Text>
                   <Text style={styles.statLabel}>Total Santri Binaan</Text>
                 </View>
@@ -1427,13 +1490,13 @@ export const TahfidzSetoranScreen = () => {
                 <View style={[styles.statBox, { backgroundColor: "#eff6ff", borderColor: "#bfdbfe" }]}>
                   <TrendingUp size={20} color="#1d4ed8" />
                   <Text style={styles.statNumber}>
-                    {dashboardSummary?.totalHalaqah || halaqahList.length}
+                    {halaqahList.length}
                   </Text>
                   <Text style={styles.statLabel}>Kelompok Halaqoh</Text>
                 </View>
               </View>
 
-              <Text style={styles.targetSectionHeading}>Monitoring Capaian Hafalan Santri</Text>
+              <Text style={styles.targetSectionHeading}>Kelola Target Hafalan Santri Binaan</Text>
 
               {santriList.map((s) => (
                 <Card key={s.siswa_id} style={styles.targetSantriCard}>
@@ -1447,15 +1510,25 @@ export const TahfidzSetoranScreen = () => {
                         {s.kelas?.nama_kelas || "Santri"} • NISN: {s.nisn || "-"}
                       </Text>
                     </View>
+
+                    {hasInputPermission && (
+                      <TouchableOpacity
+                        style={styles.addTargetBtn}
+                        onPress={() => handleOpenTargetModal(s.siswa_id)}
+                      >
+                        <Plus size={13} color="#15803d" />
+                        <Text style={styles.addTargetText}>Set Target</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
 
                   <View style={styles.progressContainer}>
                     <View style={styles.progressHeader}>
                       <Text style={styles.progressLabel}>Target Al-Qur'an (30 Juz)</Text>
-                      <Text style={styles.progressValue}>Aktif</Text>
+                      <Text style={styles.progressValue}>Status: Aktif</Text>
                     </View>
                     <View style={styles.progressBar}>
-                      <View style={[styles.progressFill, { width: "25%" }]} />
+                      <View style={[styles.progressFill, { width: "35%" }]} />
                     </View>
                   </View>
                 </Card>
@@ -1620,6 +1693,112 @@ export const TahfidzSetoranScreen = () => {
                 </TouchableOpacity>
               )}
             />
+          </View>
+        </SafeAreaView>
+      </Modal>
+
+      {/* ─── MODAL 5: TAMBAH / EDIT TARGET HAFALAN ─── */}
+      <Modal visible={isTargetModalOpen} animationType="slide" transparent>
+        <SafeAreaView style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {targetFormEditingId ? "Edit Target Hafalan" : "Tambah Target Hafalan"}
+              </Text>
+              <TouchableOpacity onPress={() => setIsTargetModalOpen(false)}>
+                <X size={20} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {/* Kategori Target */}
+              <Text style={styles.fieldLabel}>Kategori</Text>
+              <View style={styles.kategoriGrid}>
+                {(["Al-Quran", "Hadits", "Matan Ilmu"] as KategoriHafalan[]).map((kat) => (
+                  <TouchableOpacity
+                    key={kat}
+                    style={[
+                      styles.kategoriBtn,
+                      targetFormKategori === kat && styles.kategoriBtnActive,
+                    ]}
+                    onPress={() => {
+                      setTargetFormKategori(kat);
+                      if (kat === "Al-Quran") {
+                        setTargetFormNominal("30");
+                        setTargetFormDeskripsi("Khatam 30 Juz Al-Qur'an");
+                      } else if (kat === "Hadits") {
+                        setTargetFormNominal("42");
+                        setTargetFormDeskripsi("Hadits Arbain An-Nawawi");
+                      } else {
+                        setTargetFormNominal("61");
+                        setTargetFormDeskripsi("Matan Tuhfatul Athfal");
+                      }
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.kategoriBtnText,
+                        targetFormKategori === kat && styles.kategoriBtnTextActive,
+                      ]}
+                    >
+                      {kat}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Target Nominal */}
+              <Text style={styles.fieldLabel}>
+                Target Nominal ({targetFormKategori === "Al-Quran" ? "Juz" : targetFormKategori === "Hadits" ? "Hadits" : "Bait"})
+              </Text>
+              <TextInput
+                style={styles.textInputFull}
+                value={targetFormNominal}
+                onChangeText={setTargetFormNominal}
+                keyboardType="numeric"
+                placeholder="Misal: 30"
+              />
+
+              {/* Deskripsi Target */}
+              <Text style={styles.fieldLabel}>Deskripsi / Judul Target</Text>
+              <TextInput
+                style={styles.textInputFull}
+                value={targetFormDeskripsi}
+                onChangeText={setTargetFormDeskripsi}
+                placeholder="Misal: Khatam 30 Juz Al-Qur'an"
+              />
+
+              {/* Status Target */}
+              <Text style={styles.fieldLabel}>Status</Text>
+              <View style={styles.kategoriGrid}>
+                {["Aktif", "Selesai", "Dibatalkan"].map((st) => (
+                  <TouchableOpacity
+                    key={st}
+                    style={[
+                      styles.kategoriBtn,
+                      targetFormStatus === st && styles.kategoriBtnActive,
+                    ]}
+                    onPress={() => setTargetFormStatus(st)}
+                  >
+                    <Text
+                      style={[
+                        styles.kategoriBtnText,
+                        targetFormStatus === st && styles.kategoriBtnTextActive,
+                      ]}
+                    >
+                      {st}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Button
+                title={savingTarget ? "Menyimpan..." : "Simpan Target"}
+                onPress={handleSaveTarget}
+                loading={savingTarget}
+                style={{ marginTop: 14 }}
+              />
+            </ScrollView>
           </View>
         </SafeAreaView>
       </Modal>
@@ -1835,6 +2014,17 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     padding: 0,
   },
+  textInputFull: {
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 42,
+    fontSize: 12,
+    color: "#1e293b",
+    marginBottom: 10,
+  },
   dropdownTrigger: {
     flexDirection: "row",
     alignItems: "center",
@@ -1931,7 +2121,6 @@ const styles = StyleSheet.create({
     color: "#1e293b",
     textAlignVertical: "top",
   },
-  // Kolosal specific styles
   halaqahPills: {
     flexDirection: "row",
     marginBottom: 12,
@@ -1956,43 +2145,6 @@ const styles = StyleSheet.create({
   },
   halaqahPillTextActive: {
     color: "#15803d",
-  },
-  quickApplyBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#0f172a",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 10,
-  },
-  quickApplyInfo: {
-    flex: 1,
-    marginRight: 8,
-  },
-  quickApplyTitle: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: "#f8fafc",
-  },
-  quickApplyDesc: {
-    fontSize: 10,
-    color: "#94a3b8",
-    marginTop: 2,
-  },
-  applyBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#059669",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    gap: 4,
-  },
-  applyBtnText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#ffffff",
   },
   selectionRow: {
     flexDirection: "row",
@@ -2145,7 +2297,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: "#1e293b",
   },
-  // Riwayat Tab Styles
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -2189,7 +2340,7 @@ const styles = StyleSheet.create({
   emptyBox: {
     alignItems: "center",
     justifyContent: "center",
-    padding: 40,
+    padding: 30,
     backgroundColor: "#ffffff",
     borderRadius: 18,
     borderWidth: 1,
@@ -2199,12 +2350,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "800",
     color: "#475569",
-    marginTop: 12,
+    marginTop: 10,
   },
   emptySubtitle: {
     fontSize: 11,
     color: "#94a3b8",
     marginTop: 4,
+    textAlign: "center",
   },
   riwayatCard: {
     backgroundColor: "#ffffff",
@@ -2294,7 +2446,6 @@ const styles = StyleSheet.create({
     color: "#94a3b8",
     fontStyle: "italic",
   },
-  // Halaqah Tab
   halaqahHeaderBox: {
     marginBottom: 4,
   },
@@ -2379,7 +2530,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: "#64748b",
   },
-  // Target Tab
   statsGrid: {
     flexDirection: "row",
     gap: 10,
@@ -2444,6 +2594,22 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: "#64748b",
   },
+  addTargetBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#ecfdf5",
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: "#a7f3d0",
+  },
+  addTargetText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#15803d",
+  },
   progressContainer: {
     marginTop: 10,
     backgroundColor: "#f8fafc",
@@ -2476,7 +2642,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#10b981",
     borderRadius: 3,
   },
-  // Modal Overlays
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",

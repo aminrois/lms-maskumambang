@@ -167,5 +167,38 @@ export const tahfidzService = {
     const res = await apiClient.get(`/tahfidz/target/${siswa_id}`);
     return res.data?.data || [];
   },
+
+  // Tambah target hafalan santri
+  createTarget: async (payload: {
+    siswa_id: number;
+    kategori: "Al-Quran" | "Hadits" | "Matan Ilmu";
+    target_nominal: number;
+    target_deskripsi?: string;
+    tahun_id?: number;
+    status?: string;
+  }) => {
+    const res = await apiClient.post("/tahfidz/target", payload);
+    return res.data;
+  },
+
+  // Update target hafalan santri
+  updateTarget: async (
+    target_id: number,
+    payload: Partial<{
+      kategori: "Al-Quran" | "Hadits" | "Matan Ilmu";
+      target_nominal: number;
+      target_deskripsi?: string;
+      status?: string;
+    }>
+  ) => {
+    const res = await apiClient.patch(`/tahfidz/target/${target_id}`, payload);
+    return res.data;
+  },
+
+  // Hapus target hafalan santri
+  deleteTarget: async (target_id: number) => {
+    const res = await apiClient.delete(`/tahfidz/target/${target_id}`);
+    return res.data;
+  },
 };
 

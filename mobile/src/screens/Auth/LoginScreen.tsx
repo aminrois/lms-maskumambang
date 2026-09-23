@@ -165,7 +165,7 @@ export const LoginScreen = () => {
 
             <Input
               label="Username"
-              placeholder="Masukkan username atau NIP"
+              placeholder="Masukkan username"
               value={identifier}
               onChangeText={(text) => {
                 setIdentifier(text);

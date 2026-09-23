@@ -12,6 +12,7 @@ import {
   FlatList,
   Dimensions,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
@@ -24,7 +25,6 @@ import {
   Compass,
   BookMarked,
   Newspaper,
-  MoreHorizontal,
   Bell,
   ChevronDown,
   ChevronRight,
@@ -42,9 +42,16 @@ import {
   Info,
   User,
   Award,
+  Wallet,
+  CreditCard,
+  Sparkles,
+  ExternalLink,
+  Lock,
 } from "lucide-react-native";
 import { useAuthStore } from "../../store/useAuthStore";
 import { waliService, AnakItem } from "../../api/waliService";
+import { newsService, WordPressPost } from "../../api/newsService";
+import { groupJadwalSessions, GroupedJadwalSesi } from "../../utils/jadwalHelper";
 import {
   getPrayerTimes,
   PrayerTimesData,
@@ -93,15 +100,16 @@ export const ParentDashboardScreen = () => {
   const [showSholatModal, setShowSholatModal] = useState(false);
   const [showKiblatModal, setShowKiblatModal] = useState(false);
   const [showDoaModal, setShowDoaModal] = useState(false);
-  const [selectedDoa, setSelectedDoa] = useState<DoaItem | null>(null);
+  const [showKeuanganModal, setShowKeuanganModal] = useState(false);
   const [showBeritaModal, setShowBeritaModal] = useState(false);
   const [showLainnyaModal, setShowLainnyaModal] = useState(false);
-  const [selectedNews, setSelectedNews] = useState<any | null>(null);
 
   // Wali Modals
   const [showTahfidzModal, setShowTahfidzModal] = useState(false);
+  const [tahfidzFilterKategori, setTahfidzFilterKategori] = useState<string>("Semua");
   const [showPresensiModal, setShowPresensiModal] = useState(false);
   const [showJadwalModal, setShowJadwalModal] = useState(false);
+  const [selectedJadwalHari, setSelectedJadwalHari] = useState<string>(getNamaHariIni());
   const [showLmsModal, setShowLmsModal] = useState(false);
 
   // Santri selection state
@@ -136,6 +144,17 @@ export const ParentDashboardScreen = () => {
     staleTime: 2 * 60 * 1000,
   });
 
+  // Query Berita dari Website Maskumambang
+  const {
+    data: newsPosts = [],
+    isLoading: isLoadingNews,
+    refetch: refetchNews,
+  } = useQuery({
+    queryKey: ["wali-berita-list"],
+    queryFn: () => newsService.getPosts({ per_page: 5 }),
+    staleTime: 5 * 60 * 1000,
+  });
+
   useEffect(() => {
     setPrayerData(getPrayerTimes());
     const interval = setInterval(() => {
@@ -147,7 +166,7 @@ export const ParentDashboardScreen = () => {
   const onRefresh = async () => {
     setRefreshing(true);
     setPrayerData(getPrayerTimes());
-    await Promise.all([refetchAnak(), refetchPerkembangan()]);
+    await Promise.all([refetchAnak(), refetchPerkembangan(), refetchNews()]);
     setRefreshing(false);
   };
 
@@ -167,10 +186,15 @@ export const ParentDashboardScreen = () => {
   const targetPercent = Math.min(100, Math.round((totalJuz / targetNominal) * 100)) || 10;
   const hariIni = getNamaHariIni();
 
-  const jadwalHariIni = useMemo(() => {
-    if (!perkembangan?.jadwalPelajaran) return [];
-    return perkembangan.jadwalPelajaran.filter((j: any) => j.hari === hariIni);
-  }, [perkembangan, hariIni]);
+  // Kelompokkan jadwal pelajaran per sesi yang sinkron
+  const allGroupedJadwal = useMemo<GroupedJadwalSesi[]>(() => {
+    const list = (perkembangan?.jadwalPelajaran as any[]) || [];
+    return groupJadwalSessions(list);
+  }, [perkembangan?.jadwalPelajaran]);
+
+  const jadwalHariIniGrouped = useMemo(() => {
+    return allGroupedJadwal.filter((s) => s.hari === hariIni);
+  }, [allGroupedJadwal, hariIni]);
 
   const latestSetoran = useMemo(() => {
     if (perkembangan?.tahfidz?.recentSetoran?.length) {
@@ -179,36 +203,12 @@ export const ParentDashboardScreen = () => {
     return activeAnak?.tahfidz_setoran?.[0] || null;
   }, [perkembangan, activeAnak]);
 
-  // Berita Pesantren
-  const BERITA_LIST = [
-    {
-      id: "1",
-      title: "Peringatan Maulid Nabi Muhammad SAW di Masjid Jami' Maskumambang",
-      category: "Kegiatan Pesantren",
-      date: "20 September 2025",
-      author: "Humas Pesantren",
-      content:
-        "Ribuan santri dan asatidz memadati Masjid Jami' Pondok Pesantren Maskumambang dalam rangka memperingati Maulid Nabi Muhammad SAW dengan lantunan sholawat dan tausiyah penuh berkah.",
-    },
-    {
-      id: "2",
-      title: "Prestasi Gemilang Santri Maskumambang di Olimpiade Bahasa Arab Nasional",
-      category: "Prestasi Akademik",
-      date: "18 September 2025",
-      author: "Tim Media",
-      content:
-        "Alhamdulillah, santri MA Maskumambang berhasil meraih Juara 1 dan 3 dalam ajang Olimpiade Bahasa Arab (OBA) tingkat Provinsi Jawa Timur.",
-    },
-    {
-      id: "3",
-      title: "Sosialisasi Penerimaan Santri Baru (PSB) Tahun Ajaran 2026/2027",
-      category: "Informasi PSB",
-      date: "15 September 2025",
-      author: "Panitia PSB",
-      content:
-        "Pondok Pesantren Maskumambang membuka pendaftaran santri baru untuk jenjang MI, MTs, MA, dan SMK berbasis asrama tahfidz & kitab kuning.",
-    },
-  ];
+  // Filtered Setoran List untuk Laporan Hafalan
+  const filteredSetoranList = useMemo(() => {
+    const rawList = perkembangan?.tahfidz?.recentSetoran || activeAnak?.tahfidz_setoran || [];
+    if (tahfidzFilterKategori === "Semua") return rawList;
+    return rawList.filter((s: any) => s.kategori === tahfidzFilterKategori);
+  }, [perkembangan, activeAnak, tahfidzFilterKategori]);
 
   return (
     <View style={styles.container}>
@@ -455,7 +455,7 @@ export const ParentDashboardScreen = () => {
               <Text style={styles.gridCardTitle}>LMS Santri</Text>
             </TouchableOpacity>
 
-            {/* 2. Setoran Hafalan */}
+            {/* 2. Laporan Hafalan */}
             <TouchableOpacity
               style={styles.gridCard}
               onPress={() => setShowTahfidzModal(true)}
@@ -464,7 +464,7 @@ export const ParentDashboardScreen = () => {
               <View style={[styles.gridIconCircle, { backgroundColor: "#3b82f6" }]}>
                 <ScrollText size={24} color="#FFFFFF" />
               </View>
-              <Text style={styles.gridCardTitle}>Setoran Hafalan</Text>
+              <Text style={styles.gridCardTitle}>Laporan Hafalan</Text>
             </TouchableOpacity>
 
             {/* 3. Presensi & Absen */}
@@ -517,10 +517,10 @@ export const ParentDashboardScreen = () => {
               <Text style={styles.gridCardTitle}>Doa & Dzikir</Text>
             </TouchableOpacity>
 
-            {/* 7. Berita */}
+            {/* 7. Berita (Langsung navigasi ke Layar Berita seperti Guru) */}
             <TouchableOpacity
               style={styles.gridCard}
-              onPress={() => setShowBeritaModal(true)}
+              onPress={() => navigation.navigate("Berita")}
               activeOpacity={0.8}
             >
               <View style={[styles.gridIconCircle, { backgroundColor: "#f43f5e" }]}>
@@ -529,16 +529,19 @@ export const ParentDashboardScreen = () => {
               <Text style={styles.gridCardTitle}>Berita</Text>
             </TouchableOpacity>
 
-            {/* 8. Lainnya */}
+            {/* 8. Keuangan (SOON / Fitur Mendatang) */}
             <TouchableOpacity
               style={styles.gridCard}
-              onPress={() => setShowLainnyaModal(true)}
+              onPress={() => setShowKeuanganModal(true)}
               activeOpacity={0.8}
             >
-              <View style={[styles.gridIconCircle, { backgroundColor: "#64748b" }]}>
-                <MoreHorizontal size={24} color="#FFFFFF" />
+              <View style={[styles.gridIconCircle, { backgroundColor: "#6366f1" }]}>
+                <Wallet size={24} color="#FFFFFF" />
+                <View style={styles.soonBadge}>
+                  <Text style={styles.soonBadgeText}>SOON</Text>
+                </View>
               </View>
-              <Text style={styles.gridCardTitle}>Lainnya</Text>
+              <Text style={styles.gridCardTitle}>Keuangan</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -547,7 +550,7 @@ export const ParentDashboardScreen = () => {
             4. DUA KARTU PROGRESS & PRESENSI (2 Columns)
         ════════════════════════════════════════════════════════ */}
         <View style={styles.dualCardContainer}>
-          {/* Card Kiri: Progress Tahfidz Santri */}
+          {/* Card Kiri: Progress Laporan Hafalan Santri */}
           <TouchableOpacity
             style={styles.dualCard}
             onPress={() => setShowTahfidzModal(true)}
@@ -556,7 +559,7 @@ export const ParentDashboardScreen = () => {
             <View style={styles.dualCardHeader}>
               <View style={styles.dualCardTitleRow}>
                 <BookOpen size={16} color="#15803d" />
-                <Text style={styles.dualCardTitle}>Tahfidz Santri</Text>
+                <Text style={styles.dualCardTitle}>Laporan Hafalan</Text>
               </View>
               <ChevronRight size={14} color="#94A3B8" />
             </View>
@@ -642,7 +645,7 @@ export const ParentDashboardScreen = () => {
         </View>
 
         {/* ═══════════════════════════════════════════════════════
-            5. KARTU JADWAL PELAJARAN HARI INI
+            5. KARTU JADWAL PELAJARAN HARI INI (Sinkron & Terkelompok)
         ════════════════════════════════════════════════════════ */}
         <View style={styles.jadwalSectionContainer}>
           <TouchableOpacity
@@ -667,19 +670,24 @@ export const ParentDashboardScreen = () => {
               </View>
             </View>
 
-            {jadwalHariIni.length > 0 ? (
+            {jadwalHariIniGrouped.length > 0 ? (
               <View style={styles.jadwalList}>
-                {jadwalHariIni.slice(0, 3).map((item: any, idx: number) => (
+                {jadwalHariIniGrouped.slice(0, 4).map((item, idx) => (
                   <View key={idx} style={styles.jadwalItemRow}>
                     <View style={styles.jadwalTimeBadge}>
                       <Clock size={12} color="#1E293B" />
                       <Text style={styles.jadwalTimeText}>
-                        {item.jam_akademik?.jam_mulai || "07:30"} - {item.jam_akademik?.jam_selesai || "08:30"}
+                        {item.timeRangeStr}
                       </Text>
                     </View>
                     <View style={styles.jadwalInfoCol}>
-                      <Text style={styles.jadwalMapelName}>{item.mata_pelajaran?.nama_mapel || "Pelajaran"}</Text>
-                      <Text style={styles.jadwalGuruName}>{item.pegawai?.nama || "Ustadz / Ustadzah"}</Text>
+                      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                        <Text style={styles.jadwalMapelName}>{item.namaMapel}</Text>
+                        <Text style={styles.jadwalJamKePill}>{item.labelJam}</Text>
+                      </View>
+                      <Text style={styles.jadwalGuruName}>
+                        {item.firstJadwal?.pegawai?.nama || "Ustadz / Ustadzah"}
+                      </Text>
                     </View>
                   </View>
                 ))}
@@ -687,7 +695,7 @@ export const ParentDashboardScreen = () => {
             ) : (
               <View style={styles.jadwalEmptyBox}>
                 <Text style={styles.jadwalEmptyText}>
-                  Tidak ada jam pelajaran kelas pada hari {hariIni}, santri fokus kegiatan asrama & halaqoh.
+                  Tidak ada jadwal mata pelajaran pada hari {hariIni}, santri fokus kegiatan asrama & halaqoh.
                 </Text>
               </View>
             )}
@@ -695,7 +703,7 @@ export const ParentDashboardScreen = () => {
         </View>
 
         {/* ═══════════════════════════════════════════════════════
-            6. BANNER PESANTREN & INFORMASI PENTING
+            6. BANNER PESANTREN & BERITA DARI WEBSITE
         ════════════════════════════════════════════════════════ */}
         <View style={styles.bottomSectionContainer}>
           {/* Banner Dark Navy with Mosque Photo */}
@@ -726,43 +734,55 @@ export const ParentDashboardScreen = () => {
             </View>
           </View>
 
-          {/* Informasi Penting Card */}
+          {/* Informasi & Berita Website Card */}
           <View style={styles.infoPentingCard}>
             <View style={styles.infoPentingHeader}>
-              <Megaphone size={16} color="#162E6E" />
-              <Text style={styles.infoPentingTitle}>Informasi & Pengumuman Wali</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <Newspaper size={16} color="#162E6E" />
+                <Text style={styles.infoPentingTitle}>Kabar & Berita Pesantren</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => navigation.navigate("Berita")}
+                style={{ flexDirection: "row", alignItems: "center" }}
+              >
+                <Text style={{ fontSize: 11, color: "#2563EB", fontWeight: "700" }}>Lihat Semua ›</Text>
+              </TouchableOpacity>
             </View>
 
-            {BERITA_LIST.map((b, idx) => (
-              <TouchableOpacity
-                key={b.id}
-                style={[
-                  styles.infoItem,
-                  idx === BERITA_LIST.length - 1 && { borderBottomWidth: 0 },
-                ]}
-                onPress={() => {
-                  setSelectedNews(b);
-                  setShowBeritaModal(true);
-                }}
-                activeOpacity={0.7}
-              >
-                <View style={styles.infoItemIcon}>
-                  {idx === 0 ? (
-                    <Calendar size={15} color="#1d4ed8" />
-                  ) : idx === 1 ? (
-                    <Award size={15} color="#16a34a" />
-                  ) : (
-                    <Info size={15} color="#d97706" />
-                  )}
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.infoItemTitle} numberOfLines={1}>
-                    {b.title}
-                  </Text>
-                  <Text style={styles.infoItemMeta}>{b.date} • {b.category}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
+            {isLoadingNews ? (
+              <View style={{ paddingVertical: 14, alignItems: "center" }}>
+                <ActivityIndicator size="small" color="#162E6E" />
+                <Text style={{ fontSize: 11, color: "#64748B", marginTop: 4 }}>Memuat berita terkini...</Text>
+              </View>
+            ) : newsPosts.length > 0 ? (
+              newsPosts.slice(0, 3).map((post, idx) => (
+                <TouchableOpacity
+                  key={post.id || idx}
+                  style={[
+                    styles.infoItem,
+                    idx === Math.min(newsPosts.length, 3) - 1 && { borderBottomWidth: 0 },
+                  ]}
+                  onPress={() => navigation.navigate("Berita")}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.infoItemIcon}>
+                    <Sparkles size={14} color="#1D4ED8" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.infoItemTitle} numberOfLines={1}>
+                      {post.title}
+                    </Text>
+                    <Text style={styles.infoItemMeta}>
+                      {post.dateFormatted || "Berita Terkini"} • {post.category || "Berita Pesantren"}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))
+            ) : (
+              <View style={{ paddingVertical: 10, alignItems: "center" }}>
+                <Text style={{ fontSize: 11, color: "#94A3B8" }}>Belum ada kabar berita terbaru.</Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -770,7 +790,7 @@ export const ParentDashboardScreen = () => {
       </ScrollView>
 
       {/* ═══════════════════════════════════════════════════════
-          MODAL 1: MODAL TAHFIDZ & HAFALAN LENGKAP
+          MODAL 1: MODAL LAPORAN HAFALAN SANTRI (LENGKAP)
       ════════════════════════════════════════════════════════ */}
       <Modal visible={showTahfidzModal} animationType="slide" transparent>
         <View style={styles.modalBackdrop}>
@@ -781,8 +801,10 @@ export const ParentDashboardScreen = () => {
                   <BookOpen size={20} color="#1D4ED8" />
                 </View>
                 <View style={{ marginLeft: 10 }}>
-                  <Text style={styles.modalSheetTitle}>Progress Tahfidz Santri</Text>
-                  <Text style={styles.modalSheetSubtitle}>{activeAnak?.nama}</Text>
+                  <Text style={styles.modalSheetTitle}>Laporan Hafalan Santri</Text>
+                  <Text style={styles.modalSheetSubtitle}>
+                    {activeAnak?.nama} {activeAnak?.kelas ? `• ${activeAnak.kelas.nama_kelas}` : ""}
+                  </Text>
                 </View>
               </View>
               <TouchableOpacity onPress={() => setShowTahfidzModal(false)} style={styles.modalCloseBtn}>
@@ -790,40 +812,133 @@ export const ParentDashboardScreen = () => {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={{ padding: 16 }}>
-              {/* Target Card */}
+            <ScrollView style={{ padding: 16 }} showsVerticalScrollIndicator={false}>
+              {/* Target & Progress Card */}
               <View style={styles.tahfidzTargetBox}>
-                <Text style={styles.tahfidzTargetLabel}>Target Hafalan Santri</Text>
-                <Text style={styles.tahfidzTargetValue}>{targetNominal} Juz ({perkembangan?.tahfidz?.targetAktif?.target_deskripsi || "Al-Qur'an"})</Text>
-                <View style={[styles.progressBarBg, { marginTop: 10 }]}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                  <Text style={styles.tahfidzTargetLabel}>Target Hafalan Aktif</Text>
+                  <View style={styles.activeTargetBadge}>
+                    <Text style={styles.activeTargetBadgeText}>
+                      {perkembangan?.tahfidz?.targetAktif?.status || "Aktif"}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.tahfidzTargetValue}>
+                  {targetNominal} {perkembangan?.tahfidz?.targetAktif?.satuan || "Juz"} ({perkembangan?.tahfidz?.targetAktif?.target_deskripsi || "Al-Qur'an"})
+                </Text>
+                <View style={[styles.progressBarBg, { marginTop: 10, height: 8 }]}>
                   <View style={[styles.progressBarFill, { width: `${targetPercent}%`, backgroundColor: "#2563EB" }]} />
                 </View>
-                <Text style={styles.progressStatusText}>{totalJuz} Juz Selesai ({targetPercent}%)</Text>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 6 }}>
+                  <Text style={styles.progressStatusText}>Tercapai: {totalJuz} Juz ({targetPercent}%)</Text>
+                  <Text style={styles.progressStatusText}>{totalSetoran} Total Setoran</Text>
+                </View>
               </View>
 
-              <Text style={styles.modalSectionTitle}>Riwayat Setoran Terbaru</Text>
-              {perkembangan?.tahfidz?.recentSetoran && perkembangan.tahfidz.recentSetoran.length > 0 ? (
-                perkembangan.tahfidz.recentSetoran.map((setoran: any, idx: number) => (
-                  <View key={idx} style={styles.setoranCardItem}>
-                    <View style={styles.setoranCardHeader}>
-                      <Text style={styles.setoranSuratText}>
-                        {setoran.surat_mulai_nama || "Al-Qur'an"} : {setoran.ayat_mulai || 1} – {setoran.ayat_selesai || 7}
-                      </Text>
-                      <View style={styles.kelancaranBadge}>
-                        <Text style={styles.kelancaranBadgeText}>{setoran.kelancaran || "Lancar"}</Text>
-                      </View>
-                    </View>
-                    <Text style={styles.setoranDateText}>
-                      📅 {formatTanggal(setoran.tanggal)} • {setoran.pegawai?.nama || "Ustadz Tahfidz"}
+              {/* Filter Tabs Kategori */}
+              <View style={styles.categoryFilterRow}>
+                {["Semua", "Al-Quran", "Hadits", "Matan Ilmu"].map((kat) => (
+                  <TouchableOpacity
+                    key={kat}
+                    style={[
+                      styles.categoryFilterPill,
+                      tahfidzFilterKategori === kat && styles.categoryFilterPillActive,
+                    ]}
+                    onPress={() => setTahfidzFilterKategori(kat)}
+                  >
+                    <Text
+                      style={[
+                        styles.categoryFilterPillText,
+                        tahfidzFilterKategori === kat && styles.categoryFilterPillTextActive,
+                      ]}
+                    >
+                      {kat}
                     </Text>
-                    {setoran.catatan_guru && (
-                      <Text style={styles.setoranCatatan}>💬 "{setoran.catatan_guru}"</Text>
-                    )}
-                  </View>
-                ))
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Riwayat Setoran */}
+              <Text style={styles.modalSectionTitle}>Riwayat Setoran & Ujian Santri</Text>
+              {filteredSetoranList.length > 0 ? (
+                filteredSetoranList.map((setoran: any, idx: number) => {
+                  const jenisText = setoran.jenis_hafalan || "Setoran Baru";
+                  const isSetoranBaru = jenisText === "Setoran Baru";
+                  const isUjian = jenisText === "Ujian";
+
+                  return (
+                    <View key={idx} style={styles.setoranCardItem}>
+                      <View style={styles.setoranCardHeader}>
+                        <View style={{ flex: 1, marginRight: 8 }}>
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                            <View
+                              style={[
+                                styles.jenisHafalanBadge,
+                                isSetoranBaru
+                                  ? { backgroundColor: "#DCFCE7" }
+                                  : isUjian
+                                  ? { backgroundColor: "#F3E8FF" }
+                                  : { backgroundColor: "#DBEAFE" },
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.jenisHafalanBadgeText,
+                                  isSetoranBaru
+                                    ? { color: "#15803D" }
+                                    : isUjian
+                                    ? { color: "#7E22CE" }
+                                    : { color: "#1D4ED8" },
+                                ]}
+                              >
+                                {jenisText}
+                              </Text>
+                            </View>
+                            <Text style={styles.kategoriTextSmall}>{setoran.kategori || "Al-Quran"}</Text>
+                          </View>
+                          <Text style={styles.setoranSuratText}>
+                            {setoran.surat_mulai_nama || "Al-Qur'an"}
+                            {setoran.ayat_mulai ? ` : ${setoran.ayat_mulai} – ${setoran.ayat_selesai || setoran.ayat_mulai}` : ""}
+                          </Text>
+                        </View>
+                        <View
+                          style={[
+                            styles.kelancaranBadge,
+                            setoran.kelancaran === "Sangat Lancar"
+                              ? { backgroundColor: "#DCFCE7" }
+                              : setoran.kelancaran === "Lancar"
+                              ? { backgroundColor: "#EFF6FF" }
+                              : { backgroundColor: "#FEF3C7" },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.kelancaranBadgeText,
+                              setoran.kelancaran === "Sangat Lancar"
+                                ? { color: "#16A34A" }
+                                : setoran.kelancaran === "Lancar"
+                                ? { color: "#2563EB" }
+                                : { color: "#D97706" },
+                            ]}
+                          >
+                            {setoran.kelancaran || "Lancar"}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={styles.setoranDateText}>
+                        📅 {formatTanggal(setoran.tanggal)} • Ustadz: {setoran.pegawai?.nama || "Pembina Tahfidz"}
+                      </Text>
+                      {setoran.catatan_guru && (
+                        <View style={styles.catatanGuruBox}>
+                          <Text style={styles.setoranCatatan}>💬 "{setoran.catatan_guru}"</Text>
+                        </View>
+                      )}
+                    </View>
+                  );
+                })
               ) : (
                 <View style={styles.emptyCard}>
-                  <Text style={styles.emptyCardText}>Belum ada riwayat setoran hafalan tercatat.</Text>
+                  <Text style={styles.emptyCardText}>Belum ada riwayat setoran pada kategori ini.</Text>
                 </View>
               )}
             </ScrollView>
@@ -874,26 +989,26 @@ export const ParentDashboardScreen = () => {
               </View>
 
               <View style={styles.presensiRateBox}>
-                <Text style={styles.presensiRateLabel}>Tingkat Kehadiran Bulan Ini:</Text>
+                <Text style={styles.presensiRateLabel}>Tingkat Kehadiran 30 Hari Terakhir:</Text>
                 <Text style={styles.presensiRateValue}>{persentaseHadir}%</Text>
               </View>
 
-              <Text style={styles.modalSectionTitle}>Riwayat Kehadiran 30 Hari Terakhir</Text>
+              <Text style={styles.modalSectionTitle}>Riwayat Kehadiran Terbaru</Text>
               {perkembangan?.presensi?.riwayat && perkembangan.presensi.riwayat.length > 0 ? (
                 perkembangan.presensi.riwayat.map((item: any, idx: number) => (
                   <View key={idx} style={styles.presensiHistoryRow}>
                     <View>
                       <Text style={styles.presensiDateText}>{formatTanggal(item.tanggal)}</Text>
-                      <Text style={styles.presensiMapelText}>{item.keterangan || "Presensi Harian"}</Text>
+                      <Text style={styles.presensiMapelText}>{item.keterangan || "Presensi Harian Santri"}</Text>
                     </View>
                     <View
                       style={[
                         styles.presensiStatusTag,
-                        item.status === "H"
+                        item.status === "Hadir" || item.status === "H"
                           ? { backgroundColor: "#DCFCE7" }
-                          : item.status === "I"
+                          : item.status === "Izin" || item.status === "I"
                           ? { backgroundColor: "#FEF9C3" }
-                          : item.status === "S"
+                          : item.status === "Sakit" || item.status === "S"
                           ? { backgroundColor: "#EFF6FF" }
                           : { backgroundColor: "#FEE2E2" },
                       ]}
@@ -901,16 +1016,16 @@ export const ParentDashboardScreen = () => {
                       <Text
                         style={[
                           styles.presensiStatusTagText,
-                          item.status === "H"
+                          item.status === "Hadir" || item.status === "H"
                             ? { color: "#16A34A" }
-                            : item.status === "I"
+                            : item.status === "Izin" || item.status === "I"
                             ? { color: "#B45309" }
-                            : item.status === "S"
+                            : item.status === "Sakit" || item.status === "S"
                             ? { color: "#2563EB" }
                             : { color: "#DC2626" },
                         ]}
                       >
-                        {item.status === "H" ? "Hadir" : item.status === "I" ? "Izin" : item.status === "S" ? "Sakit" : "Alpa"}
+                        {item.status}
                       </Text>
                     </View>
                   </View>
@@ -926,7 +1041,7 @@ export const ParentDashboardScreen = () => {
       </Modal>
 
       {/* ═══════════════════════════════════════════════════════
-          MODAL 3: MODAL JADWAL PELAJARAN MINGGUAN
+          MODAL 3: MODAL JADWAL PELAJARAN MINGGUAN (SINKRON)
       ════════════════════════════════════════════════════════ */}
       <Modal visible={showJadwalModal} animationType="slide" transparent>
         <View style={styles.modalBackdrop}>
@@ -938,7 +1053,9 @@ export const ParentDashboardScreen = () => {
                 </View>
                 <View style={{ marginLeft: 10 }}>
                   <Text style={styles.modalSheetTitle}>Jadwal Pelajaran Santri</Text>
-                  <Text style={styles.modalSheetSubtitle}>{activeAnak?.nama} • {activeAnak?.kelas?.nama_kelas}</Text>
+                  <Text style={styles.modalSheetSubtitle}>
+                    {activeAnak?.nama} • {activeAnak?.kelas?.nama_kelas}
+                  </Text>
                 </View>
               </View>
               <TouchableOpacity onPress={() => setShowJadwalModal(false)} style={styles.modalCloseBtn}>
@@ -946,31 +1063,71 @@ export const ParentDashboardScreen = () => {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={{ padding: 16 }}>
-              {HARI_ORDER.map((hariName) => {
-                const mapels = perkembangan?.jadwalPelajaran?.filter((j: any) => j.hari === hariName) || [];
-                return (
-                  <View key={hariName} style={styles.jadwalDaySection}>
-                    <View style={styles.jadwalDayHeader}>
-                      <Text style={styles.jadwalDayTitle}>{hariName}</Text>
-                      <Text style={styles.jadwalDayCount}>{mapels.length} Pelajaran</Text>
-                    </View>
-                    {mapels.length > 0 ? (
-                      mapels.map((m: any, idx: number) => (
-                        <View key={idx} style={styles.jadwalDayItem}>
-                          <Text style={styles.jadwalDayTime}>
-                            {m.jam_akademik?.jam_mulai || "07:30"} - {m.jam_akademik?.jam_selesai || "08:30"}
+            {/* Day Selector Horizontal Bar */}
+            <View style={styles.daySelectorBar}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 12 }}>
+                {HARI_ORDER.map((hariName) => {
+                  const daySessions = allGroupedJadwal.filter((j) => j.hari === hariName);
+                  const isSelected = selectedJadwalHari === hariName;
+                  return (
+                    <TouchableOpacity
+                      key={hariName}
+                      style={[styles.daySelectorPill, isSelected && styles.daySelectorPillActive]}
+                      onPress={() => setSelectedJadwalHari(hariName)}
+                    >
+                      <Text style={[styles.daySelectorPillText, isSelected && styles.daySelectorPillTextActive]}>
+                        {hariName}
+                      </Text>
+                      {daySessions.length > 0 && (
+                        <View style={[styles.dayCountBadge, isSelected && styles.dayCountBadgeActive]}>
+                          <Text style={[styles.dayCountBadgeText, isSelected && styles.dayCountBadgeTextActive]}>
+                            {daySessions.length}
                           </Text>
-                          <Text style={styles.jadwalDaySubject}>{m.mata_pelajaran?.nama_mapel || "Pelajaran"}</Text>
-                          <Text style={styles.jadwalDayTeacher}>{m.pegawai?.nama || "Ustadz"}</Text>
                         </View>
-                      ))
-                    ) : (
-                      <Text style={styles.jadwalDayEmpty}>Tidak ada jam pelajaran utama (kegiatan asrama / libur).</Text>
-                    )}
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+
+            <ScrollView style={{ padding: 16 }}>
+              {(() => {
+                const daySessions = allGroupedJadwal.filter((j) => j.hari === selectedJadwalHari);
+
+                if (daySessions.length === 0) {
+                  return (
+                    <View style={styles.emptyCard}>
+                      <Text style={styles.emptyCardText}>
+                        Tidak ada jam pelajaran kelas pada hari {selectedJadwalHari}.{"\n"}Santri fokus kegiatan asrama, tahfidz, atau ekstrakurikuler.
+                      </Text>
+                    </View>
+                  );
+                }
+
+                return daySessions.map((session, idx) => (
+                  <View key={session.sesiKey || idx} style={styles.jadwalSessionCard}>
+                    <View style={styles.jadwalSessionHeader}>
+                      <View style={styles.jadwalSessionTimeBadge}>
+                        <Clock size={12} color="#1E3A8A" />
+                        <Text style={styles.jadwalSessionTimeText}>{session.timeRangeStr}</Text>
+                      </View>
+                      <View style={styles.jadwalSessionJamBadge}>
+                        <Text style={styles.jadwalSessionJamText}>{session.labelJam}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.jadwalSessionMapel}>{session.namaMapel}</Text>
+                    <View style={styles.jadwalSessionFooter}>
+                      <Text style={styles.jadwalSessionGuru}>
+                        👤 {session.firstJadwal?.pegawai?.nama || "Guru Pengampu"}
+                      </Text>
+                      <Text style={styles.jadwalSessionKelas}>
+                        🏫 {session.namaKelas}
+                      </Text>
+                    </View>
                   </View>
-                );
-              })}
+                ));
+              })()}
             </ScrollView>
           </View>
         </View>
@@ -1181,33 +1338,76 @@ export const ParentDashboardScreen = () => {
       </Modal>
 
       {/* ═══════════════════════════════════════════════════════
-          MODAL 9: BERITA & PENGUMUMAN
+          MODAL 9: KEUANGAN SANTRI (SOON / COMING SOON)
       ════════════════════════════════════════════════════════ */}
-      <Modal visible={showBeritaModal} animationType="slide" transparent>
+      <Modal visible={showKeuanganModal} animationType="slide" transparent>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalSheetContainer}>
             <View style={styles.modalSheetHeader}>
-              <Text style={styles.modalSheetTitle}>Berita & Informasi Pesantren</Text>
-              <TouchableOpacity onPress={() => setShowBeritaModal(false)} style={styles.modalCloseBtn}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <View style={[styles.modalHeaderIconCircle, { backgroundColor: "#EEF2FF" }]}>
+                  <Wallet size={20} color="#4F46E5" />
+                </View>
+                <View style={{ marginLeft: 10 }}>
+                  <Text style={styles.modalSheetTitle}>Keuangan & Tagihan Santri</Text>
+                  <Text style={styles.modalSheetSubtitle}>Fitur Mendatang (Coming Soon)</Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={() => setShowKeuanganModal(false)} style={styles.modalCloseBtn}>
                 <X size={20} color="#64748B" />
               </TouchableOpacity>
             </View>
-            <ScrollView style={{ padding: 16 }}>
-              {BERITA_LIST.map((b) => (
-                <View key={b.id} style={styles.newsDetailCard}>
-                  <Text style={styles.newsDetailBadge}>{b.category}</Text>
-                  <Text style={styles.newsDetailTitle}>{b.title}</Text>
-                  <Text style={styles.newsDetailDate}>{b.date} • {b.author}</Text>
-                  <Text style={styles.newsDetailContent}>{b.content}</Text>
+
+            <ScrollView style={{ padding: 20 }}>
+              <View style={styles.soonHeroBox}>
+                <View style={styles.soonIconCircle}>
+                  <CreditCard size={36} color="#4F46E5" />
                 </View>
-              ))}
+                <Text style={styles.soonHeroTitle}>Layanan Pembayaran Digital</Text>
+                <Text style={styles.soonHeroDesc}>
+                  Fitur pembayaran SPP santri, uang saku / e-wallet, infaq, dan riwayat tagihan bulanan sedang dalam tahap finalisasi dan akan segera aktif.
+                </Text>
+              </View>
+
+              <Text style={styles.modalSectionTitle}>Rencana Fitur Keuangan:</Text>
+              
+              <View style={styles.soonFeatureRow}>
+                <View style={styles.soonFeatureDot} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.soonFeatureTitle}>Pembayaran SPP & Biaya Pendidikan</Text>
+                  <Text style={styles.soonFeatureSub}>Mendukung Virtual Account bank nasional & QRIS otomatis.</Text>
+                </View>
+              </View>
+
+              <View style={styles.soonFeatureRow}>
+                <View style={styles.soonFeatureDot} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.soonFeatureTitle}>E-Wallet / Uang Saku Santri</Text>
+                  <Text style={styles.soonFeatureSub}>Top-up saldo santri untuk belanja di koperasi pesantren secara cashless.</Text>
+                </View>
+              </View>
+
+              <View style={styles.soonFeatureRow}>
+                <View style={styles.soonFeatureDot} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.soonFeatureTitle}>Riwayat & Bukti Transaksi Resmi</Text>
+                  <Text style={styles.soonFeatureSub}>Unduh kuitansi resmi pembayaran langsung dari aplikasi mobile.</Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={styles.soonCloseBtn}
+                onPress={() => setShowKeuanganModal(false)}
+              >
+                <Text style={styles.soonCloseBtnText}>Mengerti</Text>
+              </TouchableOpacity>
             </ScrollView>
           </View>
         </View>
       </Modal>
 
       {/* ═══════════════════════════════════════════════════════
-          MODAL 10: LAINNYA / PROFIL PESANTREN
+          MODAL 10: PROFIL & INFORMASI PESANTREN
       ════════════════════════════════════════════════════════ */}
       <Modal visible={showLainnyaModal} animationType="slide" transparent>
         <View style={styles.modalBackdrop}>
@@ -2356,5 +2556,289 @@ const styles = StyleSheet.create({
     color: "#334155",
     fontSize: 11.5,
     lineHeight: 18,
+  },
+
+  // SOON Badge
+  soonBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    backgroundColor: "#EF4444",
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: "#FFFFFF",
+  },
+  soonBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 7.5,
+    fontWeight: "900",
+  },
+
+  // Laporan Hafalan Extras
+  activeTargetBadge: {
+    backgroundColor: "#DCFCE7",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  activeTargetBadgeText: {
+    color: "#16A34A",
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  categoryFilterRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginVertical: 12,
+  },
+  categoryFilterPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: "#F1F5F9",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  categoryFilterPillActive: {
+    backgroundColor: "#162E6E",
+    borderColor: "#162E6E",
+  },
+  categoryFilterPillText: {
+    color: "#64748B",
+    fontSize: 11.5,
+    fontWeight: "600",
+  },
+  categoryFilterPillTextActive: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+  jenisHafalanBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  jenisHafalanBadgeText: {
+    fontSize: 9.5,
+    fontWeight: "700",
+  },
+  kategoriTextSmall: {
+    fontSize: 10,
+    color: "#64748B",
+    fontWeight: "500",
+  },
+  catatanGuruBox: {
+    backgroundColor: "#F1F5F9",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginTop: 6,
+  },
+
+  // Jadwal Extras
+  jadwalJamKePill: {
+    backgroundColor: "#EFF6FF",
+    color: "#1D4ED8",
+    fontSize: 10,
+    fontWeight: "700",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  daySelectorBar: {
+    backgroundColor: "#F8FAFC",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
+    paddingVertical: 8,
+  },
+  daySelectorPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    marginRight: 8,
+  },
+  daySelectorPillActive: {
+    backgroundColor: "#162E6E",
+    borderColor: "#162E6E",
+  },
+  daySelectorPillText: {
+    color: "#475569",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  daySelectorPillTextActive: {
+    color: "#FFFFFF",
+    fontWeight: "800",
+  },
+  dayCountBadge: {
+    backgroundColor: "#E2E8F0",
+    borderRadius: 10,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    marginLeft: 5,
+  },
+  dayCountBadgeActive: {
+    backgroundColor: "rgba(255, 255, 255, 0.25)",
+  },
+  dayCountBadgeText: {
+    color: "#334155",
+    fontSize: 9.5,
+    fontWeight: "800",
+  },
+  dayCountBadgeTextActive: {
+    color: "#FFFFFF",
+  },
+  jadwalSessionCard: {
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  jadwalSessionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 6,
+  },
+  jadwalSessionTimeBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#EFF6FF",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    gap: 4,
+  },
+  jadwalSessionTimeText: {
+    color: "#1E40AF",
+    fontSize: 10.5,
+    fontWeight: "700",
+  },
+  jadwalSessionJamBadge: {
+    backgroundColor: "#F1F5F9",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  jadwalSessionJamText: {
+    color: "#475569",
+    fontSize: 10.5,
+    fontWeight: "700",
+  },
+  jadwalSessionMapel: {
+    color: "#0F172A",
+    fontSize: 14,
+    fontWeight: "800",
+    marginBottom: 6,
+  },
+  jadwalSessionFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderTopWidth: 1,
+    borderTopColor: "#F8FAFC",
+    paddingTop: 6,
+  },
+  jadwalSessionGuru: {
+    color: "#64748B",
+    fontSize: 11,
+    fontWeight: "500",
+  },
+  jadwalSessionKelas: {
+    color: "#059669",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+
+  // Keuangan SOON Modal
+  soonHeroBox: {
+    backgroundColor: "#EEF2FF",
+    borderWidth: 1,
+    borderColor: "#C7D2FE",
+    borderRadius: 16,
+    padding: 16,
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  soonIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+    shadowColor: "#4F46E5",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  soonHeroTitle: {
+    color: "#1E1B4B",
+    fontSize: 16,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  soonHeroDesc: {
+    color: "#4338CA",
+    fontSize: 11.5,
+    textAlign: "center",
+    lineHeight: 18,
+    marginTop: 6,
+  },
+  soonFeatureRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 8,
+  },
+  soonFeatureDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#4F46E5",
+    marginTop: 5,
+    marginRight: 10,
+  },
+  soonFeatureTitle: {
+    color: "#0F172A",
+    fontSize: 12.5,
+    fontWeight: "700",
+  },
+  soonFeatureSub: {
+    color: "#64748B",
+    fontSize: 11,
+    marginTop: 2,
+    lineHeight: 15,
+  },
+  soonCloseBtn: {
+    backgroundColor: "#162E6E",
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: "center",
+    marginTop: 14,
+  },
+  soonCloseBtnText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "800",
   },
 });
