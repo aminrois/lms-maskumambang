@@ -446,7 +446,7 @@ export const ParentDashboardScreen = () => {
             {/* 1. LMS Santri */}
             <TouchableOpacity
               style={styles.gridCard}
-              onPress={() => setShowLmsModal(true)}
+              onPress={() => navigation.navigate("WaliLms", { siswaId: selectedSiswaId })}
               activeOpacity={0.8}
             >
               <View style={[styles.gridIconCircle, { backgroundColor: "#10b981" }]}>
@@ -458,7 +458,7 @@ export const ParentDashboardScreen = () => {
             {/* 2. Laporan Hafalan */}
             <TouchableOpacity
               style={styles.gridCard}
-              onPress={() => setShowTahfidzModal(true)}
+              onPress={() => navigation.navigate("WaliLaporanHafalan", { siswaId: selectedSiswaId })}
               activeOpacity={0.8}
             >
               <View style={[styles.gridIconCircle, { backgroundColor: "#3b82f6" }]}>
@@ -467,10 +467,10 @@ export const ParentDashboardScreen = () => {
               <Text style={styles.gridCardTitle}>Laporan Hafalan</Text>
             </TouchableOpacity>
 
-            {/* 3. Presensi & Absen */}
+            {/* 3. Presensi Santri */}
             <TouchableOpacity
               style={styles.gridCard}
-              onPress={() => setShowPresensiModal(true)}
+              onPress={() => navigation.navigate("WaliPresensi", { siswaId: selectedSiswaId })}
               activeOpacity={0.8}
             >
               <View style={[styles.gridIconCircle, { backgroundColor: "#8b5cf6" }]}>
@@ -482,7 +482,7 @@ export const ParentDashboardScreen = () => {
             {/* 4. Jadwal Pelajaran */}
             <TouchableOpacity
               style={styles.gridCard}
-              onPress={() => setShowJadwalModal(true)}
+              onPress={() => navigation.navigate("WaliJadwal", { siswaId: selectedSiswaId })}
               activeOpacity={0.8}
             >
               <View style={[styles.gridIconCircle, { backgroundColor: "#059669" }]}>
@@ -532,7 +532,7 @@ export const ParentDashboardScreen = () => {
             {/* 8. Keuangan (SOON / Fitur Mendatang) */}
             <TouchableOpacity
               style={styles.gridCard}
-              onPress={() => setShowKeuanganModal(true)}
+              onPress={() => navigation.navigate("WaliKeuangan", { siswaId: selectedSiswaId })}
               activeOpacity={0.8}
             >
               <View style={[styles.gridIconCircle, { backgroundColor: "#6366f1" }]}>
@@ -553,7 +553,7 @@ export const ParentDashboardScreen = () => {
           {/* Card Kiri: Progress Laporan Hafalan Santri */}
           <TouchableOpacity
             style={styles.dualCard}
-            onPress={() => setShowTahfidzModal(true)}
+            onPress={() => navigation.navigate("WaliLaporanHafalan", { siswaId: selectedSiswaId })}
             activeOpacity={0.85}
           >
             <View style={styles.dualCardHeader}>
@@ -584,7 +584,7 @@ export const ParentDashboardScreen = () => {
                     : "Belum ada setoran"}
                 </Text>
                 <Text style={styles.hafalanHalaman}>
-                  {latestSetoran?.kelancaran || "Siap Setoran"}
+                  {latestSetoran?.kelancaran || "Lihat Rapor Hafalan ›"}
                 </Text>
 
                 <View style={styles.progressBarBg}>
@@ -600,7 +600,7 @@ export const ParentDashboardScreen = () => {
           {/* Card Kanan: Presensi & Absensi */}
           <TouchableOpacity
             style={styles.dualCard}
-            onPress={() => setShowPresensiModal(true)}
+            onPress={() => navigation.navigate("WaliPresensi", { siswaId: selectedSiswaId })}
             activeOpacity={0.85}
           >
             <View style={styles.dualCardHeader}>
@@ -639,7 +639,7 @@ export const ParentDashboardScreen = () => {
                   ]}
                 />
               </View>
-              <Text style={styles.progressStatusText}>Status: Aktif Belajar</Text>
+              <Text style={styles.progressStatusText}>Lihat Rekapitulasi ›</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -650,7 +650,7 @@ export const ParentDashboardScreen = () => {
         <View style={styles.jadwalSectionContainer}>
           <TouchableOpacity
             style={styles.jadwalCard}
-            onPress={() => setShowJadwalModal(true)}
+            onPress={() => navigation.navigate("WaliJadwal", { siswaId: selectedSiswaId })}
             activeOpacity={0.9}
           >
             <View style={styles.jadwalCardHeader}>
@@ -666,7 +666,7 @@ export const ParentDashboardScreen = () => {
                 </View>
               </View>
               <View style={styles.jadwalBadge}>
-                <Text style={styles.jadwalBadgeText}>Lihat Semua ▾</Text>
+                <Text style={styles.jadwalBadgeText}>Lihat Semua ›</Text>
               </View>
             </View>
 
@@ -790,404 +790,7 @@ export const ParentDashboardScreen = () => {
       </ScrollView>
 
       {/* ═══════════════════════════════════════════════════════
-          MODAL 1: MODAL LAPORAN HAFALAN SANTRI (LENGKAP)
-      ════════════════════════════════════════════════════════ */}
-      <Modal visible={showTahfidzModal} animationType="slide" transparent>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalSheetContainer}>
-            <View style={styles.modalSheetHeader}>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <View style={[styles.modalHeaderIconCircle, { backgroundColor: "#DBEAFE" }]}>
-                  <BookOpen size={20} color="#1D4ED8" />
-                </View>
-                <View style={{ marginLeft: 10 }}>
-                  <Text style={styles.modalSheetTitle}>Laporan Hafalan Santri</Text>
-                  <Text style={styles.modalSheetSubtitle}>
-                    {activeAnak?.nama} {activeAnak?.kelas ? `• ${activeAnak.kelas.nama_kelas}` : ""}
-                  </Text>
-                </View>
-              </View>
-              <TouchableOpacity onPress={() => setShowTahfidzModal(false)} style={styles.modalCloseBtn}>
-                <X size={20} color="#64748B" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={{ padding: 16 }} showsVerticalScrollIndicator={false}>
-              {/* Target & Progress Card */}
-              <View style={styles.tahfidzTargetBox}>
-                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                  <Text style={styles.tahfidzTargetLabel}>Target Hafalan Aktif</Text>
-                  <View style={styles.activeTargetBadge}>
-                    <Text style={styles.activeTargetBadgeText}>
-                      {perkembangan?.tahfidz?.targetAktif?.status || "Aktif"}
-                    </Text>
-                  </View>
-                </View>
-                <Text style={styles.tahfidzTargetValue}>
-                  {targetNominal} {perkembangan?.tahfidz?.targetAktif?.satuan || "Juz"} ({perkembangan?.tahfidz?.targetAktif?.target_deskripsi || "Al-Qur'an"})
-                </Text>
-                <View style={[styles.progressBarBg, { marginTop: 10, height: 8 }]}>
-                  <View style={[styles.progressBarFill, { width: `${targetPercent}%`, backgroundColor: "#2563EB" }]} />
-                </View>
-                <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 6 }}>
-                  <Text style={styles.progressStatusText}>Tercapai: {totalJuz} Juz ({targetPercent}%)</Text>
-                  <Text style={styles.progressStatusText}>{totalSetoran} Total Setoran</Text>
-                </View>
-              </View>
-
-              {/* Filter Tabs Kategori */}
-              <View style={styles.categoryFilterRow}>
-                {["Semua", "Al-Quran", "Hadits", "Matan Ilmu"].map((kat) => (
-                  <TouchableOpacity
-                    key={kat}
-                    style={[
-                      styles.categoryFilterPill,
-                      tahfidzFilterKategori === kat && styles.categoryFilterPillActive,
-                    ]}
-                    onPress={() => setTahfidzFilterKategori(kat)}
-                  >
-                    <Text
-                      style={[
-                        styles.categoryFilterPillText,
-                        tahfidzFilterKategori === kat && styles.categoryFilterPillTextActive,
-                      ]}
-                    >
-                      {kat}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              {/* Riwayat Setoran */}
-              <Text style={styles.modalSectionTitle}>Riwayat Setoran & Ujian Santri</Text>
-              {filteredSetoranList.length > 0 ? (
-                filteredSetoranList.map((setoran: any, idx: number) => {
-                  const jenisText = setoran.jenis_hafalan || "Setoran Baru";
-                  const isSetoranBaru = jenisText === "Setoran Baru";
-                  const isUjian = jenisText === "Ujian";
-
-                  return (
-                    <View key={idx} style={styles.setoranCardItem}>
-                      <View style={styles.setoranCardHeader}>
-                        <View style={{ flex: 1, marginRight: 8 }}>
-                          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                            <View
-                              style={[
-                                styles.jenisHafalanBadge,
-                                isSetoranBaru
-                                  ? { backgroundColor: "#DCFCE7" }
-                                  : isUjian
-                                  ? { backgroundColor: "#F3E8FF" }
-                                  : { backgroundColor: "#DBEAFE" },
-                              ]}
-                            >
-                              <Text
-                                style={[
-                                  styles.jenisHafalanBadgeText,
-                                  isSetoranBaru
-                                    ? { color: "#15803D" }
-                                    : isUjian
-                                    ? { color: "#7E22CE" }
-                                    : { color: "#1D4ED8" },
-                                ]}
-                              >
-                                {jenisText}
-                              </Text>
-                            </View>
-                            <Text style={styles.kategoriTextSmall}>{setoran.kategori || "Al-Quran"}</Text>
-                          </View>
-                          <Text style={styles.setoranSuratText}>
-                            {setoran.surat_mulai_nama || "Al-Qur'an"}
-                            {setoran.ayat_mulai ? ` : ${setoran.ayat_mulai} – ${setoran.ayat_selesai || setoran.ayat_mulai}` : ""}
-                          </Text>
-                        </View>
-                        <View
-                          style={[
-                            styles.kelancaranBadge,
-                            setoran.kelancaran === "Sangat Lancar"
-                              ? { backgroundColor: "#DCFCE7" }
-                              : setoran.kelancaran === "Lancar"
-                              ? { backgroundColor: "#EFF6FF" }
-                              : { backgroundColor: "#FEF3C7" },
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.kelancaranBadgeText,
-                              setoran.kelancaran === "Sangat Lancar"
-                                ? { color: "#16A34A" }
-                                : setoran.kelancaran === "Lancar"
-                                ? { color: "#2563EB" }
-                                : { color: "#D97706" },
-                            ]}
-                          >
-                            {setoran.kelancaran || "Lancar"}
-                          </Text>
-                        </View>
-                      </View>
-                      <Text style={styles.setoranDateText}>
-                        📅 {formatTanggal(setoran.tanggal)} • Ustadz: {setoran.pegawai?.nama || "Pembina Tahfidz"}
-                      </Text>
-                      {setoran.catatan_guru && (
-                        <View style={styles.catatanGuruBox}>
-                          <Text style={styles.setoranCatatan}>💬 "{setoran.catatan_guru}"</Text>
-                        </View>
-                      )}
-                    </View>
-                  );
-                })
-              ) : (
-                <View style={styles.emptyCard}>
-                  <Text style={styles.emptyCardText}>Belum ada riwayat setoran pada kategori ini.</Text>
-                </View>
-              )}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      {/* ═══════════════════════════════════════════════════════
-          MODAL 2: MODAL PRESENSI & REKAP KEHADIRAN
-      ════════════════════════════════════════════════════════ */}
-      <Modal visible={showPresensiModal} animationType="slide" transparent>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalSheetContainer}>
-            <View style={styles.modalSheetHeader}>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <View style={[styles.modalHeaderIconCircle, { backgroundColor: "#DCFCE7" }]}>
-                  <CheckCircle2 size={20} color="#16A34A" />
-                </View>
-                <View style={{ marginLeft: 10 }}>
-                  <Text style={styles.modalSheetTitle}>Rekapitulasi Presensi</Text>
-                  <Text style={styles.modalSheetSubtitle}>{activeAnak?.nama}</Text>
-                </View>
-              </View>
-              <TouchableOpacity onPress={() => setShowPresensiModal(false)} style={styles.modalCloseBtn}>
-                <X size={20} color="#64748B" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={{ padding: 16 }}>
-              {/* 4 Stats Grid */}
-              <View style={styles.presensiStatsGrid}>
-                <View style={[styles.presensiStatCard, { backgroundColor: "#F0FDF4" }]}>
-                  <Text style={[styles.presensiStatNumber, { color: "#16A34A" }]}>{rekap?.hadir || 0}</Text>
-                  <Text style={styles.presensiStatLabel}>Hadir</Text>
-                </View>
-                <View style={[styles.presensiStatCard, { backgroundColor: "#FEF9C3" }]}>
-                  <Text style={[styles.presensiStatNumber, { color: "#B45309" }]}>{rekap?.izin || 0}</Text>
-                  <Text style={styles.presensiStatLabel}>Izin</Text>
-                </View>
-                <View style={[styles.presensiStatCard, { backgroundColor: "#EFF6FF" }]}>
-                  <Text style={[styles.presensiStatNumber, { color: "#2563EB" }]}>{rekap?.sakit || 0}</Text>
-                  <Text style={styles.presensiStatLabel}>Sakit</Text>
-                </View>
-                <View style={[styles.presensiStatCard, { backgroundColor: "#FEF2F2" }]}>
-                  <Text style={[styles.presensiStatNumber, { color: "#DC2626" }]}>{rekap?.alpa || 0}</Text>
-                  <Text style={styles.presensiStatLabel}>Alpa</Text>
-                </View>
-              </View>
-
-              <View style={styles.presensiRateBox}>
-                <Text style={styles.presensiRateLabel}>Tingkat Kehadiran 30 Hari Terakhir:</Text>
-                <Text style={styles.presensiRateValue}>{persentaseHadir}%</Text>
-              </View>
-
-              <Text style={styles.modalSectionTitle}>Riwayat Kehadiran Terbaru</Text>
-              {perkembangan?.presensi?.riwayat && perkembangan.presensi.riwayat.length > 0 ? (
-                perkembangan.presensi.riwayat.map((item: any, idx: number) => (
-                  <View key={idx} style={styles.presensiHistoryRow}>
-                    <View>
-                      <Text style={styles.presensiDateText}>{formatTanggal(item.tanggal)}</Text>
-                      <Text style={styles.presensiMapelText}>{item.keterangan || "Presensi Harian Santri"}</Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.presensiStatusTag,
-                        item.status === "Hadir" || item.status === "H"
-                          ? { backgroundColor: "#DCFCE7" }
-                          : item.status === "Izin" || item.status === "I"
-                          ? { backgroundColor: "#FEF9C3" }
-                          : item.status === "Sakit" || item.status === "S"
-                          ? { backgroundColor: "#EFF6FF" }
-                          : { backgroundColor: "#FEE2E2" },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.presensiStatusTagText,
-                          item.status === "Hadir" || item.status === "H"
-                            ? { color: "#16A34A" }
-                            : item.status === "Izin" || item.status === "I"
-                            ? { color: "#B45309" }
-                            : item.status === "Sakit" || item.status === "S"
-                            ? { color: "#2563EB" }
-                            : { color: "#DC2626" },
-                        ]}
-                      >
-                        {item.status}
-                      </Text>
-                    </View>
-                  </View>
-                ))
-              ) : (
-                <View style={styles.emptyCard}>
-                  <Text style={styles.emptyCardText}>Data presensi santri bulan ini belum tercatat.</Text>
-                </View>
-              )}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      {/* ═══════════════════════════════════════════════════════
-          MODAL 3: MODAL JADWAL PELAJARAN MINGGUAN (SINKRON)
-      ════════════════════════════════════════════════════════ */}
-      <Modal visible={showJadwalModal} animationType="slide" transparent>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalSheetContainer}>
-            <View style={styles.modalSheetHeader}>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <View style={[styles.modalHeaderIconCircle, { backgroundColor: "#EDE9FE" }]}>
-                  <Calendar size={20} color="#7C3AED" />
-                </View>
-                <View style={{ marginLeft: 10 }}>
-                  <Text style={styles.modalSheetTitle}>Jadwal Pelajaran Santri</Text>
-                  <Text style={styles.modalSheetSubtitle}>
-                    {activeAnak?.nama} • {activeAnak?.kelas?.nama_kelas}
-                  </Text>
-                </View>
-              </View>
-              <TouchableOpacity onPress={() => setShowJadwalModal(false)} style={styles.modalCloseBtn}>
-                <X size={20} color="#64748B" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Day Selector Horizontal Bar */}
-            <View style={styles.daySelectorBar}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 12 }}>
-                {HARI_ORDER.map((hariName) => {
-                  const daySessions = allGroupedJadwal.filter((j) => j.hari === hariName);
-                  const isSelected = selectedJadwalHari === hariName;
-                  return (
-                    <TouchableOpacity
-                      key={hariName}
-                      style={[styles.daySelectorPill, isSelected && styles.daySelectorPillActive]}
-                      onPress={() => setSelectedJadwalHari(hariName)}
-                    >
-                      <Text style={[styles.daySelectorPillText, isSelected && styles.daySelectorPillTextActive]}>
-                        {hariName}
-                      </Text>
-                      {daySessions.length > 0 && (
-                        <View style={[styles.dayCountBadge, isSelected && styles.dayCountBadgeActive]}>
-                          <Text style={[styles.dayCountBadgeText, isSelected && styles.dayCountBadgeTextActive]}>
-                            {daySessions.length}
-                          </Text>
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-            </View>
-
-            <ScrollView style={{ padding: 16 }}>
-              {(() => {
-                const daySessions = allGroupedJadwal.filter((j) => j.hari === selectedJadwalHari);
-
-                if (daySessions.length === 0) {
-                  return (
-                    <View style={styles.emptyCard}>
-                      <Text style={styles.emptyCardText}>
-                        Tidak ada jam pelajaran kelas pada hari {selectedJadwalHari}.{"\n"}Santri fokus kegiatan asrama, tahfidz, atau ekstrakurikuler.
-                      </Text>
-                    </View>
-                  );
-                }
-
-                return daySessions.map((session, idx) => (
-                  <View key={session.sesiKey || idx} style={styles.jadwalSessionCard}>
-                    <View style={styles.jadwalSessionHeader}>
-                      <View style={styles.jadwalSessionTimeBadge}>
-                        <Clock size={12} color="#1E3A8A" />
-                        <Text style={styles.jadwalSessionTimeText}>{session.timeRangeStr}</Text>
-                      </View>
-                      <View style={styles.jadwalSessionJamBadge}>
-                        <Text style={styles.jadwalSessionJamText}>{session.labelJam}</Text>
-                      </View>
-                    </View>
-                    <Text style={styles.jadwalSessionMapel}>{session.namaMapel}</Text>
-                    <View style={styles.jadwalSessionFooter}>
-                      <Text style={styles.jadwalSessionGuru}>
-                        👤 {session.firstJadwal?.pegawai?.nama || "Guru Pengampu"}
-                      </Text>
-                      <Text style={styles.jadwalSessionKelas}>
-                        🏫 {session.namaKelas}
-                      </Text>
-                    </View>
-                  </View>
-                ));
-              })()}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      {/* ═══════════════════════════════════════════════════════
-          MODAL 4: MODAL LMS SANTRI
-      ════════════════════════════════════════════════════════ */}
-      <Modal visible={showLmsModal} animationType="slide" transparent>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalSheetContainer}>
-            <View style={styles.modalSheetHeader}>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <View style={[styles.modalHeaderIconCircle, { backgroundColor: "#D1FAE5" }]}>
-                  <GraduationCap size={20} color="#059669" />
-                </View>
-                <View style={{ marginLeft: 10 }}>
-                  <Text style={styles.modalSheetTitle}>LMS & Akademik Santri</Text>
-                  <Text style={styles.modalSheetSubtitle}>{activeAnak?.nama} • {activeAnak?.kelas?.nama_kelas}</Text>
-                </View>
-              </View>
-              <TouchableOpacity onPress={() => setShowLmsModal(false)} style={styles.modalCloseBtn}>
-                <X size={20} color="#64748B" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={{ padding: 16 }}>
-              <View style={styles.lmsInfoBanner}>
-                <Text style={styles.lmsInfoTitle}>Sistem Manajemen Pembelajaran</Text>
-                <Text style={styles.lmsInfoText}>
-                  Santri terdaftar aktif di {activeAnak?.kelas?.lembaga?.nama_lembaga || "Pesantren Maskumambang"}. Materi, tugas, dan nilai diinput langsung oleh para asatidz pengampu mapel.
-                </Text>
-              </View>
-
-              <Text style={styles.modalSectionTitle}>Informasi Santri</Text>
-              <View style={styles.santriDetailCard}>
-                <View style={styles.santriDetailRow}>
-                  <Text style={styles.santriDetailLabel}>NIS / NISN</Text>
-                  <Text style={styles.santriDetailVal}>{activeAnak?.nis || "-"} / {activeAnak?.nisn || "-"}</Text>
-                </View>
-                <View style={styles.santriDetailRow}>
-                  <Text style={styles.santriDetailLabel}>Lembaga</Text>
-                  <Text style={styles.santriDetailVal}>{activeAnak?.kelas?.lembaga?.nama_lembaga || "-"}</Text>
-                </View>
-                <View style={styles.santriDetailRow}>
-                  <Text style={styles.santriDetailLabel}>Kelas</Text>
-                  <Text style={styles.santriDetailVal}>{activeAnak?.kelas?.nama_kelas || "-"}</Text>
-                </View>
-                <View style={styles.santriDetailRow}>
-                  <Text style={styles.santriDetailLabel}>Status Siswa</Text>
-                  <Text style={styles.santriDetailVal}>{activeAnak?.status || "Aktif"}</Text>
-                </View>
-              </View>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      {/* ═══════════════════════════════════════════════════════
-          MODAL 5: JADWAL SHOLAT LENGKAP
+          MODAL 1: JADWAL SHOLAT LENGKAP
       ════════════════════════════════════════════════════════ */}
       <Modal visible={showSholatModal} animationType="slide" transparent>
         <View style={styles.modalBackdrop}>
@@ -1232,7 +835,7 @@ export const ParentDashboardScreen = () => {
       </Modal>
 
       {/* ═══════════════════════════════════════════════════════
-          MODAL 6: ARAH KIBLAT INTERAKTIF
+          MODAL 2: ARAH KIBLAT INTERAKTIF
       ════════════════════════════════════════════════════════ */}
       <Modal visible={showKiblatModal} animationType="slide" transparent>
         <View style={styles.modalBackdrop}>
@@ -1266,7 +869,7 @@ export const ParentDashboardScreen = () => {
       </Modal>
 
       {/* ═══════════════════════════════════════════════════════
-          MODAL 7: DOA & DZIKIR HARIAN
+          MODAL 3: DOA & DZIKIR HARIAN
       ════════════════════════════════════════════════════════ */}
       <Modal visible={showDoaModal} animationType="slide" transparent>
         <View style={styles.modalBackdrop}>
@@ -1301,7 +904,7 @@ export const ParentDashboardScreen = () => {
       </Modal>
 
       {/* ═══════════════════════════════════════════════════════
-          MODAL 8: PILIH KOTA (GPS / REGION PICKER)
+          MODAL 4: PILIH KOTA (GPS / REGION PICKER)
       ════════════════════════════════════════════════════════ */}
       <Modal visible={showCityPickerModal} animationType="slide" transparent>
         <View style={styles.modalBackdrop}>
@@ -1338,76 +941,7 @@ export const ParentDashboardScreen = () => {
       </Modal>
 
       {/* ═══════════════════════════════════════════════════════
-          MODAL 9: KEUANGAN SANTRI (SOON / COMING SOON)
-      ════════════════════════════════════════════════════════ */}
-      <Modal visible={showKeuanganModal} animationType="slide" transparent>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalSheetContainer}>
-            <View style={styles.modalSheetHeader}>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <View style={[styles.modalHeaderIconCircle, { backgroundColor: "#EEF2FF" }]}>
-                  <Wallet size={20} color="#4F46E5" />
-                </View>
-                <View style={{ marginLeft: 10 }}>
-                  <Text style={styles.modalSheetTitle}>Keuangan & Tagihan Santri</Text>
-                  <Text style={styles.modalSheetSubtitle}>Fitur Mendatang (Coming Soon)</Text>
-                </View>
-              </View>
-              <TouchableOpacity onPress={() => setShowKeuanganModal(false)} style={styles.modalCloseBtn}>
-                <X size={20} color="#64748B" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={{ padding: 20 }}>
-              <View style={styles.soonHeroBox}>
-                <View style={styles.soonIconCircle}>
-                  <CreditCard size={36} color="#4F46E5" />
-                </View>
-                <Text style={styles.soonHeroTitle}>Layanan Pembayaran Digital</Text>
-                <Text style={styles.soonHeroDesc}>
-                  Fitur pembayaran SPP santri, uang saku / e-wallet, infaq, dan riwayat tagihan bulanan sedang dalam tahap finalisasi dan akan segera aktif.
-                </Text>
-              </View>
-
-              <Text style={styles.modalSectionTitle}>Rencana Fitur Keuangan:</Text>
-              
-              <View style={styles.soonFeatureRow}>
-                <View style={styles.soonFeatureDot} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.soonFeatureTitle}>Pembayaran SPP & Biaya Pendidikan</Text>
-                  <Text style={styles.soonFeatureSub}>Mendukung Virtual Account bank nasional & QRIS otomatis.</Text>
-                </View>
-              </View>
-
-              <View style={styles.soonFeatureRow}>
-                <View style={styles.soonFeatureDot} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.soonFeatureTitle}>E-Wallet / Uang Saku Santri</Text>
-                  <Text style={styles.soonFeatureSub}>Top-up saldo santri untuk belanja di koperasi pesantren secara cashless.</Text>
-                </View>
-              </View>
-
-              <View style={styles.soonFeatureRow}>
-                <View style={styles.soonFeatureDot} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.soonFeatureTitle}>Riwayat & Bukti Transaksi Resmi</Text>
-                  <Text style={styles.soonFeatureSub}>Unduh kuitansi resmi pembayaran langsung dari aplikasi mobile.</Text>
-                </View>
-              </View>
-
-              <TouchableOpacity
-                style={styles.soonCloseBtn}
-                onPress={() => setShowKeuanganModal(false)}
-              >
-                <Text style={styles.soonCloseBtnText}>Mengerti</Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      {/* ═══════════════════════════════════════════════════════
-          MODAL 10: PROFIL & INFORMASI PESANTREN
+          MODAL 5: PROFIL & INFORMASI PESANTREN
       ════════════════════════════════════════════════════════ */}
       <Modal visible={showLainnyaModal} animationType="slide" transparent>
         <View style={styles.modalBackdrop}>

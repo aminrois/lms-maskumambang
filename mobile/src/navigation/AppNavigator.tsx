@@ -7,6 +7,11 @@ import { LoginScreen } from "../screens/Auth/LoginScreen";
 import { AbsensiMapelScreen } from "../screens/Absensi/AbsensiMapelScreen";
 import { TahfidzSetoranScreen } from "../screens/Tahfidz/TahfidzSetoranScreen";
 import { BeritaScreen } from "../screens/Berita/BeritaScreen";
+import { WaliLaporanHafalanScreen } from "../screens/Wali/WaliLaporanHafalanScreen";
+import { WaliPresensiScreen } from "../screens/Wali/WaliPresensiScreen";
+import { WaliJadwalScreen } from "../screens/Wali/WaliJadwalScreen";
+import { WaliLmsScreen } from "../screens/Wali/WaliLmsScreen";
+import { WaliKeuanganScreen } from "../screens/Wali/WaliKeuanganScreen";
 import { MainTabNavigator } from "./MainTabNavigator";
 import { useAuthStore } from "../store/useAuthStore";
 import { Colors } from "../constants/colors";
@@ -69,6 +74,42 @@ export const AppNavigator = () => {
             <Stack.Screen
               name="Berita"
               component={BeritaScreen}
+              options={{
+                animation: "slide_from_right",
+              }}
+            />
+            {/* Screen Khusus Wali Santri */}
+            <Stack.Screen
+              name="WaliLaporanHafalan"
+              component={WaliLaporanHafalanScreen}
+              options={{
+                animation: "slide_from_right",
+              }}
+            />
+            <Stack.Screen
+              name="WaliPresensi"
+              component={WaliPresensiScreen}
+              options={{
+                animation: "slide_from_right",
+              }}
+            />
+            <Stack.Screen
+              name="WaliJadwal"
+              component={WaliJadwalScreen}
+              options={{
+                animation: "slide_from_right",
+              }}
+            />
+            <Stack.Screen
+              name="WaliLms"
+              component={WaliLmsScreen}
+              options={{
+                animation: "slide_from_right",
+              }}
+            />
+            <Stack.Screen
+              name="WaliKeuangan"
+              component={WaliKeuanganScreen}
               options={{
                 animation: "slide_from_right",
               }}
