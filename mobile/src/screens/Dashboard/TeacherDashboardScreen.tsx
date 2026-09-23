@@ -46,6 +46,7 @@ import {
 } from "lucide-react-native";
 import { Colors } from "../../constants/colors";
 import { useAuthStore } from "../../store/useAuthStore";
+import { canInputTahfidz, canViewTahfidz, canManageKBM } from "../../utils/permissions";
 import { APP_CONFIG } from "../../constants/config";
 import {
   getPrayerTimes,
@@ -64,6 +65,7 @@ const { width } = Dimensions.get("window");
 export const TeacherDashboardScreen = () => {
   const navigation = useNavigation<any>();
   const { user } = useAuthStore();
+  const isTahfidzUser = canInputTahfidz(user);
   const [refreshing, setRefreshing] = useState(false);
 
   // Lokasi & Prayer times state dinamis
@@ -351,16 +353,31 @@ export const TeacherDashboardScreen = () => {
               <Text style={styles.gridCardTitle}>LMS</Text>
             </TouchableOpacity>
 
-            {/* 2. Setoran Hafalan */}
+            {/* 2. Setoran Hafalan (Guru Tahfidz) or Jadwal Pelajaran (Guru Mapel) */}
             <TouchableOpacity
               style={styles.gridCard}
-              onPress={() => navigation.navigate("TahfidzSetoran")}
+              onPress={() =>
+                isTahfidzUser
+                  ? navigation.navigate("TahfidzSetoran")
+                  : navigation.navigate("JadwalTab")
+              }
               activeOpacity={0.8}
             >
-              <View style={[styles.gridIconCircle, { backgroundColor: "#3b82f6" }]}>
-                <ScrollText size={24} color="#FFFFFF" />
+              <View
+                style={[
+                  styles.gridIconCircle,
+                  { backgroundColor: isTahfidzUser ? "#3b82f6" : "#059669" },
+                ]}
+              >
+                {isTahfidzUser ? (
+                  <ScrollText size={24} color="#FFFFFF" />
+                ) : (
+                  <Calendar size={24} color="#FFFFFF" />
+                )}
               </View>
-              <Text style={styles.gridCardTitle}>Setoran Hafalan</Text>
+              <Text style={styles.gridCardTitle}>
+                {isTahfidzUser ? "Setoran Hafalan" : "Jadwal Pelajaran"}
+              </Text>
             </TouchableOpacity>
 
             {/* 3. Jadwal Kegiatan */}

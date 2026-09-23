@@ -20,6 +20,9 @@ import {
   BookOpen,
   Sparkles,
   Info,
+  AlertTriangle,
+  Lock,
+  CheckCircle2,
 } from "lucide-react-native";
 import { Header } from "../../components/ui/Header";
 import { Card } from "../../components/ui/Card";
@@ -31,11 +34,16 @@ import {
   SiswaItem,
   AttendanceStatusType,
   LessonPlanDetailItem,
+  LessonPlanItem,
 } from "../../api/absensiService";
+import { useAuthStore } from "../../store/useAuthStore";
+import { canManageKBM } from "../../utils/permissions";
+import { isLessonPlanApproved } from "../../utils/jadwalHelper";
 
 export const AbsensiMapelScreen = () => {
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
+  const { user } = useAuthStore();
 
   const {
     jadwalId,
@@ -59,8 +67,20 @@ export const AbsensiMapelScreen = () => {
   const [catatan, setCatatan] = useState("");
   const [selectedLpDetailId, setSelectedLpDetailId] = useState<number | undefined>(lessonPlanDetailId);
   const [availableRppDetails, setAvailableRppDetails] = useState<LessonPlanDetailItem[]>([]);
+  const [isRppApproved, setIsRppApproved] = useState<boolean>(true);
+  const [rppStatusNote, setRppStatusNote] = useState<string>("");
 
   useEffect(() => {
+    // Check permission to manage KBM
+    if (!canManageKBM(user)) {
+      Alert.alert(
+        "Akses Ditolak",
+        "Anda tidak memiliki hak akses untuk menginput presensi & jurnal KBM.",
+        [{ text: "OK", onPress: () => navigation.goBack() }]
+      );
+      return;
+    }
+
     const fetchData = async () => {
       if (!kelasId && !jadwalId) return;
       try {
@@ -80,20 +100,38 @@ export const AbsensiMapelScreen = () => {
         if (jadwalId) {
           try {
             const lps = await absensiService.getLessonPlans({ jadwal_id: jadwalId });
-            if (lps && lps.length > 0 && lps[0].details) {
-              setAvailableRppDetails(lps[0].details);
-              const matchingDetail = lps[0].details.find(
-                (d) => Number(d.pertemuan_ke) === Number(pertemuanKe)
-              );
-              if (matchingDetail) {
-                setSelectedLpDetailId(matchingDetail.detail_id);
-                if (matchingDetail.materi || matchingDetail.topik_materi) {
-                  setMateri(matchingDetail.topik_materi || matchingDetail.materi || "");
+            if (lps && lps.length > 0) {
+              const currentLp = lps[0];
+              const approved = isLessonPlanApproved(currentLp);
+              setIsRppApproved(approved);
+
+              if (!approved) {
+                setRppStatusNote(
+                  `Status RPP: Kepsek (${currentLp.status_verifikasi_kepsek || "Menunggu"}), Direktur (${currentLp.status_verifikasi_direktur || "Menunggu"})`
+                );
+              }
+
+              if (currentLp.details) {
+                setAvailableRppDetails(currentLp.details);
+                const matchingDetail = currentLp.details.find(
+                  (d) => Number(d.pertemuan_ke) === Number(pertemuanKe)
+                );
+                if (matchingDetail) {
+                  setSelectedLpDetailId(matchingDetail.detail_id);
+                  if (matchingDetail.materi || matchingDetail.topik_materi) {
+                    setMateri(matchingDetail.topik_materi || matchingDetail.materi || "");
+                  }
                 }
               }
+            } else {
+              // No RPP found
+              setIsRppApproved(false);
+              setRppStatusNote("Belum ada Lesson Plan (RPP) yang diunggah untuk jadwal ini.");
             }
           } catch (e) {
             console.log("No lesson plan found or error fetching lesson plan", e);
+            setIsRppApproved(false);
+            setRppStatusNote("Gagal memvalidasi status verifikasi RPP.");
           }
 
           // 3. Cek apakah sudah pernah ada jurnal & absensi tersimpan untuk jadwal & pertemuan ini
@@ -131,7 +169,7 @@ export const AbsensiMapelScreen = () => {
     };
 
     fetchData();
-  }, [kelasId, jadwalId, pertemuanKe]);
+  }, [kelasId, jadwalId, pertemuanKe, user]);
 
   const setAllStatus = (status: AttendanceStatusType) => {
     const updated: { [key: number]: AttendanceStatusType } = {};
@@ -172,6 +210,19 @@ export const AbsensiMapelScreen = () => {
   }, [attendance, siswaList]);
 
   const handleSubmit = async () => {
+    if (!canManageKBM(user)) {
+      Alert.alert("Akses Ditolak", "Anda tidak memiliki hak akses untuk menyimpan presensi.");
+      return;
+    }
+
+    if (!isRppApproved) {
+      Alert.alert(
+        "Lesson Plan Belum Disetujui",
+        `Lesson Plan (RPP) untuk "${mapelNama} - ${kelasNama}" belum disetujui oleh Kepala Sekolah & Direktur.\n\nSesuai aturan kurikulum, presensi dan jurnal mengajar baru dapat diisi dan disimpan setelah RPP berstatus "Disetujui".`
+      );
+      return;
+    }
+
     if (!materi.trim() && !catatan.trim()) {
       Alert.alert(
         "Materi / Catatan Pembelajaran",
@@ -247,6 +298,26 @@ export const AbsensiMapelScreen = () => {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
+          {/* RPP Lock Warning Banner if not approved */}
+          {!isRppApproved && (
+            <View style={styles.lockWarningBanner}>
+              <View style={styles.lockWarningIcon}>
+                <AlertTriangle size={20} color="#b45309" />
+              </View>
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={styles.lockWarningTitle}>
+                  Lesson Plan (RPP) Belum Disetujui
+                </Text>
+                <Text style={styles.lockWarningDesc}>
+                  Sesuai aturan kurikulum, pengisian presensi dan jurnal mengajar terkunci sampai RPP disetujui oleh Kepala Sekolah & Direktur.
+                </Text>
+                {rppStatusNote ? (
+                  <Text style={styles.lockWarningStatus}>{rppStatusNote}</Text>
+                ) : null}
+              </View>
+            </View>
+          )}
+
           {/* Sesi & Informasi Card */}
           <Card style={styles.infoCard}>
             <View style={styles.infoHeader}>
@@ -267,6 +338,7 @@ export const AbsensiMapelScreen = () => {
                   onChangeText={setPertemuanKe}
                   keyboardType="numeric"
                   placeholder="1"
+                  editable={isRppApproved}
                 />
               </View>
               <View style={{ flex: 1, marginLeft: 10 }}>
@@ -276,6 +348,7 @@ export const AbsensiMapelScreen = () => {
                   value={materi}
                   onChangeText={setMateri}
                   placeholder="Contoh: Bab 3 Hukum Tajwid / Aljabar"
+                  editable={isRppApproved}
                 />
               </View>
             </View>
@@ -296,6 +369,7 @@ export const AbsensiMapelScreen = () => {
                         selectedLpDetailId === det.detail_id && styles.rppChipActive,
                       ]}
                       onPress={() => {
+                        if (!isRppApproved) return;
                         setSelectedLpDetailId(det.detail_id);
                         setPertemuanKe(String(det.pertemuan_ke));
                         if (det.materi || det.topik_materi) {
@@ -319,64 +393,54 @@ export const AbsensiMapelScreen = () => {
             )}
           </Card>
 
-          {/* Quick Counter Summary & Action Set All */}
-          <View style={styles.summaryBar}>
-            <View style={styles.summaryBadges}>
-              <View style={[styles.miniBadge, { backgroundColor: Colors.successBg }]}>
-                <Text style={[styles.miniBadgeText, { color: Colors.hadir }]}>
-                  H: {summary.hadir}
-                </Text>
-              </View>
-              <View style={[styles.miniBadge, { backgroundColor: Colors.infoBg }]}>
-                <Text style={[styles.miniBadgeText, { color: Colors.sakit }]}>
-                  S: {summary.sakit}
-                </Text>
-              </View>
-              <View style={[styles.miniBadge, { backgroundColor: Colors.warningBg }]}>
-                <Text style={[styles.miniBadgeText, { color: Colors.izin }]}>
-                  I: {summary.izin}
-                </Text>
-              </View>
-              <View style={[styles.miniBadge, { backgroundColor: Colors.dangerBg }]}>
-                <Text style={[styles.miniBadgeText, { color: Colors.alpha }]}>
-                  A: {summary.alpha}
-                </Text>
-              </View>
-              <View style={[styles.miniBadge, { backgroundColor: "#F5F3FF" }]}>
-                <Text style={[styles.miniBadgeText, { color: "#8B5CF6" }]}>
-                  D: {summary.dispen}
-                </Text>
-              </View>
-            </View>
-
+          {/* Quick Actions (Set All Hadir) */}
+          <View style={styles.quickActionRow}>
+            <Text style={styles.quickActionHeading}>Daftar Kehadiran Siswa</Text>
             <TouchableOpacity
-              onPress={() => setAllStatus("Hadir")}
-              style={styles.setAllBtn}
+              style={[styles.setAllBtn, !isRppApproved && { opacity: 0.5 }]}
+              onPress={() => isRppApproved && setAllStatus("Hadir")}
               activeOpacity={0.7}
+              disabled={!isRppApproved}
             >
               <CheckCheck size={14} color={Colors.primary} />
               <Text style={styles.setAllText}>Set Semua Hadir</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Search Box */}
-          <View style={styles.searchWrapper}>
+          {/* Summary Chips */}
+          <View style={styles.summaryGrid}>
+            <View style={[styles.summaryBox, { backgroundColor: Colors.successBg }]}>
+              <Text style={[styles.summaryCount, { color: Colors.hadir }]}>{summary.hadir}</Text>
+              <Text style={styles.summaryLabel}>Hadir</Text>
+            </View>
+            <View style={[styles.summaryBox, { backgroundColor: Colors.infoBg }]}>
+              <Text style={[styles.summaryCount, { color: Colors.sakit }]}>{summary.sakit}</Text>
+              <Text style={styles.summaryLabel}>Sakit</Text>
+            </View>
+            <View style={[styles.summaryBox, { backgroundColor: Colors.warningBg }]}>
+              <Text style={[styles.summaryCount, { color: Colors.izin }]}>{summary.izin}</Text>
+              <Text style={styles.summaryLabel}>Izin</Text>
+            </View>
+            <View style={[styles.summaryBox, { backgroundColor: Colors.dangerBg }]}>
+              <Text style={[styles.summaryCount, { color: Colors.alpha }]}>{summary.alpha}</Text>
+              <Text style={styles.summaryLabel}>Alpha</Text>
+            </View>
+            <View style={[styles.summaryBox, { backgroundColor: "#F5F3FF" }]}>
+              <Text style={[styles.summaryCount, { color: "#8B5CF6" }]}>{summary.dispen}</Text>
+              <Text style={styles.summaryLabel}>Dispen</Text>
+            </View>
+          </View>
+
+          {/* Search Siswa */}
+          <View style={styles.searchContainer}>
             <Search size={16} color={Colors.textMuted} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Cari siswa atau NISN..."
               value={searchQuery}
               onChangeText={setSearchQuery}
-              clearButtonMode="while-editing"
+              placeholder="Cari siswa berdasarkan nama / NISN..."
+              placeholderTextColor={Colors.textMuted}
             />
-          </View>
-
-          {/* List Siswa */}
-          <View style={styles.listHeaderRow}>
-            <Text style={styles.listSectionTitle}>
-              Daftar Kehadiran Siswa ({filteredSiswa.length})
-            </Text>
-            <Text style={styles.listLegend}>H / S / I / A / D</Text>
           </View>
 
           {filteredSiswa.map((siswa, idx) => {
@@ -403,12 +467,14 @@ export const AbsensiMapelScreen = () => {
                     return (
                       <TouchableOpacity
                         key={opt.value}
-                        onPress={() => handleStatusChange(siswa.siswa_id, opt.value)}
+                        onPress={() => isRppApproved && handleStatusChange(siswa.siswa_id, opt.value)}
                         style={[
                           styles.statusOptionBtn,
                           isActive && { backgroundColor: opt.color, borderColor: opt.color },
+                          !isRppApproved && { opacity: 0.5 },
                         ]}
                         activeOpacity={0.7}
+                        disabled={!isRppApproved}
                       >
                         <Text
                           style={[
@@ -437,12 +503,25 @@ export const AbsensiMapelScreen = () => {
           {/* Submit Action */}
           <View style={styles.bottomActionContainer}>
             <Button
-              title="SIMPAN PRESENSI & JURNAL"
+              title={
+                !isRppApproved
+                  ? "RPP BELUM DISETUJUI (TERKUNCI)"
+                  : "SIMPAN PRESENSI & JURNAL"
+              }
               onPress={handleSubmit}
               loading={submitting}
               size="lg"
-              icon={<Save size={18} color="#FFFFFF" />}
-              style={styles.saveBtn}
+              icon={
+                !isRppApproved ? (
+                  <Lock size={18} color="#FFFFFF" />
+                ) : (
+                  <Save size={18} color="#FFFFFF" />
+                )
+              }
+              style={[
+                styles.saveBtn,
+                !isRppApproved && { backgroundColor: "#94a3b8" },
+              ]}
             />
           </View>
         </ScrollView>
@@ -454,73 +533,102 @@ export const AbsensiMapelScreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
+    backgroundColor: "#f8fafc",
   },
   loadingContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    padding: 40,
+    padding: 24,
   },
   loadingText: {
-    fontSize: 14,
-    color: Colors.textMuted,
     marginTop: 12,
-    fontWeight: "600",
+    fontSize: 13,
+    color: "#64748b",
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+  lockWarningBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "#fffbeb",
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#fde68a",
+    marginBottom: 14,
+  },
+  lockWarningIcon: {
+    marginTop: 2,
+  },
+  lockWarningTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#b45309",
+  },
+  lockWarningDesc: {
+    fontSize: 11,
+    color: "#92400e",
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  lockWarningStatus: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#b45309",
+    marginTop: 4,
   },
   infoCard: {
-    backgroundColor: "#FFFFFF",
-    marginBottom: 12,
-    padding: 14,
+    backgroundColor: "#ffffff",
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    marginBottom: 14,
   },
   infoHeader: {
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
-    alignItems: "flex-start",
     marginBottom: 12,
   },
   mapelHeading: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "800",
-    color: Colors.primaryDark,
+    color: "#1e293b",
   },
   kelasHeading: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: Colors.textSub,
+    fontSize: 12,
+    color: "#64748b",
     marginTop: 2,
   },
   inputRow: {
     flexDirection: "row",
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    marginTop: 6,
   },
   fieldLabel: {
     fontSize: 11,
     fontWeight: "700",
-    color: Colors.text,
+    color: "#475569",
     marginBottom: 4,
   },
   fieldInput: {
-    backgroundColor: Colors.inputBg,
+    backgroundColor: "#f8fafc",
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: "#cbd5e1",
     borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    fontSize: 13,
-    color: Colors.text,
+    paddingHorizontal: 10,
+    height: 38,
+    fontSize: 12,
+    color: "#1e293b",
   },
   rppSection: {
     marginTop: 10,
-    paddingTop: 8,
+    paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: "#F1F5F9",
+    borderTopColor: "#f1f5f9",
   },
   rppHeader: {
     flexDirection: "row",
@@ -528,176 +636,163 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   rppLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "700",
-    color: Colors.primaryDark,
+    color: "#15803d",
   },
   rppChip: {
-    backgroundColor: "#F1F5F9",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    backgroundColor: "#f1f5f9",
     borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: "#e2e8f0",
   },
   rppChipActive: {
-    backgroundColor: Colors.primaryLight,
-    borderColor: Colors.primary,
+    backgroundColor: "#ecfdf5",
+    borderColor: "#10b981",
   },
   rppChipText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: Colors.textSub,
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#64748b",
   },
   rppChipTextActive: {
-    color: Colors.primary,
-    fontWeight: "700",
+    color: "#15803d",
   },
-  summaryBar: {
+  quickActionRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    padding: 10,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    justifyContent: "space-between",
     marginBottom: 10,
   },
-  summaryBadges: {
-    flexDirection: "row",
-    gap: 4,
-    flexWrap: "wrap",
-    flex: 1,
-  },
-  miniBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  miniBadgeText: {
-    fontSize: 10.5,
+  quickActionHeading: {
+    fontSize: 13,
     fontWeight: "800",
+    color: "#1e293b",
   },
   setAllBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 3,
-    paddingHorizontal: 8,
+    gap: 4,
+    backgroundColor: "#ecfdf5",
+    paddingHorizontal: 10,
     paddingVertical: 5,
-    backgroundColor: Colors.primaryLight,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#a7f3d0",
   },
   setAllText: {
-    fontSize: 10.5,
+    fontSize: 11,
     fontWeight: "700",
-    color: Colors.primary,
+    color: "#15803d",
   },
-  searchWrapper: {
+  summaryGrid: {
+    flexDirection: "row",
+    gap: 6,
+    marginBottom: 12,
+  },
+  summaryBox: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  summaryCount: {
+    fontSize: 16,
+    fontWeight: "900",
+  },
+  summaryLabel: {
+    fontSize: 9,
+    fontWeight: "700",
+    color: "#64748b",
+    marginTop: 2,
+  },
+  searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#ffffff",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: "#e2e8f0",
     paddingHorizontal: 12,
     height: 40,
-    marginBottom: 12,
+    marginBottom: 10,
     gap: 8,
   },
   searchInput: {
     flex: 1,
-    fontSize: 13,
-    color: Colors.text,
-  },
-  listHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  listSectionTitle: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: Colors.primaryDark,
-  },
-  listLegend: {
-    fontSize: 10.5,
-    fontWeight: "700",
-    color: Colors.textMuted,
+    fontSize: 12,
+    color: "#1e293b",
   },
   siswaRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    padding: 10,
-    borderRadius: 12,
+    backgroundColor: "#ffffff",
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: "#e2e8f0",
+    padding: 10,
     marginBottom: 6,
   },
   siswaIndex: {
-    width: 20,
+    width: 22,
     alignItems: "center",
   },
   indexText: {
     fontSize: 11,
     fontWeight: "700",
-    color: Colors.textMuted,
+    color: "#94a3b8",
   },
   siswaInfo: {
     flex: 1,
     marginLeft: 6,
-    marginRight: 6,
+    marginRight: 8,
   },
   siswaNama: {
-    fontSize: 13.5,
-    fontWeight: "700",
-    color: Colors.text,
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#1e293b",
   },
   siswaNis: {
-    fontSize: 10.5,
-    color: Colors.textMuted,
-    marginTop: 1,
+    fontSize: 10,
+    color: "#64748b",
+    marginTop: 2,
   },
   statusButtonsGroup: {
     flexDirection: "row",
-    gap: 3,
+    gap: 4,
   },
   statusOptionBtn: {
     width: 28,
     height: 28,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    backgroundColor: "#f8fafc",
   },
   statusOptionText: {
     fontSize: 11,
     fontWeight: "800",
-    color: Colors.textSub,
+    color: "#64748b",
   },
   emptySearchCard: {
     padding: 20,
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#ffffff",
+    borderRadius: 14,
   },
   emptySearchText: {
     fontSize: 12,
-    color: Colors.textMuted,
-    textAlign: "center",
+    color: "#64748b",
   },
   bottomActionContainer: {
     marginTop: 14,
   },
   saveBtn: {
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    backgroundColor: "#065f46",
   },
 });
-

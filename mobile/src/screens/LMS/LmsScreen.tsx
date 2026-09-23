@@ -280,17 +280,20 @@ export const LmsScreen = () => {
 
                 // Cek jurnal yang sudah dibuat untuk jadwal ini
                 const matchingJurnal = jurnalList.find((j) => j.jadwal_id === item.jadwal_id);
+                const jamMulaiStr = typeof item.jam_mulai === "object" ? item.jam_mulai?.jam_mulai : item.jam_mulai;
+                const jamSelesaiStr = typeof item.jam_selesai === "object" ? item.jam_selesai?.jam_selesai : item.jam_selesai;
+                const jamKeNumber = item.jam_mulai?.urutan_jam ?? item.jam_ke ?? 1;
 
                 return (
                   <Card key={item.jadwal_id} style={styles.jadwalCard}>
                     <View style={styles.jadwalHeader}>
                       <View style={styles.jamKeBadge}>
                         <Clock size={11} color={Colors.primary} />
-                        <Text style={styles.jamKeText}>Jam Ke-{item.jam_ke || 1}</Text>
+                        <Text style={styles.jamKeText}>Jam Ke-{jamKeNumber}</Text>
                       </View>
                       <View style={styles.timeTag}>
                         <Text style={styles.timeText}>
-                          {item.jam_mulai?.slice(0, 5)} - {item.jam_selesai?.slice(0, 5)}
+                          {jamMulaiStr?.slice(0, 5) || "07:00"} - {jamSelesaiStr?.slice(0, 5) || "08:00"}
                         </Text>
                       </View>
                     </View>

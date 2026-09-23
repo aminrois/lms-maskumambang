@@ -38,11 +38,14 @@ import {
   TrendingUp,
   Award,
   Filter,
+  Lock,
 } from "lucide-react-native";
 import { Header } from "../../components/ui/Header";
 import { Card } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
 import { Colors } from "../../constants/colors";
+import { useAuthStore } from "../../store/useAuthStore";
+import { canInputTahfidz, canViewTahfidz } from "../../utils/permissions";
 import {
   tahfidzService,
   TahfidzSiswaItem,
@@ -78,9 +81,11 @@ interface SantriKolosalState {
 
 export const TahfidzSetoranScreen = () => {
   const navigation = useNavigation<any>();
+  const { user } = useAuthStore();
+  const hasInputPermission = canInputTahfidz(user);
 
-  // Main navigation tab
-  const [activeTab, setActiveTab] = useState<ActiveTab>("input");
+  // Main navigation tab (default to riwayat if not a tahfidz teacher)
+  const [activeTab, setActiveTab] = useState<ActiveTab>(() => (hasInputPermission ? "input" : "riwayat"));
   const [modeInput, setModeInput] = useState<ModeInput>("kolosal");
 
   // Global Session Controls
@@ -371,6 +376,10 @@ export const TahfidzSetoranScreen = () => {
 
   // Submit Handler Individu
   const handleSubmitIndividu = async () => {
+    if (!canInputTahfidz(user)) {
+      Alert.alert("Akses Ditolak", "Hanya Guru Tahfidz dan Administrator yang dapat menginput setoran.");
+      return;
+    }
     if (!selectedSiswaId) {
       Alert.alert("Peringatan", "Harap pilih santri.");
       return;
@@ -418,6 +427,10 @@ export const TahfidzSetoranScreen = () => {
 
   // Submit Handler Kolosal
   const handleSubmitKolosal = async () => {
+    if (!canInputTahfidz(user)) {
+      Alert.alert("Akses Ditolak", "Hanya Guru Tahfidz dan Administrator yang dapat menginput setoran.");
+      return;
+    }
     const selectedCards = displayedKolosalCards.filter((c) => c.selected);
     if (selectedCards.length === 0) {
       Alert.alert("Peringatan", "Pilih minimal 1 santri untuk setoran kolosal.");
@@ -501,7 +514,16 @@ export const TahfidzSetoranScreen = () => {
       <View style={styles.tabBar}>
         <TouchableOpacity
           style={[styles.tabItem, activeTab === "input" && styles.tabItemActive]}
-          onPress={() => setActiveTab("input")}
+          onPress={() => {
+            if (!hasInputPermission) {
+              Alert.alert(
+                "Akses Dibatasi",
+                "Fitur input setoran hanya dapat diakses oleh Guru Tahfidz dan Administrator."
+              );
+              return;
+            }
+            setActiveTab("input");
+          }}
         >
           <BookOpen size={16} color={activeTab === "input" ? Colors.primary : "#64748b"} />
           <Text style={[styles.tabText, activeTab === "input" && styles.tabTextActive]}>
@@ -555,6 +577,15 @@ export const TahfidzSetoranScreen = () => {
               TAB 1: INPUT SETORAN (INDIVIDU & KOLOSAL)
           ═══════════════════════════════════════════════════════════════════ */}
           {activeTab === "input" && (
+            !hasInputPermission ? (
+              <Card style={styles.emptyBox}>
+                <Lock size={36} color="#94a3b8" />
+                <Text style={styles.emptyTitle}>Akses Khusus Guru Tahfidz</Text>
+                <Text style={styles.emptySubtitle}>
+                  Anda tidak memiliki hak akses untuk menginput setoran hafalan santri.
+                </Text>
+              </Card>
+            ) : (
             <View style={styles.tabContent}>
               {/* MODE SWITCHER (Individu vs Kolosal) */}
               <View style={styles.modeToggleContainer}>
@@ -1208,6 +1239,7 @@ export const TahfidzSetoranScreen = () => {
                 </>
               )}
             </View>
+            )
           )}
 
           {/* ═══════════════════════════════════════════════════════════════════

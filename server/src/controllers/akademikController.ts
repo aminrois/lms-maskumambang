@@ -296,6 +296,8 @@ export const getJadwalPelajarans = async (req: Request, res: Response, next: Nex
         kelas: true,
         mapel: true,
         pegawai: true,
+        jam_mulai: true,
+        jam_selesai: true,
       },
     });
     res.json(list);
@@ -313,6 +315,8 @@ export const getJadwalPelajaranById = async (req: Request, res: Response, next: 
         kelas: true,
         mapel: true,
         pegawai: true,
+        jam_mulai: true,
+        jam_selesai: true,
       },
     });
     if (!item) {
