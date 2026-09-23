@@ -12,6 +12,7 @@ import {
   Modal,
   FlatList,
   RefreshControl,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
@@ -24,6 +25,7 @@ import {
   User,
   Clock,
   ChevronDown,
+  ChevronLeft,
   Search,
   X,
   Calendar,
@@ -40,6 +42,7 @@ import {
   Edit3,
   Trash2,
 } from "lucide-react-native";
+import { SwipeBackContainer } from "../../components/ui/SwipeBackContainer";
 import { Header } from "../../components/ui/Header";
 import { Card } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
@@ -569,13 +572,34 @@ export const TahfidzSetoranScreen = () => {
   }, [riwayatList, riwayatSearch]);
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top"]}>
-      <Header
-        title="Tahfidz & Hafalan"
-        subtitle="Manajemen Setoran, Halaqoh & Target"
-        showBack
-        onBack={() => navigation.goBack()}
-      />
+    <SwipeBackContainer style={styles.container}>
+      {/* ═══════════════════════════════════════════════════════
+          HEADER: DEEP NAVY PESANTREN THEME
+      ════════════════════════════════════════════════════════ */}
+      <View style={styles.headerContainer}>
+        <SafeAreaView edges={["top"]} style={styles.headerContent}>
+          <View style={styles.headerTopRow}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+              activeOpacity={0.8}
+            >
+              <ChevronLeft size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+
+            <View style={styles.headerTitleCol}>
+              <Text style={styles.headerTitle}>Tahfidz & Setoran Santri</Text>
+              <Text style={styles.headerSubtitle}>
+                Manajemen Setoran, Halaqoh & Target
+              </Text>
+            </View>
+
+            <View style={styles.headerRightBadge}>
+              <ScrollText size={18} color="#93C5FD" />
+            </View>
+          </View>
+        </SafeAreaView>
+      </View>
 
       {/* ─── TOP TABS NAVIGATION ─── */}
       <View style={styles.tabBar}>
@@ -592,7 +616,7 @@ export const TahfidzSetoranScreen = () => {
             setActiveTab("input");
           }}
         >
-          <BookOpen size={16} color={activeTab === "input" ? Colors.primary : "#64748b"} />
+          <BookOpen size={15} color={activeTab === "input" ? "#FFFFFF" : "#64748B"} />
           <Text style={[styles.tabText, activeTab === "input" && styles.tabTextActive]}>
             Setoran
           </Text>
@@ -602,7 +626,7 @@ export const TahfidzSetoranScreen = () => {
           style={[styles.tabItem, activeTab === "riwayat" && styles.tabItemActive]}
           onPress={() => setActiveTab("riwayat")}
         >
-          <History size={16} color={activeTab === "riwayat" ? Colors.primary : "#64748b"} />
+          <History size={15} color={activeTab === "riwayat" ? "#FFFFFF" : "#64748B"} />
           <Text style={[styles.tabText, activeTab === "riwayat" && styles.tabTextActive]}>
             Riwayat
           </Text>
@@ -612,7 +636,7 @@ export const TahfidzSetoranScreen = () => {
           style={[styles.tabItem, activeTab === "halaqah" && styles.tabItemActive]}
           onPress={() => setActiveTab("halaqah")}
         >
-          <Users size={16} color={activeTab === "halaqah" ? Colors.primary : "#64748b"} />
+          <Users size={15} color={activeTab === "halaqah" ? "#FFFFFF" : "#64748B"} />
           <Text style={[styles.tabText, activeTab === "halaqah" && styles.tabTextActive]}>
             Halaqoh
           </Text>
@@ -622,7 +646,7 @@ export const TahfidzSetoranScreen = () => {
           style={[styles.tabItem, activeTab === "target" && styles.tabItemActive]}
           onPress={() => setActiveTab("target")}
         >
-          <Target size={16} color={activeTab === "target" ? Colors.primary : "#64748b"} />
+          <Target size={15} color={activeTab === "target" ? "#FFFFFF" : "#64748B"} />
           <Text style={[styles.tabText, activeTab === "target" && styles.tabTextActive]}>
             Target
           </Text>
@@ -631,14 +655,14 @@ export const TahfidzSetoranScreen = () => {
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
+          <ActivityIndicator size="large" color="#162E6E" />
           <Text style={styles.loadingText}>Memuat data tahfidz...</Text>
         </View>
       ) : (
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#162E6E"]} />}
         >
           {/* ═══════════════════════════════════════════════════════════════════
               TAB 1: INPUT SETORAN (INDIVIDU & KOLOSAL)
@@ -681,7 +705,7 @@ export const TahfidzSetoranScreen = () => {
                 <Card style={styles.card}>
                   <View style={styles.cardHeader}>
                     <View style={styles.stepBadge}>
-                      <Clock size={14} color="#15803d" />
+                      <Clock size={14} color="#1D4ED8" />
                     </View>
                     <Text style={styles.sectionHeading}>Pengaturan Sesi & Kategori</Text>
                   </View>
@@ -693,7 +717,7 @@ export const TahfidzSetoranScreen = () => {
                       style={[styles.kategoriBtn, kategori === "Al-Quran" && styles.kategoriBtnActive]}
                       onPress={() => setKategori("Al-Quran")}
                     >
-                      <BookOpen size={16} color={kategori === "Al-Quran" ? "#15803d" : "#64748b"} />
+                      <BookOpen size={16} color={kategori === "Al-Quran" ? "#1D4ED8" : "#64748b"} />
                       <Text style={[styles.kategoriBtnText, kategori === "Al-Quran" && styles.kategoriBtnTextActive]}>
                         Al-Qur'an
                       </Text>
@@ -703,7 +727,7 @@ export const TahfidzSetoranScreen = () => {
                       style={[styles.kategoriBtn, kategori === "Hadits" && styles.kategoriBtnActive]}
                       onPress={() => setKategori("Hadits")}
                     >
-                      <ScrollText size={16} color={kategori === "Hadits" ? "#1d4ed8" : "#64748b"} />
+                      <ScrollText size={16} color={kategori === "Hadits" ? "#0284C7" : "#64748b"} />
                       <Text style={[styles.kategoriBtnText, kategori === "Hadits" && styles.kategoriBtnTextActiveHadits]}>
                         Hadits
                       </Text>
@@ -713,7 +737,7 @@ export const TahfidzSetoranScreen = () => {
                       style={[styles.kategoriBtn, kategori === "Matan Ilmu" && styles.kategoriBtnActive]}
                       onPress={() => setKategori("Matan Ilmu")}
                     >
-                      <Bookmark size={16} color={kategori === "Matan Ilmu" ? "#b45309" : "#64748b"} />
+                      <Bookmark size={16} color={kategori === "Matan Ilmu" ? "#7C3AED" : "#64748b"} />
                       <Text style={[styles.kategoriBtnText, kategori === "Matan Ilmu" && styles.kategoriBtnTextActiveMatan]}>
                         Matan Ilmu
                       </Text>
@@ -774,7 +798,7 @@ export const TahfidzSetoranScreen = () => {
                     <Card style={styles.card}>
                       <View style={styles.cardHeader}>
                         <View style={styles.stepBadge}>
-                          <User size={14} color="#15803d" />
+                          <User size={14} color="#1D4ED8" />
                         </View>
                         <Text style={styles.sectionHeading}>Pilih Santri</Text>
                       </View>
@@ -801,7 +825,7 @@ export const TahfidzSetoranScreen = () => {
                     <Card style={styles.card}>
                       <View style={styles.cardHeader}>
                         <View style={styles.stepBadge}>
-                          <BookOpen size={14} color="#15803d" />
+                          <BookOpen size={14} color="#1D4ED8" />
                         </View>
                         <Text style={styles.sectionHeading}>Rincian Hafalan</Text>
                       </View>
@@ -987,7 +1011,7 @@ export const TahfidzSetoranScreen = () => {
                     <Card style={styles.card}>
                       <View style={styles.cardHeader}>
                         <View style={styles.stepBadge}>
-                          <FolderClosed size={14} color="#15803d" />
+                          <FolderClosed size={14} color="#1D4ED8" />
                         </View>
                         <Text style={styles.sectionHeading}>Pilih Kelompok Halaqoh</Text>
                       </View>
@@ -1040,7 +1064,7 @@ export const TahfidzSetoranScreen = () => {
                           style={styles.selectionBtn}
                           onPress={() => toggleSelectAll(true)}
                         >
-                          <CheckCircle size={14} color="#15803d" />
+                          <CheckCircle size={14} color="#1D4ED8" />
                           <Text style={styles.selectionBtnText}>Pilih Semua</Text>
                         </TouchableOpacity>
 
@@ -1445,7 +1469,7 @@ export const TahfidzSetoranScreen = () => {
                         </Text>
                       </View>
                       <View style={styles.santriCountBadge}>
-                        <Users size={12} color="#15803d" />
+                        <Users size={12} color="#1D4ED8" />
                         <Text style={styles.santriCountText}>
                           {h.anggota?.length || h._count?.anggota || 0} Santri
                         </Text>
@@ -1479,16 +1503,16 @@ export const TahfidzSetoranScreen = () => {
             <View style={styles.tabContent}>
               {/* Summary Stats Grid */}
               <View style={styles.statsGrid}>
-                <View style={[styles.statBox, { backgroundColor: "#ecfdf5", borderColor: "#a7f3d0" }]}>
-                  <BookOpen size={20} color="#15803d" />
+                <View style={[styles.statBox, { backgroundColor: "#eff6ff", borderColor: "#bfdbfe" }]}>
+                  <BookOpen size={20} color="#1D4ED8" />
                   <Text style={styles.statNumber}>
                     {santriList.length}
                   </Text>
                   <Text style={styles.statLabel}>Total Santri Binaan</Text>
                 </View>
 
-                <View style={[styles.statBox, { backgroundColor: "#eff6ff", borderColor: "#bfdbfe" }]}>
-                  <TrendingUp size={20} color="#1d4ed8" />
+                <View style={[styles.statBox, { backgroundColor: "#f0f9ff", borderColor: "#bae6fd" }]}>
+                  <TrendingUp size={20} color="#0284c7" />
                   <Text style={styles.statNumber}>
                     {halaqahList.length}
                   </Text>
@@ -1516,7 +1540,7 @@ export const TahfidzSetoranScreen = () => {
                         style={styles.addTargetBtn}
                         onPress={() => handleOpenTargetModal(s.siswa_id)}
                       >
-                        <Plus size={13} color="#15803d" />
+                        <Plus size={13} color="#1D4ED8" />
                         <Text style={styles.addTargetText}>Set Target</Text>
                       </TouchableOpacity>
                     )}
@@ -1578,7 +1602,7 @@ export const TahfidzSetoranScreen = () => {
                         {item.kelas?.nama_kelas || "Kelas -"} • {item.nisn || "-"}
                       </Text>
                     </View>
-                    {isSelected && <Check size={18} color="#15803d" />}
+                    {isSelected && <Check size={18} color="#1D4ED8" />}
                   </TouchableOpacity>
                 );
               }}
@@ -1802,42 +1826,88 @@ export const TahfidzSetoranScreen = () => {
           </View>
         </SafeAreaView>
       </Modal>
-    </SafeAreaView>
+    </SwipeBackContainer>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#F4F7FE",
+  },
+  headerContainer: {
+    backgroundColor: "#162E6E",
+    paddingBottom: 14,
+  },
+  headerContent: {
+    paddingHorizontal: 16,
+  },
+  headerTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingTop: Platform.OS === "android" ? 10 : 0,
+  },
+  backButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitleCol: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  headerTitle: {
+    color: "#FFFFFF",
+    fontSize: 17,
+    fontWeight: "800",
+  },
+  headerSubtitle: {
+    color: "#93C5FD",
+    fontSize: 11,
+    fontWeight: "600",
+    marginTop: 1,
+  },
+  headerRightBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   tabBar: {
     flexDirection: "row",
-    backgroundColor: "#ffffff",
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "#e2e8f0",
-    paddingHorizontal: 8,
+    borderBottomColor: "#E2E8F0",
   },
   tabItem: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 12,
-    gap: 6,
-    borderBottomWidth: 2,
-    borderBottomColor: "transparent",
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: "#F1F5F9",
+    gap: 5,
   },
   tabItemActive: {
-    borderBottomColor: Colors.primary,
+    backgroundColor: "#162E6E",
   },
   tabText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
-    color: "#64748b",
+    color: "#64748B",
   },
   tabTextActive: {
-    color: Colors.primary,
+    color: "#FFFFFF",
   },
   loadingContainer: {
     flex: 1,
@@ -1848,7 +1918,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 13,
-    color: "#64748b",
+    color: "#64748B",
   },
   scrollContent: {
     padding: 16,
@@ -1859,22 +1929,24 @@ const styles = StyleSheet.create({
   },
   modeToggleContainer: {
     flexDirection: "row",
-    backgroundColor: "#e2e8f0",
-    borderRadius: 14,
+    backgroundColor: "#F1F5F9",
+    borderRadius: 12,
     padding: 4,
     marginBottom: 4,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
   },
   modeToggleBtn: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 9,
-    borderRadius: 10,
+    paddingVertical: 8,
+    borderRadius: 9,
     gap: 6,
   },
   modeToggleBtnActive: {
-    backgroundColor: "#065f46",
+    backgroundColor: "#162E6E",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.15,
@@ -1887,15 +1959,15 @@ const styles = StyleSheet.create({
     color: "#475569",
   },
   modeToggleTextActive: {
-    color: "#ffffff",
+    color: "#FFFFFF",
   },
   card: {
-    backgroundColor: "#ffffff",
+    backgroundColor: "#FFFFFF",
     borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
-    shadowColor: "#0f172a",
+    borderColor: "#E2E8F0",
+    shadowColor: "#0F172A",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 4,
@@ -1908,17 +1980,17 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   stepBadge: {
-    width: 24,
-    height: 24,
+    width: 26,
+    height: 26,
     borderRadius: 8,
-    backgroundColor: "#dcfce7",
+    backgroundColor: "#EFF6FF",
     alignItems: "center",
     justifyContent: "center",
   },
   sectionHeading: {
     fontSize: 13,
     fontWeight: "800",
-    color: "#1e293b",
+    color: "#1E293B",
   },
   fieldLabel: {
     fontSize: 11,
@@ -1940,27 +2012,27 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
-    backgroundColor: "#f8fafc",
+    borderColor: "#E2E8F0",
+    backgroundColor: "#F8FAFC",
     gap: 6,
   },
   kategoriBtnActive: {
-    backgroundColor: "#ecfdf5",
-    borderColor: "#10b981",
+    backgroundColor: "#EFF6FF",
+    borderColor: "#3B82F6",
   },
   kategoriBtnText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#64748b",
+    color: "#64748B",
   },
   kategoriBtnTextActive: {
-    color: "#15803d",
+    color: "#1D4ED8",
   },
   kategoriBtnTextActiveHadits: {
-    color: "#1d4ed8",
+    color: "#0284C7",
   },
   kategoriBtnTextActiveMatan: {
-    color: "#b45309",
+    color: "#7C3AED",
   },
   jenisGrid: {
     flexDirection: "row",
@@ -1974,20 +2046,20 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
-    backgroundColor: "#f8fafc",
+    borderColor: "#E2E8F0",
+    backgroundColor: "#F8FAFC",
   },
   jenisBtnActive: {
-    backgroundColor: "#065f46",
-    borderColor: "#065f46",
+    backgroundColor: "#162E6E",
+    borderColor: "#162E6E",
   },
   jenisBtnText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#64748b",
+    color: "#64748B",
   },
   jenisBtnTextActive: {
-    color: "#ffffff",
+    color: "#FFFFFF",
   },
   rowTwoCols: {
     flexDirection: "row",
@@ -1999,9 +2071,9 @@ const styles = StyleSheet.create({
   inputWithIcon: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#F8FAFC",
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#E2E8F0",
     borderRadius: 12,
     paddingHorizontal: 10,
     height: 40,
@@ -2010,28 +2082,28 @@ const styles = StyleSheet.create({
   textInputInBox: {
     flex: 1,
     fontSize: 12,
-    color: "#1e293b",
+    color: "#1E293B",
     fontWeight: "600",
     padding: 0,
   },
   textInputFull: {
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#F8FAFC",
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#E2E8F0",
     borderRadius: 12,
     paddingHorizontal: 12,
     height: 42,
     fontSize: 12,
-    color: "#1e293b",
+    color: "#1E293B",
     marginBottom: 10,
   },
   dropdownTrigger: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#F8FAFC",
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#E2E8F0",
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -2042,27 +2114,27 @@ const styles = StyleSheet.create({
   dropdownMainText: {
     fontSize: 13,
     fontWeight: "800",
-    color: "#1e293b",
+    color: "#1E293B",
   },
   dropdownSubText: {
     fontSize: 11,
-    color: "#64748b",
+    color: "#64748B",
     marginTop: 2,
   },
   rangeBox: {
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#F8FAFC",
     borderRadius: 14,
     padding: 12,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#E2E8F0",
   },
   selectorTrigger: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#ffffff",
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#cbd5e1",
+    borderColor: "#CBD5E1",
     borderRadius: 10,
     paddingHorizontal: 10,
     height: 38,
@@ -2070,19 +2142,19 @@ const styles = StyleSheet.create({
   selectorText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#1e293b",
+    color: "#1E293B",
     flex: 1,
   },
   numInput: {
-    backgroundColor: "#ffffff",
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#cbd5e1",
+    borderColor: "#CBD5E1",
     borderRadius: 10,
     paddingHorizontal: 10,
     height: 38,
     fontSize: 12,
     fontWeight: "700",
-    color: "#1e293b",
+    color: "#1E293B",
     textAlign: "center",
   },
   kelancaranGrid: {
@@ -2096,29 +2168,29 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
-    backgroundColor: "#f8fafc",
+    borderColor: "#E2E8F0",
+    backgroundColor: "#F8FAFC",
   },
   kelancaranBtnActive: {
-    backgroundColor: "#065f46",
-    borderColor: "#065f46",
+    backgroundColor: "#162E6E",
+    borderColor: "#162E6E",
   },
   kelancaranBtnText: {
     fontSize: 10,
     fontWeight: "700",
-    color: "#64748b",
+    color: "#64748B",
   },
   kelancaranBtnTextActive: {
-    color: "#ffffff",
+    color: "#FFFFFF",
   },
   textArea: {
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#F8FAFC",
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#E2E8F0",
     borderRadius: 12,
     padding: 10,
     fontSize: 11,
-    color: "#1e293b",
+    color: "#1E293B",
     textAlignVertical: "top",
   },
   halaqahPills: {
@@ -2129,29 +2201,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 20,
-    backgroundColor: "#f1f5f9",
+    backgroundColor: "#F1F5F9",
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#E2E8F0",
     marginRight: 8,
   },
   halaqahPillActive: {
-    backgroundColor: "#ecfdf5",
-    borderColor: "#10b981",
+    backgroundColor: "#EFF6FF",
+    borderColor: "#3B82F6",
   },
   halaqahPillText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#64748b",
+    color: "#64748B",
   },
   halaqahPillTextActive: {
-    color: "#15803d",
+    color: "#1D4ED8",
   },
   selectionRow: {
     flexDirection: "row",
     alignItems: "center",
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: "#f1f5f9",
+    borderTopColor: "#F1F5F9",
   },
   selectionBtn: {
     flexDirection: "row",
@@ -2162,31 +2234,31 @@ const styles = StyleSheet.create({
   selectionBtnText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#15803d",
+    color: "#1D4ED8",
   },
   selectedCountText: {
     marginLeft: "auto",
     fontSize: 11,
     fontWeight: "700",
-    color: "#64748b",
+    color: "#64748B",
   },
   kolosalCard: {
-    backgroundColor: "#ffffff",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#E2E8F0",
     marginBottom: 10,
     overflow: "hidden",
   },
   kolosalCardActive: {
-    borderColor: "#a7f3d0",
-    backgroundColor: "#ffffff",
+    borderColor: "#93C5FD",
+    backgroundColor: "#FFFFFF",
   },
   kolosalCardInactive: {
     opacity: 0.6,
   },
   cardSantriHeader: {
-    backgroundColor: "#1e293b",
+    backgroundColor: "#162E6E",
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
@@ -2199,26 +2271,26 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: "#94a3b8",
+    borderColor: "#94A3B8",
     alignItems: "center",
     justifyContent: "center",
   },
   checkboxChecked: {
-    backgroundColor: "#10b981",
-    borderColor: "#10b981",
+    backgroundColor: "#3B82F6",
+    borderColor: "#3B82F6",
   },
   cardSantriName: {
     fontSize: 12,
     fontWeight: "800",
-    color: "#ffffff",
+    color: "#FFFFFF",
   },
   cardSantriMeta: {
     fontSize: 10,
-    color: "#94a3b8",
+    color: "#93C5FD",
   },
   cardBody: {
     padding: 12,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#F8FAFC",
     gap: 8,
   },
   cardRangeRow: {
@@ -2232,13 +2304,13 @@ const styles = StyleSheet.create({
   cardMiniLabel: {
     fontSize: 9,
     fontWeight: "700",
-    color: "#64748b",
+    color: "#64748B",
     marginBottom: 2,
   },
   cardSelector: {
-    backgroundColor: "#ffffff",
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#cbd5e1",
+    borderColor: "#CBD5E1",
     borderRadius: 8,
     paddingHorizontal: 8,
     height: 32,
@@ -2247,18 +2319,18 @@ const styles = StyleSheet.create({
   cardSelectorText: {
     fontSize: 10,
     fontWeight: "700",
-    color: "#1e293b",
+    color: "#1E293B",
   },
   cardNumInput: {
-    backgroundColor: "#ffffff",
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#cbd5e1",
+    borderColor: "#CBD5E1",
     borderRadius: 8,
     paddingHorizontal: 4,
     height: 32,
     fontSize: 10,
     fontWeight: "700",
-    color: "#1e293b",
+    color: "#1E293B",
     textAlign: "center",
   },
   cardKelancaranRow: {
@@ -2272,35 +2344,35 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
-    backgroundColor: "#ffffff",
+    borderColor: "#E2E8F0",
+    backgroundColor: "#FFFFFF",
   },
   cardKelancaranPillActive: {
-    backgroundColor: "#065f46",
-    borderColor: "#065f46",
+    backgroundColor: "#162E6E",
+    borderColor: "#162E6E",
   },
   cardKelancaranText: {
     fontSize: 9,
     fontWeight: "700",
-    color: "#64748b",
+    color: "#64748B",
   },
   cardKelancaranTextActive: {
-    color: "#ffffff",
+    color: "#FFFFFF",
   },
   cardTextInput: {
-    backgroundColor: "#ffffff",
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#E2E8F0",
     borderRadius: 8,
     paddingHorizontal: 8,
     height: 32,
     fontSize: 10,
-    color: "#1e293b",
+    color: "#1E293B",
   },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f1f5f9",
+    backgroundColor: "#F1F5F9",
     borderRadius: 12,
     paddingHorizontal: 12,
     height: 40,
@@ -2309,7 +2381,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 12,
-    color: "#1e293b",
+    color: "#1E293B",
     padding: 0,
   },
   filterPillsRow: {
@@ -2321,30 +2393,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 10,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#F8FAFC",
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#E2E8F0",
   },
   filterPillActive: {
-    backgroundColor: "#065f46",
-    borderColor: "#065f46",
+    backgroundColor: "#162E6E",
+    borderColor: "#162E6E",
   },
   filterPillText: {
     fontSize: 10,
     fontWeight: "700",
-    color: "#64748b",
+    color: "#64748B",
   },
   filterPillTextActive: {
-    color: "#ffffff",
+    color: "#FFFFFF",
   },
   emptyBox: {
     alignItems: "center",
     justifyContent: "center",
     padding: 30,
-    backgroundColor: "#ffffff",
+    backgroundColor: "#FFFFFF",
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#E2E8F0",
   },
   emptyTitle: {
     fontSize: 14,
@@ -2354,16 +2426,16 @@ const styles = StyleSheet.create({
   },
   emptySubtitle: {
     fontSize: 11,
-    color: "#94a3b8",
+    color: "#94A3B8",
     marginTop: 4,
     textAlign: "center",
   },
   riwayatCard: {
-    backgroundColor: "#ffffff",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#E2E8F0",
     marginBottom: 8,
   },
   riwayatHeader: {
@@ -2375,11 +2447,11 @@ const styles = StyleSheet.create({
   riwayatSantriName: {
     fontSize: 13,
     fontWeight: "800",
-    color: "#1e293b",
+    color: "#1E293B",
   },
   riwayatDate: {
     fontSize: 10,
-    color: "#64748b",
+    color: "#64748B",
     marginTop: 2,
   },
   jenisBadge: {
@@ -2389,29 +2461,29 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   badgeBaru: {
-    backgroundColor: "#ecfdf5",
-    borderColor: "#a7f3d0",
+    backgroundColor: "#EFF6FF",
+    borderColor: "#BFDBFE",
   },
   badgeBaruText: {
-    color: "#15803d",
+    color: "#1D4ED8",
     fontSize: 9,
     fontWeight: "800",
   },
   badgeUlang: {
-    backgroundColor: "#eff6ff",
-    borderColor: "#bfdbfe",
+    backgroundColor: "#EFF6FF",
+    borderColor: "#BFDBFE",
   },
   badgeUlangText: {
-    color: "#1d4ed8",
+    color: "#1D4ED8",
     fontSize: 9,
     fontWeight: "800",
   },
   badgeUjian: {
-    backgroundColor: "#faf5ff",
-    borderColor: "#e9d5ff",
+    backgroundColor: "#FAF5FF",
+    borderColor: "#E9D5FF",
   },
   badgeUjianText: {
-    color: "#7e22ce",
+    color: "#7E22CE",
     fontSize: 9,
     fontWeight: "800",
   },
@@ -2420,11 +2492,11 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   riwayatDetailBox: {
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#F8FAFC",
     padding: 10,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#f1f5f9",
+    borderColor: "#F1F5F9",
   },
   riwayatDetailText: {
     fontSize: 11,
@@ -2439,11 +2511,11 @@ const styles = StyleSheet.create({
   },
   riwayatKelancaran: {
     fontSize: 10,
-    color: "#64748b",
+    color: "#64748B",
   },
   riwayatCatatan: {
     fontSize: 10,
-    color: "#94a3b8",
+    color: "#94A3B8",
     fontStyle: "italic",
   },
   halaqahHeaderBox: {
@@ -2452,19 +2524,19 @@ const styles = StyleSheet.create({
   halaqahHeaderTitle: {
     fontSize: 15,
     fontWeight: "800",
-    color: "#1e293b",
+    color: "#1E293B",
   },
   halaqahHeaderDesc: {
     fontSize: 11,
-    color: "#64748b",
+    color: "#64748B",
     marginTop: 2,
   },
   halaqahCard: {
-    backgroundColor: "#ffffff",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#E2E8F0",
     marginBottom: 10,
   },
   halaqahCardHeader: {
@@ -2475,17 +2547,17 @@ const styles = StyleSheet.create({
   halaqahName: {
     fontSize: 14,
     fontWeight: "800",
-    color: "#1e293b",
+    color: "#1E293B",
   },
   halaqahMeta: {
     fontSize: 11,
-    color: "#64748b",
+    color: "#64748B",
     marginTop: 2,
   },
   santriCountBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#dcfce7",
+    backgroundColor: "#EFF6FF",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
@@ -2494,18 +2566,18 @@ const styles = StyleSheet.create({
   santriCountText: {
     fontSize: 10,
     fontWeight: "800",
-    color: "#15803d",
+    color: "#1D4ED8",
   },
   anggotaList: {
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: "#f1f5f9",
+    borderTopColor: "#F1F5F9",
   },
   anggotaHeading: {
     fontSize: 10,
     fontWeight: "700",
-    color: "#94a3b8",
+    color: "#94A3B8",
     marginBottom: 6,
     textTransform: "uppercase",
   },
@@ -2517,18 +2589,18 @@ const styles = StyleSheet.create({
   anggotaNumber: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#94a3b8",
+    color: "#94A3B8",
     width: 20,
   },
   anggotaName: {
     flex: 1,
     fontSize: 11,
     fontWeight: "600",
-    color: "#1e293b",
+    color: "#1E293B",
   },
   anggotaKelas: {
     fontSize: 10,
-    color: "#64748b",
+    color: "#64748B",
   },
   statsGrid: {
     flexDirection: "row",
@@ -2545,27 +2617,27 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 20,
     fontWeight: "900",
-    color: "#0f172a",
+    color: "#0F172A",
     marginTop: 4,
   },
   statLabel: {
     fontSize: 10,
     fontWeight: "700",
-    color: "#64748b",
+    color: "#64748B",
     marginTop: 2,
   },
   targetSectionHeading: {
     fontSize: 13,
     fontWeight: "800",
-    color: "#1e293b",
+    color: "#1E293B",
     marginBottom: 6,
   },
   targetSantriCard: {
-    backgroundColor: "#ffffff",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#E2E8F0",
     marginBottom: 8,
   },
   targetCardHeader: {
@@ -2576,43 +2648,43 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#065f46",
+    backgroundColor: "#162E6E",
     alignItems: "center",
     justifyContent: "center",
   },
   avatarText: {
-    color: "#ffffff",
+    color: "#FFFFFF",
     fontSize: 14,
     fontWeight: "800",
   },
   targetSantriName: {
     fontSize: 12,
     fontWeight: "800",
-    color: "#1e293b",
+    color: "#1E293B",
   },
   targetSantriMeta: {
     fontSize: 10,
-    color: "#64748b",
+    color: "#64748B",
   },
   addTargetBtn: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#ecfdf5",
+    backgroundColor: "#EFF6FF",
     paddingHorizontal: 8,
     paddingVertical: 5,
     borderRadius: 8,
     gap: 4,
     borderWidth: 1,
-    borderColor: "#a7f3d0",
+    borderColor: "#BFDBFE",
   },
   addTargetText: {
     fontSize: 10,
     fontWeight: "800",
-    color: "#15803d",
+    color: "#1D4ED8",
   },
   progressContainer: {
     marginTop: 10,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#F8FAFC",
     padding: 10,
     borderRadius: 10,
   },
@@ -2629,17 +2701,17 @@ const styles = StyleSheet.create({
   progressValue: {
     fontSize: 10,
     fontWeight: "800",
-    color: "#15803d",
+    color: "#1D4ED8",
   },
   progressBar: {
     height: 6,
-    backgroundColor: "#e2e8f0",
+    backgroundColor: "#E2E8F0",
     borderRadius: 3,
     overflow: "hidden",
   },
   progressFill: {
     height: "100%",
-    backgroundColor: "#10b981",
+    backgroundColor: "#3B82F6",
     borderRadius: 3,
   },
   modalOverlay: {
@@ -2648,7 +2720,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modalContainer: {
-    backgroundColor: "#ffffff",
+    backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: "85%",
@@ -2663,12 +2735,12 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 15,
     fontWeight: "800",
-    color: "#1e293b",
+    color: "#1E293B",
   },
   modalSearchBar: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f1f5f9",
+    backgroundColor: "#F1F5F9",
     borderRadius: 12,
     paddingHorizontal: 12,
     height: 40,
@@ -2678,7 +2750,7 @@ const styles = StyleSheet.create({
   modalSearchInput: {
     flex: 1,
     fontSize: 12,
-    color: "#1e293b",
+    color: "#1E293B",
     padding: 0,
   },
   modalListItem: {
@@ -2686,37 +2758,37 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#f1f5f9",
+    borderBottomColor: "#F1F5F9",
   },
   modalListItemActive: {
-    backgroundColor: "#ecfdf5",
+    backgroundColor: "#EFF6FF",
   },
   modalItemTitle: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#1e293b",
+    color: "#1E293B",
   },
   modalItemSubtitle: {
     fontSize: 10,
-    color: "#64748b",
+    color: "#64748B",
     marginTop: 2,
   },
   surahNumberCircle: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "#ecfdf5",
+    backgroundColor: "#EFF6FF",
     alignItems: "center",
     justifyContent: "center",
   },
   surahNumberText: {
     fontSize: 10,
     fontWeight: "800",
-    color: "#15803d",
+    color: "#1D4ED8",
   },
   surahArabicText: {
     fontSize: 16,
-    color: "#0f172a",
+    color: "#0F172A",
     fontWeight: "700",
   },
 });
