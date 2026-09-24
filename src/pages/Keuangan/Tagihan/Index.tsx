@@ -1,18 +1,11 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   FileText,
   Search,
-  Filter,
   Plus,
   RefreshCw,
   Sparkles,
-  Calendar,
-  Layers,
-  GraduationCap,
-  CheckCircle2,
-  AlertCircle,
-  Clock,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
@@ -38,7 +31,6 @@ export default function TagihanSiswaIndex() {
   const [sppBulan, setSppBulan] = useState(new Date().getMonth() + 1);
   const [sppTahun, setSppTahun] = useState(new Date().getFullYear());
   const [sppNominal, setSppNominal] = useState(950000);
-  const [sppPosId, setSppPosId] = useState<number | null>(null);
 
   // Form Tambah Tagihan Manual
   const [manualSiswaId, setManualSiswaId] = useState<number | null>(null);

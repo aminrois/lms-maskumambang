@@ -75,10 +75,10 @@ export const allMenuGroups: MenuGroup[] = [
   {
     category: "Keuangan & SPP",
     items: [
-      { name: "Loket Kasir", icon: Wallet, path: "/keuangan/loket-kasir", allowedRoles: ['Super Admin', 'Direktur', 'Bendahara', 'Staf Keuangan', 'Admin Lembaga'], color: "emerald" },
-      { name: "Tagihan Santri", icon: FileText, path: "/keuangan/tagihan", allowedRoles: ['Super Admin', 'Direktur', 'Bendahara', 'Staf Keuangan', 'Admin Lembaga'], color: "blue" },
-      { name: "Verifikasi Transfer", icon: ShieldCheck, path: "/keuangan/verifikasi-transfer", allowedRoles: ['Super Admin', 'Direktur', 'Bendahara', 'Staf Keuangan', 'Admin Lembaga'], color: "amber" },
-      { name: "Master Tarif & Rekening", icon: Settings, path: "/keuangan/master-tarif", allowedRoles: ['Super Admin', 'Direktur', 'Bendahara'], color: "purple" },
+      { name: "Loket Kasir", icon: Wallet, path: "/keuangan/loket-kasir", allowedRoles: ['Super Admin', 'Direktur', 'Admin Lembaga', 'Kepala Sekolah'], color: "emerald" },
+      { name: "Tagihan Santri", icon: FileText, path: "/keuangan/tagihan", allowedRoles: ['Super Admin', 'Direktur', 'Admin Lembaga', 'Kepala Sekolah'], color: "blue" },
+      { name: "Verifikasi Transfer", icon: ShieldCheck, path: "/keuangan/verifikasi-transfer", allowedRoles: ['Super Admin', 'Direktur', 'Admin Lembaga', 'Kepala Sekolah'], color: "amber" },
+      { name: "Master Tarif & Rekening", icon: Settings, path: "/keuangan/master-tarif", allowedRoles: ['Super Admin', 'Direktur', 'Admin Lembaga'], color: "purple" },
     ]
   }
 ];

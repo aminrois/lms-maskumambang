@@ -597,7 +597,7 @@ const App: React.FC = () => {
                 <Route
                   element={
                     <ProtectedRoute
-                      allowedRoles={["Super Admin", "Direktur", "Bendahara", "Staf Keuangan", "Admin Lembaga"]}
+                      allowedRoles={["Super Admin", "Direktur", "Admin Lembaga", "Kepala Sekolah"]}
                     />
                   }
                 >
@@ -609,7 +609,7 @@ const App: React.FC = () => {
                 <Route
                   element={
                     <ProtectedRoute
-                      allowedRoles={["Super Admin", "Direktur", "Bendahara"]}
+                      allowedRoles={["Super Admin", "Direktur", "Admin Lembaga"]}
                     />
                   }
                 >

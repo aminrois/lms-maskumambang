@@ -4,16 +4,8 @@ import {
   Wallet,
   Search,
   CheckCircle2,
-  AlertCircle,
   Printer,
   Receipt,
-  User,
-  Plus,
-  Trash2,
-  CreditCard,
-  Building2,
-  Calendar,
-  Layers,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
@@ -34,7 +26,7 @@ export default function LoketKasirIndex() {
   const [lastKuitansi, setLastKuitansi] = useState<any>(null);
 
   // Cari Santri & Tagihan
-  const { data: tagihanData = [], isLoading: loadingTagihan } = useQuery({
+  const { data: tagihanData = [] } = useQuery({
     queryKey: ["keuangan", "tagihan-kasir", searchTerm],
     queryFn: async () => {
       if (!searchTerm || searchTerm.length < 2) return [];

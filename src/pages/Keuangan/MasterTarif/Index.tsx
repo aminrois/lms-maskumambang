@@ -1,15 +1,9 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Settings,
   Building2,
-  Layers,
   Plus,
-  CreditCard,
-  CheckCircle2,
-  Trash2,
-  Edit2,
-  Sparkles,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
@@ -49,7 +43,7 @@ export default function MasterTarifIndex() {
   const [rekCabang, setRekCabang] = useState("");
 
   // Fetch Master Data
-  const { data: masterData, isLoading } = useQuery({
+  const { data: masterData } = useQuery({
     queryKey: ["keuangan", "master"],
     queryFn: async () => {
       const res = await axios.get(`${API_BASE}/master`);
