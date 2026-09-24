@@ -63,6 +63,8 @@ model Lembaga {
   activity_plan     ActivityPlan[]
   tahfidz_pengampu  TahfidzPengampu[]
   tahfidz_halaqah   TahfidzHalaqah[]
+  pos_pembayaran    PosPembayaran[]
+  rekening_pesantren RekeningPesantren[]
 
   @@map("lembaga")
 }
@@ -146,6 +148,7 @@ model WaliMurid {
 
   user                User?    @relation(fields: [user_id], references: [user_id], onDelete: SetNull)
   siswa               Siswa[]
+  pembayaran_transaksi PembayaranTransaksi[]
 
   @@map("wali_murid")
 }
@@ -189,6 +192,8 @@ model Siswa {
   tahfidz_target      TahfidzTarget[]
   tahfidz_setoran     TahfidzSetoran[]
   tahfidz_halaqah_siswa TahfidzHalaqahSiswa[]
+  tagihan_siswa       TagihanSiswa[]
+  pembayaran_transaksi PembayaranTransaksi[]
 
   @@index([kelas_id])
   @@index([status])
@@ -209,6 +214,8 @@ model TahunAjaran {
   kalender_akademik KalenderAkademik[]
   activity_plan     ActivityPlan[]
   tahfidz_halaqah   TahfidzHalaqah[]
+  pos_pembayaran    PosPembayaran[]
+  tagihan_siswa     TagihanSiswa[]
 
   @@map("tahun_ajaran")
 }
@@ -540,3 +547,135 @@ model TahfidzHalaqahSiswa {
   @@index([siswa_id])
   @@map("tahfidz_halaqah_siswa")
 }
+
+// ═══════════════════════════════════════════════════════
+// MODUL KEUANGAN & PEMBAYARAN SANTRI
+// ═══════════════════════════════════════════════════════
+
+model PosPembayaran {
+  pos_id           Int               @id @default(autoincrement())
+  lembaga_id       Int?
+  tahun_id         Int?
+  nama_pos         String            // 'Uang Pangkal' | 'SPP Bulanan' | 'Kegiatan & Ujian' | 'Seragam & Perlengkapan' | dll
+  kode_pos         String?           // 'PANGKAL' | 'SPP' | 'KEGIATAN' | 'SERAGAM'
+  tipe_pembayaran  String            @default("Bulanan") // 'Bulanan' | 'Bebas' | 'Tahunan' | 'Sekali'
+  deskripsi        String?
+  is_active        Boolean           @default(true)
+  created_at       DateTime          @default(now())
+
+  lembaga          Lembaga?          @relation(fields: [lembaga_id], references: [lembaga_id], onDelete: Cascade)
+  tahun_ajaran     TahunAjaran?      @relation(fields: [tahun_id], references: [tahun_id], onDelete: SetNull)
+  tarif            TarifPembayaran[]
+  tagihan          TagihanSiswa[]
+
+  @@index([lembaga_id])
+  @@index([tipe_pembayaran])
+  @@map("pos_pembayaran")
+}
+
+model TarifPembayaran {
+  tarif_id         Int            @id @default(autoincrement())
+  pos_id           Int
+  nama_tarif       String         // e.g. "Uang Pangkal - Kuota 1", "SPP Kelas VII", "Seragam Putra"
+  kuota            String?        // 'Kuota 1' | 'Kuota 2' | 'Kuota 3' | null
+  nominal          Float
+  kelas_tingkat    Int?           // 7, 8, 9, 10, 11, 12, dll
+  keterangan       String?
+  created_at       DateTime       @default(now())
+
+  pos              PosPembayaran  @relation(fields: [pos_id], references: [pos_id], onDelete: Cascade)
+
+  @@index([pos_id])
+  @@map("tarif_pembayaran")
+}
+
+model TagihanSiswa {
+  tagihan_id       Int            @id @default(autoincrement())
+  siswa_id         Int
+  pos_id           Int
+  tahun_id         Int?
+  bulan            Int?           // 1 - 12 (untuk SPP)
+  tahun_periode    Int?           // misal 2026
+  nama_tagihan     String         // e.g. "SPP September 2026", "Uang Pangkal (Kuota 1)", "Kegiatan & Ujian TA 2026/2027"
+  nominal_total    Float
+  nominal_terbayar Float          @default(0)
+  sisa_tagihan     Float
+  status           String         @default("Belum Bayar") // 'Belum Bayar' | 'Sebagian' | 'Lunas'
+  jatuh_tempo      String?        // YYYY-MM-DD
+  keterangan       String?
+  created_at       DateTime       @default(now())
+  updated_at       DateTime       @updatedAt
+
+  siswa            Siswa          @relation(fields: [siswa_id], references: [siswa_id], onDelete: Cascade)
+  pos              PosPembayaran  @relation(fields: [pos_id], references: [pos_id], onDelete: Cascade)
+  tahun_ajaran     TahunAjaran?   @relation(fields: [tahun_id], references: [tahun_id], onDelete: SetNull)
+  transaksi_items  PembayaranTransaksiItem[]
+
+  @@index([siswa_id])
+  @@index([pos_id])
+  @@index([status])
+  @@map("tagihan_siswa")
+}
+
+model RekeningPesantren {
+  rekening_id      Int                     @id @default(autoincrement())
+  lembaga_id       Int?
+  nama_bank        String                  // 'Bank Syariah Indonesia (BSI)' | 'BCA' | 'BRI' | 'Mandiri'
+  nomor_rekening   String
+  atas_nama        String
+  cabang           String?
+  is_active        Boolean                 @default(true)
+  created_at       DateTime                @default(now())
+
+  lembaga          Lembaga?                @relation(fields: [lembaga_id], references: [lembaga_id], onDelete: SetNull)
+  transaksi        PembayaranTransaksi[]
+
+  @@map("rekening_pesantren")
+}
+
+model PembayaranTransaksi {
+  transaksi_id            Int                       @id @default(autoincrement())
+  nomor_transaksi         String                    @unique // TRX-YYYYMMDD-XXXX
+  siswa_id                Int
+  wali_id                 Int?
+  tanggal_bayar           String                    // YYYY-MM-DD
+  total_bayar             Float
+  metode_pembayaran       String                    // 'Tunai / Loket' | 'Transfer Bank' | 'QRIS'
+  rekening_tujuan_id      Int?
+  bank_pengirim           String?
+  nomor_rekening_pengirim String?
+  atas_nama_pengirim      String?
+  bukti_transfer_url      String?
+  status                  String                    @default("Disetujui") // 'Menunggu Verifikasi' | 'Disetujui' | 'Ditolak'
+  catatan                 String?
+  alasan_penolakan        String?
+  diterima_oleh_user_id   String?                   @db.Uuid
+  waktu_verifikasi        DateTime?
+  created_at              DateTime                  @default(now())
+  updated_at              DateTime                  @updatedAt
+
+  siswa                   Siswa                     @relation(fields: [siswa_id], references: [siswa_id], onDelete: Cascade)
+  wali                    WaliMurid?                @relation(fields: [wali_id], references: [wali_id], onDelete: SetNull)
+  rekening_tujuan         RekeningPesantren?        @relation(fields: [rekening_tujuan_id], references: [rekening_id], onDelete: SetNull)
+  items                   PembayaranTransaksiItem[]
+
+  @@index([siswa_id])
+  @@index([status])
+  @@index([tanggal_bayar])
+  @@map("pembayaran_transaksi")
+}
+
+model PembayaranTransaksiItem {
+  item_id          Int                 @id @default(autoincrement())
+  transaksi_id     Int
+  tagihan_id       Int
+  nominal_bayar    Float
+
+  transaksi        PembayaranTransaksi @relation(fields: [transaksi_id], references: [transaksi_id], onDelete: Cascade)
+  tagihan          TagihanSiswa        @relation(fields: [tagihan_id], references: [tagihan_id], onDelete: Cascade)
+
+  @@index([transaksi_id])
+  @@index([tagihan_id])
+  @@map("pembayaran_transaksi_item")
+}
+

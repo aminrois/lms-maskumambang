@@ -2,7 +2,7 @@ import {
   LayoutDashboard, Building, Book, GraduationCap, User,
   Calendar, BarChart, FileText, BookOpen, Clock,
   PenTool, Clipboard, Eye, CalendarDays, BookMarked, RotateCcw,
-  Sparkles, Target, History, UserCheck, Users
+  Sparkles, Target, History, UserCheck, Users, Wallet, ShieldCheck, Settings
 } from "lucide-react";
 
 export type MenuItem = {
@@ -67,10 +67,18 @@ export const allMenuGroups: MenuGroup[] = [
       { name: "Rekap Absensi Mapel", icon: Clipboard, path: "/kbm/absensi/rekap-siswa", allowedRoles: ['Direktur', 'Kepala Sekolah', 'WaKa Kurikulum', 'Guru'], color: "pink" },
       { name: "Absensi Harian", icon: Clipboard, path: "/kbm/absensi/harian", allowedRoles: ['Wali Kelas'], color: "cyan" },
       { name: "Rekap Kehadiran", icon: FileText, path: "/kbm/absensi/rekap-harian", allowedRoles: ['Direktur', 'Wali Kelas'], color: "orange" },
-      // { name: "Face Recog", icon: Focus, path: "/kbm/face-recognition", allowedRoles: ['Direktur', 'Kepala Sekolah', 'WaKa Kurikulum', 'Wali Kelas', 'Guru'], color: "blue" }, // HIDDEN
       { name: "Reset Absensi", icon: RotateCcw, path: "/kbm/absensi/reset", allowedRoles: ['Direktur', 'Super Admin'], color: "rose" },
       { name: "Monitoring", icon: BarChart, path: "/kbm/monitoring/universal", allowedRoles: ['Direktur', 'Kepala Sekolah', 'WaKa Kurikulum'], color: "indigo" },
       { name: "Pantau Wali", icon: Eye, path: "/kbm/monitoring/wali-kelas", allowedRoles: ['Wali Kelas'], color: "teal" },
+    ]
+  },
+  {
+    category: "Keuangan & SPP",
+    items: [
+      { name: "Loket Kasir", icon: Wallet, path: "/keuangan/loket-kasir", allowedRoles: ['Super Admin', 'Direktur', 'Bendahara', 'Staf Keuangan', 'Admin Lembaga'], color: "emerald" },
+      { name: "Tagihan Santri", icon: FileText, path: "/keuangan/tagihan", allowedRoles: ['Super Admin', 'Direktur', 'Bendahara', 'Staf Keuangan', 'Admin Lembaga'], color: "blue" },
+      { name: "Verifikasi Transfer", icon: ShieldCheck, path: "/keuangan/verifikasi-transfer", allowedRoles: ['Super Admin', 'Direktur', 'Bendahara', 'Staf Keuangan', 'Admin Lembaga'], color: "amber" },
+      { name: "Master Tarif & Rekening", icon: Settings, path: "/keuangan/master-tarif", allowedRoles: ['Super Admin', 'Direktur', 'Bendahara'], color: "purple" },
     ]
   }
 ];

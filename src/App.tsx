@@ -60,6 +60,12 @@ const TahfidzTarget         = React.lazy(() => import("./pages/Tahfidz/Target/Ta
 const TahfidzRiwayat        = React.lazy(() => import("./pages/Tahfidz/Riwayat/RiwayatSetoran"));
 const TahfidzHalaqah        = React.lazy(() => import("./pages/Tahfidz/Halaqah/Index"));
 
+// Keuangan & SPP
+const LoketKasirIndex         = React.lazy(() => import("./pages/Keuangan/LoketKasir/Index"));
+const TagihanSiswaIndex       = React.lazy(() => import("./pages/Keuangan/Tagihan/Index"));
+const VerifikasiTransferIndex = React.lazy(() => import("./pages/Keuangan/VerifikasiTransfer/Index"));
+const MasterTarifIndex        = React.lazy(() => import("./pages/Keuangan/MasterTarif/Index"));
+
 // Fallback loading saat halaman sedang di-fetch (lazy chunk loading)
 const PageLoader = () => (
   <div className="flex items-center justify-center h-dvh bg-[#F4F7FE]">
@@ -583,6 +589,31 @@ const App: React.FC = () => {
                   }
                 >
                   <Route path="halaqah" element={<TahfidzHalaqah />} />
+                </Route>
+              </Route>
+
+              {/* --- ROUTING LINK KEUANGAN & SPP --- */}
+              <Route path="/keuangan">
+                <Route
+                  element={
+                    <ProtectedRoute
+                      allowedRoles={["Super Admin", "Direktur", "Bendahara", "Staf Keuangan", "Admin Lembaga"]}
+                    />
+                  }
+                >
+                  <Route path="loket-kasir" element={<LoketKasirIndex />} />
+                  <Route path="tagihan" element={<TagihanSiswaIndex />} />
+                  <Route path="verifikasi-transfer" element={<VerifikasiTransferIndex />} />
+                </Route>
+
+                <Route
+                  element={
+                    <ProtectedRoute
+                      allowedRoles={["Super Admin", "Direktur", "Bendahara"]}
+                    />
+                  }
+                >
+                  <Route path="master-tarif" element={<MasterTarifIndex />} />
                 </Route>
               </Route>
             </Route>

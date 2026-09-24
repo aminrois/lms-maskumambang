@@ -9,6 +9,7 @@ import { errorHandler } from './middlewares/errorHandler';
 import { deduplicateLessonPlans } from './scripts/cleanDuplicateLessonPlans';
 import { syncLessonPlansWithJadwal } from './scripts/syncLessonPlansWithJadwal';
 import { initTahfidzModule } from './scripts/initTahfidzModule';
+import { initKeuanganModule } from './scripts/initKeuanganModule';
 
 dotenv.config();
 
@@ -76,6 +77,7 @@ const server = app.listen(PORT, () => {
   (async () => {
     try {
       await initTahfidzModule();
+      await initKeuanganModule();
       await deduplicateLessonPlans();
       await syncLessonPlansWithJadwal();
     } catch (err) {

@@ -27,7 +27,9 @@
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "USE_BIOMETRIC",
-        "USE_FINGERPRINT"
+        "USE_FINGERPRINT",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
       ]
     },
     "web": {
@@ -41,6 +43,11 @@
           "faceIDPermission": "Izinkan LMS Maskumambang menggunakan Face ID untuk login cepat."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "8e586831-5523-417e-a567-3b972f307a06"
+      }
+    }
   }
 }
