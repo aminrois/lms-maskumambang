@@ -7,9 +7,9 @@ import {
   ChevronLeft,
   ExternalLink,
 } from "lucide-react";
-import axios from "axios";
+import { restClient } from "../../lib/api/axios";
 
-const API_BASE = "/api/v1/guidance";
+const API_BASE = "/guidance";
 
 export default function SesiKonselingIndex() {
   const navigate = useNavigate();
@@ -24,7 +24,7 @@ export default function SesiKonselingIndex() {
       if (kategoriFilter !== "all") params.kategori = kategoriFilter;
       if (statusFilter !== "all") params.status_follow_up = statusFilter;
       if (searchTerm) params.search = searchTerm;
-      const res = await axios.get(`${API_BASE}/konseling`, { params });
+      const res = await restClient.get(`${API_BASE}/konseling`, { params });
       return res.data?.data || [];
     },
   });

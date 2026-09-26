@@ -15,10 +15,10 @@ import {
   Share2,
   Camera,
 } from "lucide-react";
-import axios from "axios";
+import { restClient } from "../../lib/api/axios";
 import { toast } from "sonner";
 
-const API_BASE = "/api/v1/guidance";
+const API_BASE = "/guidance";
 
 export default function GuidanceDetailSiswa() {
   const { siswa_id } = useParams<{ siswa_id: string }>();
@@ -110,7 +110,7 @@ export default function GuidanceDetailSiswa() {
   const { data: siswaData, isLoading } = useQuery({
     queryKey: ["guidance-detail", siswa_id],
     queryFn: async () => {
-      const res = await axios.get(`${API_BASE}/siswa/${siswa_id}`);
+      const res = await restClient.get(`${API_BASE}/siswa/${siswa_id}`);
       return res.data?.data;
     },
   });
@@ -127,7 +127,7 @@ export default function GuidanceDetailSiswa() {
   // Mutation Save Guidance Profile
   const saveGuidanceMutation = useMutation({
     mutationFn: async (payload: any) => {
-      const res = await axios.put(`${API_BASE}/siswa/${siswa_id}`, payload);
+      const res = await restClient.put(`${API_BASE}/siswa/${siswa_id}`, payload);
       return res.data;
     },
     onSuccess: () => {
@@ -142,7 +142,7 @@ export default function GuidanceDetailSiswa() {
   // Mutation Add Sesi Konseling
   const addKonselingMutation = useMutation({
     mutationFn: async (payload: any) => {
-      const res = await axios.post(`${API_BASE}/konseling`, {
+      const res = await restClient.post(`${API_BASE}/konseling`, {
         siswa_id: parseInt(siswa_id as string, 10),
         ...payload,
       });
@@ -172,7 +172,7 @@ export default function GuidanceDetailSiswa() {
   // Mutation Delete Konseling Sesi
   const deleteKonselingMutation = useMutation({
     mutationFn: async (konseling_id: number) => {
-      const res = await axios.delete(`${API_BASE}/konseling/${konseling_id}`);
+      const res = await restClient.delete(`${API_BASE}/konseling/${konseling_id}`);
       return res.data;
     },
     onSuccess: () => {
@@ -200,7 +200,7 @@ export default function GuidanceDetailSiswa() {
     reader.onload = async () => {
       try {
         const base64String = reader.result as string;
-        await axios.patch(`${API_BASE}/siswa/${siswa_id}/foto`, { foto: base64String });
+        await restClient.patch(`${API_BASE}/siswa/${siswa_id}/foto`, { foto: base64String });
         toast.success("Foto profil santri berhasil diperbarui!");
         queryClient.invalidateQueries({ queryKey: ["guidance-detail", siswa_id] });
       } catch (err: any) {
@@ -216,7 +216,7 @@ export default function GuidanceDetailSiswa() {
     if (!window.confirm("Hapus foto profil santri ini?")) return;
     try {
       setIsUploadingPhoto(true);
-      await axios.patch(`${API_BASE}/siswa/${siswa_id}/foto`, { foto: null });
+      await restClient.patch(`${API_BASE}/siswa/${siswa_id}/foto`, { foto: null });
       toast.success("Foto profil berhasil dihapus.");
       queryClient.invalidateQueries({ queryKey: ["guidance-detail", siswa_id] });
     } catch (err: any) {

@@ -12,10 +12,10 @@ import {
   Calendar,
   FileDown,
 } from "lucide-react";
-import axios from "axios";
+import { restClient } from "../../../lib/api/axios";
 import { toast } from "sonner";
 
-const API_GUIDANCE = "/api/v1/guidance";
+const API_GUIDANCE = "/guidance";
 
 export default function MasterDataSiswaDetail() {
   const { siswa_id } = useParams<{ siswa_id: string }>();
@@ -45,7 +45,7 @@ export default function MasterDataSiswaDetail() {
   const { data: detailData, isLoading } = useQuery({
     queryKey: ["siswa-detail-360", siswa_id],
     queryFn: async () => {
-      const res = await axios.get(`${API_GUIDANCE}/siswa/${siswa_id}`);
+      const res = await restClient.get(`${API_GUIDANCE}/siswa/${siswa_id}`);
       return res.data?.data;
     },
     enabled: !!siswa_id,
@@ -83,7 +83,7 @@ export default function MasterDataSiswaDetail() {
 
   const saveGuidanceMutation = useMutation({
     mutationFn: async (payload: any) => {
-      const res = await axios.put(`${API_GUIDANCE}/siswa/${siswa_id}`, payload);
+      const res = await restClient.put(`${API_GUIDANCE}/siswa/${siswa_id}`, payload);
       return res.data;
     },
     onSuccess: () => {
@@ -104,7 +104,7 @@ export default function MasterDataSiswaDetail() {
     const reader = new FileReader();
     reader.onload = async () => {
       try {
-        await axios.patch(`${API_GUIDANCE}/siswa/${siswa_id}/foto`, { foto: reader.result });
+        await restClient.patch(`${API_GUIDANCE}/siswa/${siswa_id}/foto`, { foto: reader.result });
         toast.success("Foto profil santri berhasil diperbarui!");
         queryClient.invalidateQueries({ queryKey: ["siswa-detail-360", siswa_id] });
       } catch { toast.error("Gagal mengunggah foto profil."); }
@@ -117,7 +117,7 @@ export default function MasterDataSiswaDetail() {
     if (!window.confirm("Hapus foto profil santri ini?")) return;
     setIsUploadingPhoto(true);
     try {
-      await axios.patch(`${API_GUIDANCE}/siswa/${siswa_id}/foto`, { foto: null });
+      await restClient.patch(`${API_GUIDANCE}/siswa/${siswa_id}/foto`, { foto: null });
       toast.success("Foto profil berhasil dihapus.");
       queryClient.invalidateQueries({ queryKey: ["siswa-detail-360", siswa_id] });
     } catch { toast.error("Gagal menghapus foto."); }
@@ -126,7 +126,7 @@ export default function MasterDataSiswaDetail() {
 
   const addKonselingMutation = useMutation({
     mutationFn: async (payload: typeof konselingForm) => {
-      const res = await axios.post(`${API_GUIDANCE}/konseling`, { ...payload, siswa_id: Number(siswa_id) });
+      const res = await restClient.post(`${API_GUIDANCE}/konseling`, { ...payload, siswa_id: Number(siswa_id) });
       return res.data;
     },
     onSuccess: () => {
@@ -140,7 +140,7 @@ export default function MasterDataSiswaDetail() {
 
   const deleteKonselingMutation = useMutation({
     mutationFn: async (konseling_id: number) => {
-      const res = await axios.delete(`${API_GUIDANCE}/konseling/${konseling_id}`);
+      const res = await restClient.delete(`${API_GUIDANCE}/konseling/${konseling_id}`);
       return res.data;
     },
     onSuccess: () => {

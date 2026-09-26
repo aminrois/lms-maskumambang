@@ -11,9 +11,9 @@ import {
   HeartPulse,
   MessageSquare,
 } from "lucide-react";
-import axios from "axios";
+import { restClient } from "../../lib/api/axios";
 
-const API_BASE = "/api/v1/guidance";
+const API_BASE = "/guidance";
 
 export default function GuidanceIndex() {
   const navigate = useNavigate();
@@ -24,7 +24,7 @@ export default function GuidanceIndex() {
   const { data: kelasList = [] } = useQuery({
     queryKey: ["guidance-kelas-list"],
     queryFn: async () => {
-      const res = await axios.get("/api/v1/kelas");
+      const res = await restClient.get("/kelas");
       return res.data?.data || res.data || [];
     },
   });
@@ -36,7 +36,7 @@ export default function GuidanceIndex() {
       const params: any = {};
       if (kelasFilter !== "all") params.kelas_id = kelasFilter;
       if (searchTerm) params.search = searchTerm;
-      const res = await axios.get(`${API_BASE}/siswa`, { params });
+      const res = await restClient.get(`${API_BASE}/siswa`, { params });
       return res.data?.data || [];
     },
   });
