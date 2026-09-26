@@ -1,98 +1,43 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
+  ChevronLeft,
+  Camera,
+  Save,
+  Trash2,
   Home,
   HeartPulse,
   Briefcase,
   GraduationCap,
   Sparkles,
   MessageSquare,
-  ChevronLeft,
-  Save,
+  User,
   Plus,
-  Trash2,
   Share2,
-  Camera,
+  Calendar,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
 
-const API_BASE = "/api/v1/guidance";
 
-export default function GuidanceDetailSiswa() {
+const API_GUIDANCE = "/api/v1/guidance";
+
+export default function MasterDataSiswaDetail() {
   const { siswa_id } = useParams<{ siswa_id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
   const [activeTab, setActiveTab] = useState<
-    "tempat_tinggal" | "sosial" | "kesehatan" | "internship" | "kuliah" | "fundamental" | "konseling"
-  >("tempat_tinggal");
+    "biodata" | "tempat_tinggal" | "sosial" | "kesehatan" | "internship" | "lanjutan" | "fundamental" | "konseling"
+  >("biodata");
 
-  // Form State Guidance
-  const [formData, setFormData] = useState<any>({
-    // 1. Tempat Tinggal & Fasilitas
-    jarak_rumah_sekolah: "",
-    transportasi: "Motor",
-    kepemilikan_rumah: "Milik Sendiri",
-    daya_listrik: "1.300 VA",
-    sumber_air: "Sumur Bor",
-    akses_internet: "Wifi",
-    perangkat_belajar: "Ada",
+  // State Form Guidance 360°
+  const [formData, setFormData] = useState<any>({});
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
-    // 2. Data Sosial
-    no_hp_siswa: "",
-    email_siswa: "",
-    instagram: "",
-    facebook: "",
-    tiktok: "",
-    twitter_x: "",
-
-    // 3. Riwayat Kesehatan
-    merokok: "Tidak",
-    riwayat_penyakit: "",
-    riwayat_alergi: "",
-    riwayat_operasi: "",
-    gangguan_kesehatan: "",
-    dalam_masa_pengobatan: "",
-    asuransi_kesehatan: "BPJS Kesehatan",
-    kontak_darurat_nama: "",
-    kontak_darurat_hubungan: "",
-    kontak_darurat_hp: "",
-
-    // 4. Rencana Internship / Dakwah
-    internship_nama: "",
-    internship_alamat: "",
-    internship_bidang: "",
-    internship_divisi: "",
-    internship_kompetensi: "",
-
-    // 5. Rencana Pendidikan Lanjutan
-    lanjut_kuliah: "Ya",
-    target_pendidikan: "S1 (Sarjana)",
-    prodi_pilihan: "",
-    universitas_tujuan: "",
-    persiapan: "",
-    sumber_biaya: "Orang Tua / Mandiri",
-    jalur_masuk: "SNBT / UTBK",
-    dukungan_diharapkan: "",
-
-    // 6. 9 Aspek Fundamental
-    skor_wudhu: 3,
-    skor_doa_sholat: 3,
-    skor_praktik_sholat: 3,
-    skor_jamaah_masjid: 3,
-    skor_alquran: 3,
-    skor_hafalan_juz30: 3,
-    skor_disiplin: 3,
-    skor_rapi: 3,
-    skor_adab: 3,
-    catatan_fundamental: "",
-  });
-
-  // Form Sesi Konsultasi Baru
+  // Modal Konseling
   const [showAddKonselingModal, setShowAddKonselingModal] = useState(false);
   const [konselingForm, setKonselingForm] = useState({
     tanggal_sesi: new Date().toISOString().slice(0, 10),
@@ -106,81 +51,64 @@ export default function GuidanceDetailSiswa() {
     catatan_tindak_lanjut: "",
   });
 
-  // Fetch Detail Santri & Guidance
-  const { data: siswaData, isLoading } = useQuery({
-    queryKey: ["guidance-detail", siswa_id],
+  // Query Fetch Siswa + Guidance Detail
+  const { data: detailData, isLoading } = useQuery({
+    queryKey: ["siswa-detail-360", siswa_id],
     queryFn: async () => {
-      const res = await axios.get(`${API_BASE}/siswa/${siswa_id}`);
+      const res = await axios.get(`${API_GUIDANCE}/siswa/${siswa_id}`);
       return res.data?.data;
     },
+    enabled: !!siswa_id,
   });
+
+  const siswa = detailData;
+  const guidance = detailData?.guidance_detail;
+  const konselingList = detailData?.konseling_sesi || [];
 
   useEffect(() => {
-    if (siswaData?.guidance_detail) {
-      setFormData((prev: any) => ({
-        ...prev,
-        ...siswaData.guidance_detail,
-      }));
+    if (guidance) {
+      setFormData({
+        ...guidance,
+      });
+    } else {
+      setFormData({
+        transportasi: "Motor",
+        kepemilikan_rumah: "Milik Sendiri",
+        daya_listrik: "1.300 VA",
+        sumber_air: "Sumur Bor",
+        akses_internet: "Wifi",
+        perangkat_belajar: "Ada",
+        merokok: "Tidak",
+        lanjut_kuliah: "Ya",
+        skor_wudhu: 3,
+        skor_doa_sholat: 3,
+        skor_praktik_sholat: 3,
+        skor_jamaah_masjid: 3,
+        skor_alquran: 3,
+        skor_hafalan_juz30: 3,
+        skor_disiplin: 3,
+        skor_rapi: 3,
+        skor_adab: 3,
+      });
     }
-  }, [siswaData]);
+  }, [guidance]);
 
-  // Mutation Save Guidance Profile
+  // Mutation Save Guidance
   const saveGuidanceMutation = useMutation({
     mutationFn: async (payload: any) => {
-      const res = await axios.put(`${API_BASE}/siswa/${siswa_id}`, payload);
+      const res = await axios.put(`${API_GUIDANCE}/siswa/${siswa_id}`, payload);
       return res.data;
     },
     onSuccess: () => {
-      toast.success("Profil guidance santri berhasil disimpan!");
-      queryClient.invalidateQueries({ queryKey: ["guidance-detail", siswa_id] });
+      toast.success("Profil bimbingan santri berhasil diperbarui!");
+      queryClient.invalidateQueries({ queryKey: ["siswa-detail-360", siswa_id] });
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || "Gagal menyimpan data guidance.");
+      toast.error(err.response?.data?.message || "Gagal menyimpan perubahan.");
     },
   });
 
-  // Mutation Add Sesi Konseling
-  const addKonselingMutation = useMutation({
-    mutationFn: async (payload: any) => {
-      const res = await axios.post(`${API_BASE}/konseling`, {
-        siswa_id: parseInt(siswa_id as string, 10),
-        ...payload,
-      });
-      return res.data;
-    },
-    onSuccess: () => {
-      toast.success("Catatan sesi konsultasi berhasil disimpan!");
-      setShowAddKonselingModal(false);
-      setKonselingForm({
-        tanggal_sesi: new Date().toISOString().slice(0, 10),
-        kategori: "Akademik",
-        topik_konseling: "",
-        keluhan_masalah: "",
-        dinamika_konseling: "",
-        solusi_kesepakatan: "",
-        status_follow_up: "Dalam Pemantauan",
-        sifat_rahasia: "Internal Guru/Wali Kelas",
-        catatan_tindak_lanjut: "",
-      });
-      queryClient.invalidateQueries({ queryKey: ["guidance-detail", siswa_id] });
-    },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.message || "Gagal menyimpan sesi konsultasi.");
-    },
-  });
-
-  // Mutation Delete Konseling Sesi
-  const deleteKonselingMutation = useMutation({
-    mutationFn: async (konseling_id: number) => {
-      const res = await axios.delete(`${API_BASE}/konseling/${konseling_id}`);
-      return res.data;
-    },
-    onSuccess: () => {
-      toast.success("Catatan konsultasi berhasil dihapus.");
-      queryClient.invalidateQueries({ queryKey: ["guidance-detail", siswa_id] });
-    },
-  });
-
+  // Mutation Upload / Change Photo (Base64)
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -200,9 +128,9 @@ export default function GuidanceDetailSiswa() {
     reader.onload = async () => {
       try {
         const base64String = reader.result as string;
-        await axios.patch(`${API_BASE}/siswa/${siswa_id}/foto`, { foto: base64String });
+        await axios.patch(`${API_GUIDANCE}/siswa/${siswa_id}/foto`, { foto: base64String });
         toast.success("Foto profil santri berhasil diperbarui!");
-        queryClient.invalidateQueries({ queryKey: ["guidance-detail", siswa_id] });
+        queryClient.invalidateQueries({ queryKey: ["siswa-detail-360", siswa_id] });
       } catch (err: any) {
         toast.error("Gagal mengunggah foto profil.");
       } finally {
@@ -216,9 +144,9 @@ export default function GuidanceDetailSiswa() {
     if (!window.confirm("Hapus foto profil santri ini?")) return;
     try {
       setIsUploadingPhoto(true);
-      await axios.patch(`${API_BASE}/siswa/${siswa_id}/foto`, { foto: null });
+      await axios.patch(`${API_GUIDANCE}/siswa/${siswa_id}/foto`, { foto: null });
       toast.success("Foto profil berhasil dihapus.");
-      queryClient.invalidateQueries({ queryKey: ["guidance-detail", siswa_id] });
+      queryClient.invalidateQueries({ queryKey: ["siswa-detail-360", siswa_id] });
     } catch (err: any) {
       toast.error("Gagal menghapus foto.");
     } finally {
@@ -226,9 +154,47 @@ export default function GuidanceDetailSiswa() {
     }
   };
 
-  const handleSave = () => {
-    saveGuidanceMutation.mutate(formData);
-  };
+  // Mutation Create Konseling
+  const addKonselingMutation = useMutation({
+    mutationFn: async (payload: typeof konselingForm) => {
+      const res = await axios.post(`${API_GUIDANCE}/konseling`, {
+        ...payload,
+        siswa_id: Number(siswa_id),
+      });
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.success("Catatan konsultasi berhasil disimpan!");
+      setShowAddKonselingModal(false);
+      setKonselingForm({
+        tanggal_sesi: new Date().toISOString().slice(0, 10),
+        kategori: "Akademik",
+        topik_konseling: "",
+        keluhan_masalah: "",
+        dinamika_konseling: "",
+        solusi_kesepakatan: "",
+        status_follow_up: "Dalam Pemantauan",
+        sifat_rahasia: "Internal Guru/Wali Kelas",
+        catatan_tindak_lanjut: "",
+      });
+      queryClient.invalidateQueries({ queryKey: ["siswa-detail-360", siswa_id] });
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || "Gagal menyimpan sesi konsultasi.");
+    },
+  });
+
+  // Mutation Delete Konseling
+  const deleteKonselingMutation = useMutation({
+    mutationFn: async (konseling_id: number) => {
+      const res = await axios.delete(`${API_GUIDANCE}/konseling/${konseling_id}`);
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.success("Catatan konsultasi berhasil dihapus.");
+      queryClient.invalidateQueries({ queryKey: ["siswa-detail-360", siswa_id] });
+    },
+  });
 
   const fundamentalItems = [
     { key: "skor_wudhu", label: "1. Wudhu", desc: "Ketepatan rukun, sunnah, dan tertib wudhu" },
@@ -251,35 +217,40 @@ export default function GuidanceDetailSiswa() {
 
   if (isLoading) {
     return (
-      <div className="p-8 text-center text-slate-400">
-        Memuat detail bimbingan konseling santri...
+      <div className="p-12 text-center text-slate-400 flex flex-col items-center justify-center min-h-[50vh]">
+        <div className="w-10 h-10 rounded-full border-4 border-[#162E6E] border-t-amber-400 animate-spin mb-3" />
+        <span className="text-sm font-semibold text-slate-600">Memuat profil lengkap santri...</span>
       </div>
     );
   }
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Top Header Card */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+      {/* ═══════════════════════════════════════════════════════
+          HEADER PROFIL SANTRI & FOTO UPLOAD
+      ════════════════════════════════════════════════════════ */}
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
+          {/* Tombol Back */}
           <button
-            onClick={() => navigate("/guidance")}
+            onClick={() => navigate(-1)}
             className="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 transition-all cursor-pointer shrink-0 self-start"
+            title="Kembali"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
 
-          {/* Photo Avatar with Upload Trigger */}
+          {/* Avatar / Foto dengan Upload Trigger */}
           <div className="relative group shrink-0">
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-[#162E6E] to-[#254ea8] text-white font-bold flex items-center justify-center text-2xl shadow-md overflow-hidden border-2 border-white">
-              {siswaData?.foto ? (
+            <div className="w-24 h-24 rounded-2xl bg-gradient-to-tr from-[#162E6E] to-[#254ea8] text-white font-bold flex items-center justify-center text-3xl shadow-md overflow-hidden border-2 border-white">
+              {siswa?.foto ? (
                 <img
-                  src={siswaData.foto}
-                  alt={siswaData.nama}
+                  src={siswa.foto}
+                  alt={siswa.nama}
                   className="w-full h-full object-cover"
                 />
               ) : (
-                siswaData?.nama?.charAt(0) || "S"
+                siswa?.nama?.charAt(0) || "S"
               )}
             </div>
 
@@ -294,17 +265,17 @@ export default function GuidanceDetailSiswa() {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploadingPhoto}
-              className="absolute -bottom-1.5 -right-1.5 p-1.5 bg-[#162E6E] hover:bg-[#112457] text-white rounded-lg shadow-md border-2 border-white transition-all cursor-pointer group-hover:scale-105"
+              className="absolute -bottom-2 -right-2 p-2 bg-[#162E6E] hover:bg-[#112457] text-white rounded-xl shadow-lg border-2 border-white transition-all cursor-pointer group-hover:scale-105"
               title="Unggah / Ubah Foto Santri"
             >
-              <Camera className="w-3.5 h-3.5" />
+              <Camera className="w-4 h-4" />
             </button>
 
-            {siswaData?.foto && (
+            {siswa?.foto && (
               <button
                 onClick={handleRemovePhoto}
                 disabled={isUploadingPhoto}
-                className="absolute -top-1.5 -right-1.5 p-1 bg-rose-600 hover:bg-rose-700 text-white rounded-md shadow border border-white transition-all cursor-pointer opacity-0 group-hover:opacity-100"
+                className="absolute -top-2 -right-2 p-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg shadow-md border-2 border-white transition-all cursor-pointer opacity-0 group-hover:opacity-100"
                 title="Hapus Foto"
               >
                 <Trash2 className="w-3 h-3" />
@@ -312,34 +283,69 @@ export default function GuidanceDetailSiswa() {
             )}
           </div>
 
-          <div className="text-center sm:text-left">
-            <h1 className="text-xl font-bold text-slate-800">{siswaData?.nama}</h1>
-            <p className="text-xs text-slate-500 mt-0.5">
-              NIS: {siswaData?.nis} • Kelas: {siswaData?.kelas?.nama_kelas || "-"} ({siswaData?.kelas?.lembaga?.nama_lembaga || "-"})
+          {/* Info Pokok Santri */}
+          <div className="text-center sm:text-left space-y-1">
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+              <h1 className="text-xl font-bold text-slate-800">{siswa?.nama}</h1>
+              <span
+                className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+                  siswa?.status === "Aktif"
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    : siswa?.status === "Alumni"
+                    ? "bg-blue-50 text-blue-700 border-blue-200"
+                    : "bg-rose-50 text-rose-700 border-rose-200"
+                }`}
+              >
+                {siswa?.status || "Aktif"}
+              </span>
+            </div>
+
+            <p className="text-xs text-slate-500 font-medium">
+              NIS: <span className="text-slate-700 font-bold">{siswa?.nis || "—"}</span> • NISN:{" "}
+              <span className="text-slate-700 font-bold">{siswa?.nisn || "—"}</span> • NIK:{" "}
+              <span className="text-slate-700">{siswa?.nik || "—"}</span>
             </p>
+
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1">
+              <span className="bg-[#162E6E]/10 text-[#162E6E] px-2.5 py-1 rounded-lg text-xs font-bold">
+                {siswa?.kelas?.lembaga?.nama_lembaga || "Lembaga"}
+              </span>
+              <span className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold border border-slate-200">
+                Kelas: {siswa?.kelas?.nama_kelas || "—"}
+              </span>
+              <span className="bg-amber-50 text-amber-800 px-2.5 py-1 rounded-lg text-xs font-semibold border border-amber-200">
+                Asrama: {siswa?.keterangan_asrama === "Ya" ? "Santri Mukim" : "Non-Asrama"}
+              </span>
+            </div>
           </div>
         </div>
 
-        <button
-          onClick={handleSave}
-          disabled={saveGuidanceMutation.isPending}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#162E6E] hover:bg-[#122456] text-white rounded-xl text-xs font-bold shadow-md transition-all cursor-pointer"
-        >
-          <Save className="w-4 h-4" />
-          {saveGuidanceMutation.isPending ? "Menyimpan..." : "Simpan Perubahan Profil"}
-        </button>
+        {/* Action Buttons */}
+        <div className="flex items-center justify-center sm:justify-end gap-3">
+          <button
+            onClick={() => saveGuidanceMutation.mutate(formData)}
+            disabled={saveGuidanceMutation.isPending}
+            className="flex items-center gap-2 px-5 py-2.5 bg-[#162E6E] hover:bg-[#122456] text-white rounded-xl text-xs font-bold shadow-md transition-all cursor-pointer"
+          >
+            <Save className="w-4 h-4" />
+            {saveGuidanceMutation.isPending ? "Menyimpan..." : "Simpan Profil Santri"}
+          </button>
+        </div>
       </div>
 
-      {/* Navigation Tabs */}
+      {/* ═══════════════════════════════════════════════════════
+          NAVIGATION TABS
+      ════════════════════════════════════════════════════════ */}
       <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-2">
         {[
-          { id: "tempat_tinggal", label: "1. Tempat Tinggal & Fasilitas", icon: Home },
-          { id: "sosial", label: "2. Data Sosial & Digital", icon: Share2 },
-          { id: "kesehatan", label: "3. Riwayat Kesehatan", icon: HeartPulse },
-          { id: "internship", label: "4. Rencana Internship/Dakwah", icon: Briefcase },
-          { id: "kuliah", label: "5. Pendidikan Lanjutan", icon: GraduationCap },
-          { id: "fundamental", label: "6. Aspek Fundamental (1-4)", icon: Sparkles },
-          { id: "konseling", label: "7. Sesi Konsultasi & BK", icon: MessageSquare },
+          { id: "biodata", label: "Biodata & Keluarga", icon: User },
+          { id: "tempat_tinggal", label: "Tempat Tinggal & Fasilitas", icon: Home },
+          { id: "sosial", label: "Data Sosial & Digital", icon: Share2 },
+          { id: "kesehatan", label: "Riwayat Kesehatan", icon: HeartPulse },
+          { id: "internship", label: "Rencana Internship / Dakwah", icon: Briefcase },
+          { id: "lanjutan", label: "Pendidikan Lanjutan", icon: GraduationCap },
+          { id: "fundamental", label: "9 Aspek Fundamental", icon: Sparkles },
+          { id: "konseling", label: `Sesi Konsultasi (${konselingList.length})`, icon: MessageSquare },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -359,6 +365,121 @@ export default function GuidanceDetailSiswa() {
           );
         })}
       </div>
+
+      {/* ═══════════════════════════════════════════════════════
+          TAB 0: BIODATA POKOK & KELUARGA
+      ════════════════════════════════════════════════════════ */}
+      {activeTab === "biodata" && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 space-y-6">
+            <div className="border-b pb-3 border-slate-100 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-slate-800">Identitas Pribadi Santri</h3>
+                <p className="text-xs text-slate-500">Data identitas pokok terdaftar di database madrasah</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80">
+                <span className="text-slate-400 block mb-0.5 font-semibold">Nama Lengkap</span>
+                <span className="font-bold text-slate-800 text-sm">{siswa?.nama || "—"}</span>
+              </div>
+              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80">
+                <span className="text-slate-400 block mb-0.5 font-semibold">Nama Panggilan</span>
+                <span className="font-bold text-slate-800 text-sm">{siswa?.panggilan || "—"}</span>
+              </div>
+              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80">
+                <span className="text-slate-400 block mb-0.5 font-semibold">Jenis Kelamin</span>
+                <span className="font-bold text-slate-800 text-sm">
+                  {siswa?.jenis_kelamin === "L" ? "Laki-laki" : "Perempuan"}
+                </span>
+              </div>
+              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80">
+                <span className="text-slate-400 block mb-0.5 font-semibold">Tempat, Tanggal Lahir</span>
+                <span className="font-bold text-slate-800 text-sm">
+                  {siswa?.tempat_lahir || "—"}, {siswa?.tanggal_lahir || "—"}
+                </span>
+              </div>
+              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80">
+                <span className="text-slate-400 block mb-0.5 font-semibold">Agama & Kewarganegaraan</span>
+                <span className="font-bold text-slate-800 text-sm">
+                  {siswa?.agama || "Islam"} ({siswa?.kewarganegaraan || "WNI"})
+                </span>
+              </div>
+              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80">
+                <span className="text-slate-400 block mb-0.5 font-semibold">Tahun Masuk & Asal Sekolah</span>
+                <span className="font-bold text-slate-800 text-sm">
+                  {siswa?.tahun_masuk || "—"} • {siswa?.asal_sekolah || "—"}
+                </span>
+              </div>
+              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 md:col-span-3">
+                <span className="text-slate-400 block mb-0.5 font-semibold">Alamat Lengkap</span>
+                <span className="font-bold text-slate-800 text-sm">
+                  {siswa?.alamat || "—"}
+                  {siswa?.rt && ` RT ${siswa.rt}`}
+                  {siswa?.rw && ` / RW ${siswa.rw}`}
+                  {siswa?.desa_kelurahan && `, Desa/Kel. ${siswa.desa_kelurahan}`}
+                  {siswa?.kecamatan && `, Kec. ${siswa.kecamatan}`}
+                  {siswa?.kabupaten_kota && `, Kab/Kota ${siswa.kabupaten_kota}`}
+                  {siswa?.provinsi && `, Prov. ${siswa.provinsi}`}
+                  {siswa?.kode_pos && ` (${siswa.kode_pos})`}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Info Orang Tua / Wali */}
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 space-y-6">
+            <div className="border-b pb-3 border-slate-100">
+              <h3 className="text-base font-bold text-slate-800">Data Orang Tua & Wali Santri</h3>
+              <p className="text-xs text-slate-500">Informasi kontak keluarga dan penanggung jawab santri</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+              {/* Ayah */}
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                <div className="flex items-center gap-2 text-[#162E6E] font-bold">
+                  <User className="w-4 h-4" />
+                  <span>Data Ayah</span>
+                </div>
+                <div className="space-y-1 text-slate-700">
+                  <p><span className="text-slate-400">Nama:</span> <span className="font-bold">{siswa?.wali_murid?.nama_ayah || "—"}</span></p>
+                  <p><span className="text-slate-400">Status:</span> {siswa?.wali_murid?.status_ayah || "—"}</p>
+                  <p><span className="text-slate-400">No HP:</span> {siswa?.wali_murid?.no_hp_ayah || "—"}</p>
+                  <p><span className="text-slate-400">Pekerjaan:</span> {siswa?.wali_murid?.pekerjaan_ayah || "—"}</p>
+                </div>
+              </div>
+
+              {/* Ibu */}
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                <div className="flex items-center gap-2 text-rose-700 font-bold">
+                  <User className="w-4 h-4" />
+                  <span>Data Ibu</span>
+                </div>
+                <div className="space-y-1 text-slate-700">
+                  <p><span className="text-slate-400">Nama:</span> <span className="font-bold">{siswa?.wali_murid?.nama_ibu || "—"}</span></p>
+                  <p><span className="text-slate-400">Status:</span> {siswa?.wali_murid?.status_ibu || "—"}</p>
+                  <p><span className="text-slate-400">No HP:</span> {siswa?.wali_murid?.no_hp_ibu || "—"}</p>
+                  <p><span className="text-slate-400">Pekerjaan:</span> {siswa?.wali_murid?.pekerjaan_ibu || "—"}</p>
+                </div>
+              </div>
+
+              {/* Wali */}
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                <div className="flex items-center gap-2 text-emerald-700 font-bold">
+                  <User className="w-4 h-4" />
+                  <span>Wali Utama</span>
+                </div>
+                <div className="space-y-1 text-slate-700">
+                  <p><span className="text-slate-400">Nama Wali:</span> <span className="font-bold">{siswa?.wali_murid?.nama_wali || "—"}</span></p>
+                  <p><span className="text-slate-400">No HP Wali:</span> {siswa?.wali_murid?.no_hp_wali || "—"}</p>
+                  <p><span className="text-slate-400">Alamat Wali:</span> {siswa?.wali_murid?.alamat || "—"}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ═══════════════════════════════════════════════════════
           TAB 1: TEMPAT TINGGAL & FASILITAS
@@ -383,7 +504,7 @@ export default function GuidanceDetailSiswa() {
             </div>
 
             <div>
-              <label className="block font-bold text-slate-700 mb-1">2. TRANSPORTASI (Dropdown)</label>
+              <label className="block font-bold text-slate-700 mb-1">2. TRANSPORTASI</label>
               <select
                 value={formData.transportasi || "Motor"}
                 onChange={(e) => setFormData({ ...formData, transportasi: e.target.value })}
@@ -396,7 +517,7 @@ export default function GuidanceDetailSiswa() {
             </div>
 
             <div>
-              <label className="block font-bold text-slate-700 mb-1">3. KEPEMILIKAN RUMAH (Dropdown)</label>
+              <label className="block font-bold text-slate-700 mb-1">3. KEPEMILIKAN RUMAH</label>
               <select
                 value={formData.kepemilikan_rumah || "Milik Sendiri"}
                 onChange={(e) => setFormData({ ...formData, kepemilikan_rumah: e.target.value })}
@@ -409,7 +530,7 @@ export default function GuidanceDetailSiswa() {
             </div>
 
             <div>
-              <label className="block font-bold text-slate-700 mb-1">4. DAYA LISTRIK (Dropdown)</label>
+              <label className="block font-bold text-slate-700 mb-1">4. DAYA LISTRIK</label>
               <select
                 value={formData.daya_listrik || "1.300 VA"}
                 onChange={(e) => setFormData({ ...formData, daya_listrik: e.target.value })}
@@ -422,7 +543,7 @@ export default function GuidanceDetailSiswa() {
             </div>
 
             <div>
-              <label className="block font-bold text-slate-700 mb-1">5. SUMBER AIR MINUM (Dropdown)</label>
+              <label className="block font-bold text-slate-700 mb-1">5. SUMBER AIR MINUM</label>
               <select
                 value={formData.sumber_air || "Sumur Bor"}
                 onChange={(e) => setFormData({ ...formData, sumber_air: e.target.value })}
@@ -435,7 +556,7 @@ export default function GuidanceDetailSiswa() {
             </div>
 
             <div>
-              <label className="block font-bold text-slate-700 mb-1">6. AKSES INTERNET (Dropdown)</label>
+              <label className="block font-bold text-slate-700 mb-1">6. AKSES INTERNET</label>
               <select
                 value={formData.akses_internet || "Wifi"}
                 onChange={(e) => setFormData({ ...formData, akses_internet: e.target.value })}
@@ -448,7 +569,7 @@ export default function GuidanceDetailSiswa() {
             </div>
 
             <div>
-              <label className="block font-bold text-slate-700 mb-1">7. PERANGKAT BELAJAR DARING (Dropdown)</label>
+              <label className="block font-bold text-slate-700 mb-1">7. PERANGKAT BELAJAR DARING</label>
               <select
                 value={formData.perangkat_belajar || "Ada"}
                 onChange={(e) => setFormData({ ...formData, perangkat_belajar: e.target.value })}
@@ -555,7 +676,7 @@ export default function GuidanceDetailSiswa() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
             <div>
-              <label className="block font-bold text-slate-700 mb-1">1. MEROKOK (Dropdown)</label>
+              <label className="block font-bold text-slate-700 mb-1">1. MEROKOK</label>
               <select
                 value={formData.merokok || "Tidak"}
                 onChange={(e) => setFormData({ ...formData, merokok: e.target.value })}
@@ -582,7 +703,7 @@ export default function GuidanceDetailSiswa() {
               <label className="block font-bold text-slate-700 mb-1">3. RIWAYAT ALERGI</label>
               <input
                 type="text"
-                placeholder="Contoh: Alergi seafood, debu, obat antibiotik tertentu"
+                placeholder="Contoh: Alergi seafood, debu, obat tertentu"
                 value={formData.riwayat_alergi || ""}
                 onChange={(e) => setFormData({ ...formData, riwayat_alergi: e.target.value })}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
@@ -690,9 +811,9 @@ export default function GuidanceDetailSiswa() {
               <label className="block font-bold text-slate-700 mb-1">1. NAMA INSTANSI</label>
               <input
                 type="text"
-                placeholder="Contoh: Rumah Sakit Islam / Lazisnu / Bank Syariah"
-                value={formData.internship_nama || ""}
-                onChange={(e) => setFormData({ ...formData, internship_nama: e.target.value })}
+                placeholder="Contoh: PT Telkom / Lazis / Ponpes Cabang"
+                value={formData.internship_instansi || ""}
+                onChange={(e) => setFormData({ ...formData, internship_instansi: e.target.value })}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
               />
             </div>
@@ -701,7 +822,7 @@ export default function GuidanceDetailSiswa() {
               <label className="block font-bold text-slate-700 mb-1">2. ALAMAT INSTANSI</label>
               <input
                 type="text"
-                placeholder="Kota / Alamat lengkap instansi tujuan"
+                placeholder="Contoh: Jl. Ahmad Yani No. 10 Surabaya"
                 value={formData.internship_alamat || ""}
                 onChange={(e) => setFormData({ ...formData, internship_alamat: e.target.value })}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
@@ -712,7 +833,7 @@ export default function GuidanceDetailSiswa() {
               <label className="block font-bold text-slate-700 mb-1">3. BIDANG INSTANSI</label>
               <input
                 type="text"
-                placeholder="Contoh: Pendidikan / Kesehatan / Keuangan / Dakwah"
+                placeholder="Contoh: Teknologi Informasi / Lembaga Sosial & Zakat / Pendidikan"
                 value={formData.internship_bidang || ""}
                 onChange={(e) => setFormData({ ...formData, internship_bidang: e.target.value })}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
@@ -723,7 +844,7 @@ export default function GuidanceDetailSiswa() {
               <label className="block font-bold text-slate-700 mb-1">4. DIVISI</label>
               <input
                 type="text"
-                placeholder="Contoh: IT Support / Humas / Pengajaran / Administrasi"
+                placeholder="Contoh: Digital Media / Public Relation / Pengajaran"
                 value={formData.internship_divisi || ""}
                 onChange={(e) => setFormData({ ...formData, internship_divisi: e.target.value })}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
@@ -731,10 +852,10 @@ export default function GuidanceDetailSiswa() {
             </div>
 
             <div className="md:col-span-2">
-              <label className="block font-bold text-slate-700 mb-1">5. KOMPETENSI YANG INGIN DIKEMBANGKAN</label>
+              <label className="block font-bold text-slate-700 mb-1">5. KOMPETENSI KEAHLIAN YANG DIKEMBANGKAN</label>
               <textarea
                 rows={3}
-                placeholder="Uraikan keahlian yang ingin dipelajari dan dipraktikkan..."
+                placeholder="Jelaskan keterampilan utama yang ditargetkan dalam masa internship/dakwah..."
                 value={formData.internship_kompetensi || ""}
                 onChange={(e) => setFormData({ ...formData, internship_kompetensi: e.target.value })}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
@@ -745,18 +866,18 @@ export default function GuidanceDetailSiswa() {
       )}
 
       {/* ═══════════════════════════════════════════════════════
-          TAB 5: RENCANA PENDIDIKAN LANJUTAN (KULIAH)
+          TAB 5: RENCANA PENDIDIKAN LANJUTAN
       ════════════════════════════════════════════════════════ */}
-      {activeTab === "kuliah" && (
+      {activeTab === "lanjutan" && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 space-y-6">
           <div className="border-b pb-3 border-slate-100">
-            <h3 className="text-base font-bold text-slate-800">5. Rencana Pendidikan Lanjutan & Karier</h3>
-            <p className="text-xs text-slate-500">Arah minat studi lanjut perguruan tinggi negeri, swasta, atau luar negeri</p>
+            <h3 className="text-base font-bold text-slate-800">5. Rencana Pendidikan Lanjutan & Studi Tinggi</h3>
+            <p className="text-xs text-slate-500">Pilihan karir akademik, prodi, dan target perguruan tinggi santri</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
             <div>
-              <label className="block font-bold text-slate-700 mb-1">1. LANJUT KULIAH (Dropdown)</label>
+              <label className="block font-bold text-slate-700 mb-1">1. LANJUT KULIAH</label>
               <select
                 value={formData.lanjut_kuliah || "Ya"}
                 onChange={(e) => setFormData({ ...formData, lanjut_kuliah: e.target.value })}
@@ -772,7 +893,7 @@ export default function GuidanceDetailSiswa() {
               <label className="block font-bold text-slate-700 mb-1">2. TARGET PENDIDIKAN</label>
               <input
                 type="text"
-                placeholder="Contoh: S1 / D4 / Ma'had Aly / Universitas Al-Azhar Kairo"
+                placeholder="Contoh: S1 / Diploma 4 / Ma'had Aly / Timur Tengah"
                 value={formData.target_pendidikan || ""}
                 onChange={(e) => setFormData({ ...formData, target_pendidikan: e.target.value })}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
@@ -780,21 +901,21 @@ export default function GuidanceDetailSiswa() {
             </div>
 
             <div>
-              <label className="block font-bold text-slate-700 mb-1">3. PRODI (Program Studi Pilihan)</label>
+              <label className="block font-bold text-slate-700 mb-1">3. PROGRAM STUDI (PRODI)</label>
               <input
                 type="text"
-                placeholder="Contoh: Teknik Informatika / Kedokteran / Ilmu Al-Qur'an & Tafsir"
-                value={formData.prodi_pilihan || ""}
-                onChange={(e) => setFormData({ ...formData, prodi_pilihan: e.target.value })}
+                placeholder="Contoh: Teknik Informatika / Syariah / Kedokteran / Pend. Bahasa Arab"
+                value={formData.prodi_tujuan || ""}
+                onChange={(e) => setFormData({ ...formData, prodi_tujuan: e.target.value })}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
               />
             </div>
 
             <div>
-              <label className="block font-bold text-slate-700 mb-1">4. UNIVERSITAS / LEMBAGA TUJUAN</label>
+              <label className="block font-bold text-slate-700 mb-1">4. PERGURUAN TINGGI / KAMPUS TUJUAN</label>
               <input
                 type="text"
-                placeholder="Contoh: ITS Surabaya / UIN Malang / Univ. Indonesia / Al-Azhar"
+                placeholder="Contoh: ITS Surabaya / UIN Sunan Ampel / Univ. Al-Azhar Kairo"
                 value={formData.universitas_tujuan || ""}
                 onChange={(e) => setFormData({ ...formData, universitas_tujuan: e.target.value })}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
@@ -802,12 +923,12 @@ export default function GuidanceDetailSiswa() {
             </div>
 
             <div>
-              <label className="block font-bold text-slate-700 mb-1">5. PERSIAPAN YANG TELAH DILAKUKAN</label>
+              <label className="block font-bold text-slate-700 mb-1">5. PERSIAPAN YANG DILAKUKAN</label>
               <input
                 type="text"
-                placeholder="Contoh: Bimbel UTBK, Kursus Bahasa Arab, Penguatan Portofolio"
-                value={formData.persiapan || ""}
-                onChange={(e) => setFormData({ ...formData, persiapan: e.target.value })}
+                placeholder="Contoh: Bimbel UTBK, Kursus TOAFL / IELTS, Penguatan Tahfidz"
+                value={formData.persiapan_kuliah || ""}
+                onChange={(e) => setFormData({ ...formData, persiapan_kuliah: e.target.value })}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
               />
             </div>
@@ -816,7 +937,7 @@ export default function GuidanceDetailSiswa() {
               <label className="block font-bold text-slate-700 mb-1">6. SUMBER BIAYA</label>
               <input
                 type="text"
-                placeholder="Contoh: Beasiswa Santri Berprestasi (PBSB) / KIP-Kuliah / Orang Tua"
+                placeholder="Contoh: Mandiri Orang Tua / Beasiswa KIP-K / Beasiswa LPDP"
                 value={formData.sumber_biaya || ""}
                 onChange={(e) => setFormData({ ...formData, sumber_biaya: e.target.value })}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
@@ -827,7 +948,7 @@ export default function GuidanceDetailSiswa() {
               <label className="block font-bold text-slate-700 mb-1">7. JALUR MASUK</label>
               <input
                 type="text"
-                placeholder="Contoh: SNBP (Prestasi) / SNBT (Tes) / Beasiswa Kemenag / Mandiri"
+                placeholder="Contoh: SNBP / SNBT / SPAN-PTKIN / Mandiri Prestasi"
                 value={formData.jalur_masuk || ""}
                 onChange={(e) => setFormData({ ...formData, jalur_masuk: e.target.value })}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
@@ -835,10 +956,10 @@ export default function GuidanceDetailSiswa() {
             </div>
 
             <div>
-              <label className="block font-bold text-slate-700 mb-1">8. DUKUNGAN DIHARAPKAN DARI PESANTREN</label>
+              <label className="block font-bold text-slate-700 mb-1">8. DUKUNGAN YANG DIHARAPKAN DARI MADRASAH</label>
               <input
                 type="text"
-                placeholder="Contoh: Surat Rekomendasi Pengasuh, Pendampingan Khusus Ujian"
+                placeholder="Contoh: Tryout intensif, surat rekomendasi, bimbingan konseling karir"
                 value={formData.dukungan_diharapkan || ""}
                 onChange={(e) => setFormData({ ...formData, dukungan_diharapkan: e.target.value })}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
@@ -849,169 +970,187 @@ export default function GuidanceDetailSiswa() {
       )}
 
       {/* ═══════════════════════════════════════════════════════
-          TAB 6: ASPEK FUNDAMENTAL (SKALA 1 - 4)
+          TAB 6: 9 ASPEK FUNDAMENTAL (SKOR 1 - 4)
       ════════════════════════════════════════════════════════ */}
       {activeTab === "fundamental" && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 space-y-6">
           <div className="border-b pb-3 border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-2">
             <div>
-              <h3 className="text-base font-bold text-slate-800">6. Pemetaan 9 Aspek Fundamental Santri</h3>
-              <p className="text-xs text-slate-500">Evaluasi pembiasaan ibadah, akhlak & kedisiplinan santri (Skor 1 - 4)</p>
+              <h3 className="text-base font-bold text-slate-800">6. Penilaian 9 Aspek Fundamental Santri</h3>
+              <p className="text-xs text-slate-500">Skala 1 - 4 (1: Belum Bisa, 2: Bisa, 3: Butuh Kontrol, 4: Mandiri & Istiqomah)</p>
             </div>
-            <div className="flex flex-wrap gap-1.5 text-[10px] font-bold">
-              <span className="px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200">1: Belum Bisa</span>
-              <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">2: Bisa</span>
-              <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">3: Butuh Kontrol</span>
-              <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">4: Mandiri & Istiqomah</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500 font-semibold">Keterangan:</span>
+              {Object.entries(skorLabels).map(([num, item]) => (
+                <span key={num} className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${item.bg} ${item.color}`}>
+                  {num} = {item.label.split(" - ")[1]}
+                </span>
+              ))}
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {fundamentalItems.map((item) => {
-              const currentScore = formData[item.key] || 1;
+              const currentVal = formData[item.key] || 3;
               return (
-                <div key={item.key} className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                <div key={item.key} className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3 flex flex-col justify-between">
                   <div>
-                    <h4 className="font-bold text-slate-800 text-xs">{item.label}</h4>
+                    <h4 className="font-bold text-xs text-slate-800">{item.label}</h4>
                     <p className="text-[11px] text-slate-500 mt-0.5">{item.desc}</p>
                   </div>
 
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Skor Penilaian:</label>
-                    <div className="grid grid-cols-4 gap-1">
-                      {[1, 2, 3, 4].map((num) => {
-                        const isSelected = currentScore === num;
-                        const conf = skorLabels[num];
-                        return (
-                          <button
-                            key={num}
-                            type="button"
-                            onClick={() => setFormData({ ...formData, [item.key]: num })}
-                            className={`py-1.5 text-center rounded-lg text-xs font-bold border transition-all cursor-pointer ${
-                              isSelected
-                                ? `${conf.bg} ${conf.color} ring-2 ring-blue-500/20 shadow-sm`
-                                : "bg-white border-slate-200 text-slate-600 hover:bg-slate-100"
-                            }`}
-                          >
-                            {num}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div className={`p-2 rounded-lg text-[10px] font-bold text-center border ${skorLabels[currentScore].bg} ${skorLabels[currentScore].color}`}>
-                    {skorLabels[currentScore].label}
+                  <div className="grid grid-cols-4 gap-1.5 pt-2">
+                    {[1, 2, 3, 4].map((skor) => {
+                      const isSelected = currentVal === skor;
+                      const conf = skorLabels[skor];
+                      return (
+                        <button
+                          key={skor}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, [item.key]: skor })}
+                          className={`py-2 text-center rounded-lg text-xs font-bold transition-all border cursor-pointer ${
+                            isSelected
+                              ? `${conf.bg} ${conf.color} ring-2 ring-[#162E6E]`
+                              : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
+                          }`}
+                        >
+                          {skor}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               );
             })}
           </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Catatan Perkembangan Fundamental Santri</label>
-            <textarea
-              rows={3}
-              placeholder="Uraikan catatan pembiasaan atau rekomendasi bimbingan khusus dari Murobbi/Wali Kelas..."
-              value={formData.catatan_fundamental || ""}
-              onChange={(e) => setFormData({ ...formData, catatan_fundamental: e.target.value })}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-            />
-          </div>
         </div>
       )}
 
       {/* ═══════════════════════════════════════════════════════
-          TAB 7: SESI KONSULTASI / KONSELING
+          TAB 7: RIWAYAT SESI KONSELING
       ════════════════════════════════════════════════════════ */}
       {activeTab === "konseling" && (
-        <div className="space-y-6">
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 space-y-6">
+          <div className="border-b pb-3 border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h3 className="text-base font-bold text-slate-800">Riwayat Sesi Konsultasi & BK</h3>
-              <p className="text-xs text-slate-500">Catatan sesi dialog empat mata antara santri dan Murobbi / Wali Kelas / Konselor</p>
+              <h3 className="text-base font-bold text-slate-800">Catatan Bimbingan & Konseling Santri</h3>
+              <p className="text-xs text-slate-500">Rekam jejak konseling empat mata, penanganan kasus, dan tindak lanjut</p>
             </div>
-
             <button
               onClick={() => setShowAddKonselingModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-[#162E6E] hover:bg-[#122456] text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
+              className="flex items-center gap-2 px-4 py-2 bg-[#162E6E] hover:bg-[#122456] text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer self-start sm:self-auto"
             >
               <Plus className="w-4 h-4" />
-              Catat Sesi Konsultasi Baru
+              Catat Sesi Baru
             </button>
           </div>
 
-          {/* List Sesi */}
-          <div className="space-y-4">
-            {siswaData?.konseling_sesi?.length === 0 ? (
-              <div className="bg-white p-12 rounded-2xl text-center text-slate-400 border border-slate-100">
-                <MessageSquare className="w-12 h-12 mx-auto text-slate-300 mb-2" />
-                <p className="font-semibold text-slate-600">Belum ada catatan sesi konsultasi untuk santri ini.</p>
-              </div>
-            ) : (
-              siswaData?.konseling_sesi?.map((sesi: any) => (
-                <div key={sesi.konseling_id} className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 space-y-4">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b pb-3 border-slate-100">
+          {konselingList.length === 0 ? (
+            <div className="p-12 text-center text-slate-400 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+              <MessageSquare className="w-10 h-10 mx-auto mb-2 text-slate-300" />
+              <p className="font-semibold text-sm text-slate-600">Belum Ada Catatan Konseling</p>
+              <p className="text-xs text-slate-400 mt-1">Klik tombol "Catat Sesi Baru" untuk membuat catatan bimbingan pertama.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {konselingList.map((sesi: any) => (
+                <div
+                  key={sesi.konseling_id}
+                  className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-3 hover:border-slate-300 transition-all"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-3 border-slate-100">
                     <div className="flex items-center gap-3">
-                      <span className="px-2.5 py-1 bg-blue-50 text-[#1D4ED8] text-xs font-bold rounded-lg">
+                      <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-[#162E6E]/10 text-[#162E6E]">
                         {sesi.kategori}
                       </span>
-                      <h4 className="font-bold text-base text-slate-800">{sesi.topik_konseling}</h4>
+                      <h4 className="font-bold text-slate-800 text-sm">{sesi.topik_konseling}</h4>
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-slate-500">
-                      <span>Tanggal: <strong className="text-slate-700">{sesi.tanggal_sesi}</strong></span>
-                      <span>Konselor: <strong className="text-slate-700">{sesi.pegawai?.nama || "Guru BK"}</strong></span>
+
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-slate-500 flex items-center gap-1 font-medium">
+                        <Calendar className="w-3.5 h-3.5" />
+                        {new Date(sesi.tanggal_sesi).toLocaleDateString("id-ID", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </span>
                       <button
                         onClick={() => {
-                          if (confirm("Hapus catatan konsultasi ini?")) {
+                          if (window.confirm("Hapus catatan konsultasi ini?")) {
                             deleteKonselingMutation.mutate(sesi.konseling_id);
                           }
                         }}
-                        className="text-rose-500 hover:text-rose-700 p-1 cursor-pointer"
-                        title="Hapus"
+                        className="p-1 text-slate-400 hover:text-rose-600 transition-all cursor-pointer"
+                        title="Hapus Catatan"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-1">
-                      <span className="font-bold text-slate-600 uppercase text-[10px]">Pokok Masalah / Keluhan:</span>
-                      <p className="text-slate-800 leading-relaxed">{sesi.keluhan_masalah}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                      <span className="font-bold text-slate-600 block mb-1">Keluhan / Isu Pokok:</span>
+                      <p className="text-slate-700 whitespace-pre-wrap">{sesi.keluhan_masalah}</p>
                     </div>
 
-                    <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100 space-y-1">
-                      <span className="font-bold text-emerald-800 uppercase text-[10px]">Solusi & Rencana Aksi Kesepakatan:</span>
-                      <p className="text-slate-800 leading-relaxed">{sesi.solusi_kesepakatan || "Belum ada rencana tindak lanjut."}</p>
+                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                      <span className="font-bold text-slate-600 block mb-1">Dinamika / Refleksi:</span>
+                      <p className="text-slate-700 whitespace-pre-wrap">{sesi.dinamika_konseling || "—"}</p>
+                    </div>
+
+                    <div className="bg-emerald-50/50 p-3 rounded-xl border border-emerald-100">
+                      <span className="font-bold text-emerald-900 block mb-1">Solusi & Kesepakatan:</span>
+                      <p className="text-emerald-800 whitespace-pre-wrap">{sesi.solusi_kesepakatan || "—"}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px]">
-                    <span className="text-slate-500">
-                      Status Follow-Up: <strong className="text-blue-800">{sesi.status_follow_up}</strong>
-                    </span>
-                    <span className="text-slate-500">
-                      Sifat: <strong className="text-slate-700">{sesi.sifat_rahasia}</strong>
-                    </span>
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-400">Konselor/Guru:</span>
+                      <span className="font-bold text-slate-700">{sesi.pegawai?.nama || "Guru BK / Wali Kelas"}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-md font-bold text-[11px] bg-slate-100 text-slate-600 border border-slate-200">
+                        {sesi.sifat_rahasia}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-md font-bold text-[11px] ${
+                        sesi.status_follow_up === "Selesai"
+                          ? "bg-emerald-100 text-emerald-800"
+                          : "bg-amber-100 text-amber-800"
+                      }`}>
+                        {sesi.status_follow_up}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Modal Catat Sesi Konsultasi Baru */}
+      {/* ═══════════════════════════════════════════════════════
+          MODAL TAMBAH SESI KONSELING
+      ════════════════════════════════════════════════════════ */}
       {showAddKonselingModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-bold text-slate-800">Catat Sesi Konsultasi Santri</h3>
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-xl w-full shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="border-b pb-3 flex items-center justify-between">
+              <h3 className="text-base font-bold text-slate-800">Catat Sesi Bimbingan & Konseling</h3>
+              <button
+                onClick={() => setShowAddKonselingModal(false)}
+                className="text-slate-400 hover:text-slate-600 text-lg font-bold"
+              >
+                ✕
+              </button>
+            </div>
 
             <div className="space-y-3 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Tanggal Sesi *</label>
+                  <label className="block font-bold text-slate-700 mb-1">Tanggal Sesi</label>
                   <input
                     type="date"
                     value={konselingForm.tanggal_sesi}
@@ -1019,15 +1158,22 @@ export default function GuidanceDetailSiswa() {
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
                   />
                 </div>
-
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Kategori Masalah *</label>
+                  <label className="block font-bold text-slate-700 mb-1">Kategori Bimbingan</label>
                   <select
                     value={konselingForm.kategori}
                     onChange={(e) => setKonselingForm({ ...konselingForm, kategori: e.target.value })}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold"
                   >
-                    {["Akademik", "Karakter & Kedisiplinan", "Sosial & Emosional", "Keluarga", "Karier & Studi Lanjut", "Kesehatan", "Lainnya"].map((k) => (
+                    {[
+                      "Akademik",
+                      "Karakter & Adab",
+                      "Sosial & Teman Sebaya",
+                      "Kedisiplinan & Tata Tertib",
+                      "Minat & Karir / Lanjutan",
+                      "Pribadi & Emosional",
+                      "Lainnya",
+                    ].map((k) => (
                       <option key={k} value={k}>{k}</option>
                     ))}
                   </select>
@@ -1035,21 +1181,21 @@ export default function GuidanceDetailSiswa() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Topik / Judul Konsultasi *</label>
+                <label className="block font-bold text-slate-700 mb-1">Topik Utama Konseling *</label>
                 <input
                   type="text"
-                  placeholder="Contoh: Konsultasi Pemilihan Jurusan Kuliah & Masalah Kedisiplinan Bangun Pagi"
+                  placeholder="Contoh: Penurunan nilai mapel MIPA / Kesulitan adaptasi asrama"
                   value={konselingForm.topik_konseling}
                   onChange={(e) => setKonselingForm({ ...konselingForm, topik_konseling: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
                 />
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Uraian Masalah / Keluhan Santri *</label>
+                <label className="block font-bold text-slate-700 mb-1">Keluhan / Masalah yang Disampaikan *</label>
                 <textarea
                   rows={3}
-                  placeholder="Ceritakan latar belakang dan poin yang disampaikan santri..."
+                  placeholder="Deskripsikan inti masalah atau cerita dari santri..."
                   value={konselingForm.keluhan_masalah}
                   onChange={(e) => setKonselingForm({ ...konselingForm, keluhan_masalah: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
@@ -1057,10 +1203,21 @@ export default function GuidanceDetailSiswa() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Solusi & Kesepakatan Tindak Lanjut</label>
+                <label className="block font-bold text-slate-700 mb-1">Dinamika / Respon Santri</label>
                 <textarea
-                  rows={3}
-                  placeholder="Rencana aksi yang disepakati bersama..."
+                  rows={2}
+                  placeholder="Kondisi psikologis, keterbukaan atau respon selama dialog..."
+                  value={konselingForm.dinamika_konseling}
+                  onChange={(e) => setKonselingForm({ ...konselingForm, dinamika_konseling: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Solusi / Kesepakatan Bersama</label>
+                <textarea
+                  rows={2}
+                  placeholder="Komitmen dan langkah perbaikan yang disepakati bersama santri..."
                   value={konselingForm.solusi_kesepakatan}
                   onChange={(e) => setKonselingForm({ ...konselingForm, solusi_kesepakatan: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
@@ -1069,46 +1226,58 @@ export default function GuidanceDetailSiswa() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Status Tindak Lanjut</label>
+                  <label className="block font-bold text-slate-700 mb-1">Status Follow-up</label>
                   <select
                     value={konselingForm.status_follow_up}
                     onChange={(e) => setKonselingForm({ ...konselingForm, status_follow_up: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold"
                   >
-                    <option value="Dalam Pemantauan">Dalam Pemantauan</option>
-                    <option value="Selesai">Selesai</option>
-                    <option value="Perlu Rujukan Lanjut">Perlu Rujukan Lanjut</option>
+                    {["Dalam Pemantauan", "Perlu Sesi Lanjutan", "Selesai", "Dirujuk ke Pihak Luar"].map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
                   </select>
                 </div>
-
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Sifat Kerahasiaan</label>
                   <select
                     value={konselingForm.sifat_rahasia}
                     onChange={(e) => setKonselingForm({ ...konselingForm, sifat_rahasia: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold"
                   >
-                    <option value="Internal Guru/Wali Kelas">Internal Guru/Wali Kelas</option>
-                    <option value="Sangat Rahasia">Sangat Rahasia</option>
-                    <option value="Terbuka">Terbuka</option>
+                    {[
+                      "Internal Guru/Wali Kelas",
+                      "Sangat Rahasia (Hanya BK)",
+                      "Boleh Diinfokan ke Ortu",
+                      "Umum",
+                    ].map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
                   </select>
                 </div>
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-3 border-t">
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
               <button
+                type="button"
                 onClick={() => setShowAddKonselingModal(false)}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition-all cursor-pointer"
               >
                 Batal
               </button>
               <button
-                onClick={() => addKonselingMutation.mutate(konselingForm)}
-                disabled={addKonselingMutation.isPending || !konselingForm.topik_konseling || !konselingForm.keluhan_masalah}
-                className="px-4 py-2 bg-[#162E6E] hover:bg-[#122456] text-white text-xs font-bold rounded-xl cursor-pointer"
+                type="button"
+                onClick={() => {
+                  if (!konselingForm.topik_konseling || !konselingForm.keluhan_masalah) {
+                    toast.error("Topik dan keluhan/masalah wajib diisi!");
+                    return;
+                  }
+                  addKonselingMutation.mutate(konselingForm);
+                }}
+                disabled={addKonselingMutation.isPending}
+                className="px-5 py-2 bg-[#162E6E] hover:bg-[#122456] text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-md"
               >
-                {addKonselingMutation.isPending ? "Menyimpan..." : "Simpan Sesi Konsultasi"}
+                {addKonselingMutation.isPending ? "Menyimpan..." : "Simpan Sesi"}
               </button>
             </div>
           </div>

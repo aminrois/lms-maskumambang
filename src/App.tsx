@@ -24,6 +24,7 @@ const LembagaIndex         = React.lazy(() => import("./pages/MasterData/Lembaga
 const PegawaiIndex         = React.lazy(() => import("./pages/MasterData/Pegawai/Index"));
 const PegawaiImportPreview = React.lazy(() => import("./pages/MasterData/Pegawai/ImportPreview"));
 const SiswaIndex           = React.lazy(() => import("./pages/MasterData/Siswa/Index"));
+const SiswaDetail          = React.lazy(() => import("./pages/MasterData/Siswa/Detail"));
 const SiswaImportPreview   = React.lazy(() => import("./pages/MasterData/Siswa/ImportPreview"));
 const KelasIndex           = React.lazy(() => import("./pages/MasterData/Kelas/Index"));
 const WaliMuridIndex         = React.lazy(() => import("./pages/MasterData/WaliMurid/Index"));
@@ -208,22 +209,25 @@ const App: React.FC = () => {
                   <Route path="pegawai/import" element={<PegawaiImportPreview />} />
                   <Route path="kelas" element={<KelasIndex />} />
                 </Route>
-                {/* Siswa: SA, Dir, WaKa Kurikulum, Admin Lembaga, Wali Kelas, Wali Murid */}
+                {/* Siswa: SA, Dir, Kepala Sekolah, WaKa Kurikulum, Admin Lembaga, Wali Kelas, Guru, Wali Murid */}
                 <Route
                   element={
                     <ProtectedRoute
                       allowedRoles={[
                         "Super Admin",
                         "Direktur",
+                        "Kepala Sekolah",
                         "WaKa Kurikulum",
                         "Admin Lembaga",
                         "Wali Kelas",
+                        "Guru",
                         "Wali Murid",
                       ]}
                     />
                   }
                 >
                   <Route path="siswa" element={<SiswaIndex />} />
+                  <Route path="siswa/:siswa_id" element={<SiswaDetail />} />
                   <Route path="siswa/import" element={<SiswaImportPreview />} />
                 </Route>
 

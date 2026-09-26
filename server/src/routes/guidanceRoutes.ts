@@ -8,6 +8,7 @@ const router = Router();
 router.get('/siswa', authenticate, guidanceController.getGuidanceSiswaList);
 router.get('/siswa/:siswa_id', authenticate, guidanceController.getGuidanceDetailBySiswaId);
 router.put('/siswa/:siswa_id', authenticate, guidanceController.upsertGuidanceDetail);
+router.patch('/siswa/:siswa_id/foto', authenticate, guidanceController.updateFotoSiswa);
 
 // Sesi Konsultasi / Konseling
 router.get('/konseling', authenticate, guidanceController.getKonselingSesiList);

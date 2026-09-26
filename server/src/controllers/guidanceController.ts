@@ -389,3 +389,26 @@ export async function deleteKonselingSesi(req: Request, res: Response) {
     return res.status(500).json({ success: false, message: error.message });
   }
 }
+
+export async function updateFotoSiswa(req: Request, res: Response) {
+  try {
+    const siswa_id = parseInt(String(req.params.siswa_id), 10);
+    const { foto } = req.body;
+
+    const updated = await prisma.siswa.update({
+      where: { siswa_id },
+      data: { foto },
+      select: { siswa_id: true, nama: true, foto: true },
+    });
+
+    return res.json({
+      success: true,
+      message: 'Foto profil santri berhasil diperbarui',
+      data: updated,
+    });
+  } catch (error: any) {
+    console.error('Error in updateFotoSiswa:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+

@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { usePermissions } from "../../../hooks/usePermissions";
 import { useDuplicateCheck } from "../../../hooks/useDuplicateCheck";
 import { useRealtimeSync } from "../../../hooks/useRealtimeSync";
@@ -15,7 +15,6 @@ import SiswaFilter from "./components/SiswaFilter";
 import SiswaTable from "./components/SiswaTable";
 import SiswaPagination from "./components/SiswaPagination";
 import SiswaFormModal from "./components/SiswaFormModal";
-import SiswaDetailModal from "./components/SiswaDetailModal";
 import SiswaDeleteModal from "./components/SiswaDeleteModal";
 import SiswaTemplateModal from "./components/SiswaTemplateModal";
 import BulkActionBar from "../../../components/custom/BulkActionBar";
@@ -24,6 +23,7 @@ import { toast } from "sonner";
 
 export default function MasterDataSiswa() {
   const location = useLocation();
+  const navigate = useNavigate();
   const pathTerakhir = location.pathname.split("/").pop() || "Siswa";
   const judulOtomatis = pathTerakhir.replace(/-/g, " ").toUpperCase();
   const { canCreate, canUpdate, canDelete } = usePermissions('siswa');
@@ -46,7 +46,6 @@ export default function MasterDataSiswa() {
   const [isImporting, setIsImporting] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedSiswa, setSelectedSiswa] = useState<SiswaUI | null>(null);
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -481,8 +480,7 @@ export default function MasterDataSiswa() {
           onEdit={handleEdit}
           onDelete={confirmHapus}
           onDetail={(siswa) => {
-            setSelectedSiswa(siswa);
-            setIsDetailModalOpen(true);
+            navigate(`/master-data/siswa/${siswa.id}`);
           }}
         />
       </div>
@@ -511,16 +509,6 @@ export default function MasterDataSiswa() {
         hasDuplicateError={hasDuplicateError}
         onSubmit={handleSimpan}
         getNamaWaliUtama={getNamaWaliUtama}
-      />
-
-      <SiswaDetailModal
-        isOpen={isDetailModalOpen}
-        onClose={() => setIsDetailModalOpen(false)}
-        selectedSiswa={selectedSiswa}
-        canUpdate={canUpdate}
-        canDelete={canDelete}
-        onEdit={handleEdit}
-        onDelete={confirmHapus}
       />
 
       <SiswaDeleteModal

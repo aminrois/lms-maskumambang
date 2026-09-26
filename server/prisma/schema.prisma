@@ -185,6 +185,7 @@ model Siswa {
   kabupaten_kota      String?
   provinsi            String?
   alamat_sekolah_asal String?
+  foto                String?           @db.Text
 
   wali_murid          WaliMurid?        @relation(fields: [wali_murid_id], references: [wali_id], onDelete: SetNull)
   kelas               Kelas?            @relation(fields: [kelas_id], references: [kelas_id], onDelete: SetNull)
