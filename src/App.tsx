@@ -22,6 +22,7 @@ const DashboardIndex = React.lazy(() => import("./pages/Dashboard/Index"));
 // MasterData
 const LembagaIndex         = React.lazy(() => import("./pages/MasterData/Lembaga/Index"));
 const PegawaiIndex         = React.lazy(() => import("./pages/MasterData/Pegawai/Index"));
+const PegawaiDetail        = React.lazy(() => import("./pages/MasterData/Pegawai/Detail"));
 const PegawaiImportPreview = React.lazy(() => import("./pages/MasterData/Pegawai/ImportPreview"));
 const SiswaIndex           = React.lazy(() => import("./pages/MasterData/Siswa/Index"));
 const SiswaDetail          = React.lazy(() => import("./pages/MasterData/Siswa/Detail"));
@@ -206,6 +207,7 @@ const App: React.FC = () => {
                   }
                 >
                   <Route path="pegawai" element={<PegawaiIndex />} />
+                  <Route path="pegawai/:pegawai_id" element={<PegawaiDetail />} />
                   <Route path="pegawai/import" element={<PegawaiImportPreview />} />
                   <Route path="kelas" element={<KelasIndex />} />
                 </Route>

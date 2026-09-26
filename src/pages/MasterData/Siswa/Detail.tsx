@@ -222,6 +222,9 @@ export default function MasterDataSiswaDetail() {
   <div class="grid">
     <div class="row"><div class="label">Nama Lengkap</div><div class="value">${fld(siswa.nama)}</div></div>
     <div class="row"><div class="label">Nama Panggilan</div><div class="value">${fld(siswa.panggilan)}</div></div>
+    <div class="row"><div class="label">NIS</div><div class="value">${fld(siswa.nis)}</div></div>
+    <div class="row"><div class="label">NISN</div><div class="value">${fld(siswa.nisn)}</div></div>
+    <div class="row"><div class="label">NIK</div><div class="value">${fld(siswa.nik)}</div></div>
     <div class="row"><div class="label">Jenis Kelamin</div><div class="value">${siswa.jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan'}</div></div>
     <div class="row"><div class="label">Tempat, Tanggal Lahir</div><div class="value">${fld(siswa.tempat_lahir)}, ${fld(siswa.tanggal_lahir)}</div></div>
     <div class="row"><div class="label">Agama</div><div class="value">${fld(siswa.agama)}</div></div>
@@ -506,7 +509,7 @@ export default function MasterDataSiswaDetail() {
               </span>
             </div>
             <p className="text-xs text-slate-500">
-              NIS: <b className="text-slate-700">{siswa?.nis || "—"}</b> &bull; NISN: <b className="text-slate-700">{siswa?.nisn || "—"}</b> &bull; NIK: <b className="text-slate-700">{siswa?.nik || "—"}</b>
+              NISN: <b className="text-slate-700 font-semibold">{siswa?.nisn || "—"}</b>
             </p>
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
               <span className="bg-[#162E6E]/10 text-[#162E6E] px-2.5 py-1 rounded-lg text-xs font-bold">{siswa?.kelas?.lembaga?.nama_lembaga || "Lembaga"}</span>
@@ -566,6 +569,9 @@ export default function MasterDataSiswaDetail() {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               <InfoField label="Nama Lengkap" value={siswa?.nama} />
               <InfoField label="Nama Panggilan" value={siswa?.panggilan} />
+              <InfoField label="NIS" value={siswa?.nis} />
+              <InfoField label="NISN" value={siswa?.nisn} />
+              <InfoField label="NIK" value={siswa?.nik} />
               <InfoField label="Jenis Kelamin" value={siswa?.jenis_kelamin === "L" ? "Laki-laki" : "Perempuan"} />
               <InfoField label="Tempat Lahir" value={siswa?.tempat_lahir} />
               <InfoField label="Tanggal Lahir" value={siswa?.tanggal_lahir} />

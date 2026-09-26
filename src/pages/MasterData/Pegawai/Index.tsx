@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
@@ -29,6 +29,7 @@ import { restClient } from "../../../lib/api/axios";
 
 export default function PegawaiIndex() {
   const location = useLocation();
+  const navigate = useNavigate();
   const pathTerakhir = location.pathname.split("/").pop() || "Pegawai";
   const judulOtomatis = pathTerakhir.replace(/-/g, " ").toUpperCase();
   const userRole = useAuthStore(state => state.role);
@@ -424,7 +425,7 @@ export default function PegawaiIndex() {
           selectedIds={selectedIds}
           onToggleSelect={handleToggleSelect}
           onToggleSelectAllCurrentPage={handleToggleSelectAllCurrentPage}
-          onViewDetail={(pegawai) => { setSelectedPegawai(pegawai); setIsDetailModalOpen(true); }}
+          onViewDetail={(pegawai) => navigate(`/master-data/pegawai/${pegawai.id}`)}
           onEdit={(pegawai) => {
             setSelectedPegawai(pegawai);
             setFormData({
