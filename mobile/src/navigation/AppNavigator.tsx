@@ -16,6 +16,7 @@ import { WaliGuidanceScreen } from "../screens/Wali/WaliGuidanceScreen";
 import { WaliDetailSantriScreen } from "../screens/Wali/WaliDetailSantriScreen";
 import { GuidanceHomeScreen } from "../screens/Guidance/GuidanceHomeScreen";
 import { GuidanceDetailScreen } from "../screens/Guidance/GuidanceDetailScreen";
+import { GuidanceCatatSesiScreen } from "../screens/Guidance/GuidanceCatatSesiScreen";
 import { MainTabNavigator } from "./MainTabNavigator";
 import { useAuthStore } from "../store/useAuthStore";
 import { Colors } from "../constants/colors";
@@ -129,6 +130,13 @@ export const AppNavigator = () => {
             <Stack.Screen
               name="GuidanceDetail"
               component={GuidanceDetailScreen}
+              options={{
+                animation: "slide_from_right",
+              }}
+            />
+            <Stack.Screen
+              name="GuidanceCatatSesi"
+              component={GuidanceCatatSesiScreen}
               options={{
                 animation: "slide_from_right",
               }}

@@ -37,7 +37,7 @@ import {
   ShieldCheck,
   Check,
 } from "lucide-react-native";
-import { useRoute, useNavigation } from "@react-navigation/native";
+import { useRoute, useNavigation, useFocusEffect } from "@react-navigation/native";
 import { guidanceService, KonselingSesi, GuidanceDetail } from "../../api/guidanceService";
 
 export const GuidanceDetailScreen = () => {
@@ -107,15 +107,6 @@ export const GuidanceDetailScreen = () => {
     catatan_fundamental: "",
   });
 
-  // Modal Tambah Sesi Konsultasi
-  const [addModalVisible, setAddModalVisible] = useState(false);
-  const [newTopik, setNewTopik] = useState("");
-  const [newKategori, setNewKategori] = useState("Akademik");
-  const [newKeluhan, setNewKeluhan] = useState("");
-  const [newSolusi, setNewSolusi] = useState("");
-  const [newStatus, setNewStatus] = useState("Dalam Pemantauan");
-  const [isSubmittingNew, setIsSubmittingNew] = useState(false);
-
   // Modal Follow-up
   const [followUpModalVisible, setFollowUpModalVisible] = useState(false);
   const [activeFollowUpSesi, setActiveFollowUpSesi] = useState<KonselingSesi | null>(null);
@@ -150,6 +141,12 @@ export const GuidanceDetailScreen = () => {
     fetchDetail();
   }, [fetchDetail]);
 
+  useFocusEffect(
+    useCallback(() => {
+      fetchDetail();
+    }, [fetchDetail])
+  );
+
   const updateField = (key: keyof GuidanceDetail, value: any) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
@@ -165,34 +162,6 @@ export const GuidanceDetailScreen = () => {
       Alert.alert("Gagal Menyimpan", err.response?.data?.message || "Terjadi kesalahan saat menyimpan data santri.");
     } finally {
       setIsSaving(false);
-    }
-  };
-
-  const handleAddKonseling = async () => {
-    if (!newTopik.trim() || !newKeluhan.trim()) {
-      Alert.alert("Perhatian", "Topik dan keluhan masalah santri wajib diisi.");
-      return;
-    }
-    try {
-      setIsSubmittingNew(true);
-      await guidanceService.createKonseling({
-        siswa_id: siswaId,
-        kategori: newKategori,
-        topik_konseling: newTopik,
-        keluhan_masalah: newKeluhan,
-        solusi_kesepakatan: newSolusi,
-        status_follow_up: newStatus,
-      });
-      setAddModalVisible(false);
-      setNewTopik("");
-      setNewKeluhan("");
-      setNewSolusi("");
-      Alert.alert("Berhasil", "Catatan sesi konsultasi berhasil disimpan.");
-      fetchDetail();
-    } catch (err: any) {
-      Alert.alert("Gagal", err.response?.data?.message || "Gagal mencatat sesi konsultasi.");
-    } finally {
-      setIsSubmittingNew(false);
     }
   };
 
@@ -260,7 +229,7 @@ export const GuidanceDetailScreen = () => {
             {siswaDetail?.nama || namaSiswa || "Detail Santri"}
           </Text>
           <Text style={styles.headerSubtitle}>
-            NIS: {siswaDetail?.nis || "-"} • Kelas: {siswaDetail?.kelas?.nama_kelas || "-"} ({siswaDetail?.kelas?.lembaga?.nama_lembaga || "-"})
+            Kelas: {siswaDetail?.kelas?.nama_kelas || "-"} ({siswaDetail?.kelas?.lembaga?.nama_lembaga || "-"})
           </Text>
         </View>
 
@@ -855,7 +824,14 @@ export const GuidanceDetailScreen = () => {
           {/* Tombol Catat Sesi Baru */}
           <TouchableOpacity
             style={styles.addKonselingBtn}
-            onPress={() => setAddModalVisible(true)}
+            onPress={() =>
+              navigation.navigate("GuidanceCatatSesi", {
+                siswaId: siswaId,
+                namaSiswa: siswaDetail?.nama || namaSiswa,
+                namaKelas: siswaDetail?.kelas?.nama_kelas,
+                namaLembaga: siswaDetail?.kelas?.lembaga?.nama_lembaga,
+              })
+            }
             activeOpacity={0.85}
           >
             <Plus size={16} color="#FFFFFF" />
@@ -952,127 +928,6 @@ export const GuidanceDetailScreen = () => {
           )}
         </ScrollView>
       )}
-
-      {/* Modal Catat Sesi Baru */}
-      <Modal
-        visible={addModalVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setAddModalVisible(false)}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={styles.modalOverlay}
-        >
-          <TouchableOpacity
-            style={styles.modalDismissArea}
-            activeOpacity={1}
-            onPress={() => {
-              Keyboard.dismiss();
-              setAddModalVisible(false);
-            }}
-          />
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Catat Sesi Konsultasi Baru</Text>
-              <TouchableOpacity
-                onPress={() => {
-                  Keyboard.dismiss();
-                  setAddModalVisible(false);
-                }}
-              >
-                <X size={18} color="#64748B" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView
-              style={styles.modalBody}
-              contentContainerStyle={{ paddingBottom: 16 }}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
-              <Text style={styles.inputLabel}>Kategori Masalah</Text>
-              <View style={styles.pillSelectorRow}>
-                {["Akademik", "Karakter", "Sosial", "Keluarga", "Karier"].map((k) => (
-                  <TouchableOpacity
-                    key={k}
-                    style={[
-                      styles.pillOption,
-                      newKategori === k && styles.pillOptionActive,
-                    ]}
-                    onPress={() => setNewKategori(k)}
-                  >
-                    <Text
-                      style={[
-                        styles.pillOptionText,
-                        newKategori === k && styles.pillOptionTextActive,
-                      ]}
-                    >
-                      {k}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <Text style={[styles.inputLabel, { marginTop: 10 }]}>Topik / Judul Masalah *</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="Contoh: Konsultasi Akademik & Disiplin"
-                placeholderTextColor="#94A3B8"
-                value={newTopik}
-                onChangeText={setNewTopik}
-              />
-
-              <Text style={[styles.inputLabel, { marginTop: 10 }]}>Keluhan / Uraian Masalah *</Text>
-              <TextInput
-                style={styles.textArea}
-                multiline
-                numberOfLines={3}
-                placeholder="Ceritakan pokok persoalan santri..."
-                placeholderTextColor="#94A3B8"
-                value={newKeluhan}
-                onChangeText={setNewKeluhan}
-              />
-
-              <Text style={[styles.inputLabel, { marginTop: 10 }]}>Solusi & Kesepakatan</Text>
-              <TextInput
-                style={styles.textArea}
-                multiline
-                numberOfLines={2}
-                placeholder="Rencana aksi yang disepakati bersama..."
-                placeholderTextColor="#94A3B8"
-                value={newSolusi}
-                onChangeText={setNewSolusi}
-              />
-            </ScrollView>
-
-            <View style={styles.modalFooter}>
-              <TouchableOpacity
-                style={styles.cancelBtn}
-                onPress={() => {
-                  Keyboard.dismiss();
-                  setAddModalVisible(false);
-                }}
-              >
-                <Text style={styles.cancelBtnText}>Batal</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.submitBtn}
-                onPress={handleAddKonseling}
-                disabled={isSubmittingNew}
-              >
-                {isSubmittingNew ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.submitBtnText}>Simpan Sesi</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-
-      {/* Modal Follow Up */}
       <Modal
         visible={followUpModalVisible}
         transparent={true}

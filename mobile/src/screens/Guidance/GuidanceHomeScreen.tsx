@@ -301,9 +301,8 @@ export const GuidanceHomeScreen = () => {
                     {item.nama}
                   </Text>
                   <Text style={styles.siswaMeta}>
-                    NIS: {item.nis} • Kelas: {item.kelas}
+                    Kelas: {item.kelas} • {item.lembaga}
                   </Text>
-                  <Text style={styles.siswaLembaga}>{item.lembaga}</Text>
                 </View>
                 <ChevronRight size={18} color="#CBD5E1" />
               </View>
