@@ -13,6 +13,8 @@ router.patch('/siswa/:siswa_id/foto', authenticate, guidanceController.updateFot
 // Sesi Konsultasi / Konseling
 router.get('/konseling', authenticate, guidanceController.getKonselingSesiList);
 router.post('/konseling', authenticate, guidanceController.createKonselingSesi);
+router.put('/konseling/:konseling_id', authenticate, guidanceController.updateKonselingSesi);
+router.patch('/konseling/:konseling_id', authenticate, guidanceController.updateKonselingSesi);
 router.delete('/konseling/:konseling_id', authenticate, guidanceController.deleteKonselingSesi);
 
 export default router;

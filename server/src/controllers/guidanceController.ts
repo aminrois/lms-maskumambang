@@ -564,6 +564,56 @@ export async function deleteKonselingSesi(req: Request, res: Response) {
   }
 }
 
+export async function updateKonselingSesi(req: Request, res: Response) {
+  try {
+    const konseling_id = parseInt(String(req.params.konseling_id), 10);
+    const user = (req as any).user;
+    const { status_follow_up, catatan_tindak_lanjut, solusi_kesepakatan, dinamika_konseling } = req.body;
+
+    const { allowedIds, pegawaiId } = await getMentoredSiswaIds(user);
+
+    const sesi = await prisma.siswaKonselingSesi.findUnique({
+      where: { konseling_id },
+      select: { siswa_id: true, pegawai_id: true },
+    });
+
+    if (!sesi) {
+      return res.status(404).json({ success: false, message: 'Catatan konsultasi tidak ditemukan.' });
+    }
+
+    // Cek izin (murobbi binaan atau konselor pencatat atau global admin)
+    if (allowedIds !== null && !allowedIds.includes(sesi.siswa_id) && sesi.pegawai_id !== pegawaiId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Akses ditolak: Anda tidak memiliki izin memperbarui follow up sesi ini.',
+      });
+    }
+
+    const updated = await prisma.siswaKonselingSesi.update({
+      where: { konseling_id },
+      data: {
+        ...(status_follow_up ? { status_follow_up } : {}),
+        ...(catatan_tindak_lanjut !== undefined ? { catatan_tindak_lanjut } : {}),
+        ...(solusi_kesepakatan !== undefined ? { solusi_kesepakatan } : {}),
+        ...(dinamika_konseling !== undefined ? { dinamika_konseling } : {}),
+      },
+      include: {
+        siswa: { select: { nama: true, nis: true } },
+        pegawai: { select: { nama: true, jabatan: true } },
+      },
+    });
+
+    return res.json({
+      success: true,
+      message: 'Status follow-up sesi konsultasi berhasil diperbarui.',
+      data: updated,
+    });
+  } catch (error: any) {
+    console.error('Error in updateKonselingSesi:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
 export async function updateFotoSiswa(req: Request, res: Response) {
   try {
     const siswa_id = parseInt(String(req.params.siswa_id), 10);

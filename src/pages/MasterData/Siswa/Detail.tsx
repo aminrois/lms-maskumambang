@@ -11,6 +11,7 @@ import {
   Plus,
   Calendar,
   FileDown,
+  Edit3,
 } from "lucide-react";
 import { restClient } from "../../../lib/api/axios";
 import { toast } from "sonner";
@@ -40,6 +41,20 @@ export default function MasterDataSiswaDetail() {
     status_follow_up: "Dalam Pemantauan",
     sifat_rahasia: "Internal Guru/Wali Kelas",
     catatan_tindak_lanjut: "",
+  });
+
+  const [followUpModalData, setFollowUpModalData] = useState<{
+    isOpen: boolean;
+    sesi: any | null;
+    status_follow_up: string;
+    catatan_tindak_lanjut: string;
+    solusi_kesepakatan: string;
+  }>({
+    isOpen: false,
+    sesi: null,
+    status_follow_up: "Dalam Pemantauan",
+    catatan_tindak_lanjut: "",
+    solusi_kesepakatan: "",
   });
 
   const { data: detailData, isLoading } = useQuery({
@@ -154,6 +169,51 @@ export default function MasterDataSiswaDetail() {
       queryClient.invalidateQueries({ queryKey: ["siswa-detail-360", siswa_id] });
     },
   });
+
+  const updateFollowUpMutation = useMutation({
+    mutationFn: async ({
+      konseling_id,
+      status_follow_up,
+      catatan_tindak_lanjut,
+      solusi_kesepakatan,
+    }: {
+      konseling_id: number;
+      status_follow_up: string;
+      catatan_tindak_lanjut: string;
+      solusi_kesepakatan: string;
+    }) => {
+      const res = await restClient.patch(`${API_GUIDANCE}/konseling/${konseling_id}`, {
+        status_follow_up,
+        catatan_tindak_lanjut,
+        solusi_kesepakatan,
+      });
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.success("Status follow-up berhasil diperbarui!");
+      setFollowUpModalData({
+        isOpen: false,
+        sesi: null,
+        status_follow_up: "Dalam Pemantauan",
+        catatan_tindak_lanjut: "",
+        solusi_kesepakatan: "",
+      });
+      queryClient.invalidateQueries({ queryKey: ["siswa-detail-360", siswa_id] });
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || "Gagal memperbarui status follow-up.");
+    },
+  });
+
+  const openFollowUpModal = (sesi: any) => {
+    setFollowUpModalData({
+      isOpen: true,
+      sesi,
+      status_follow_up: sesi.status_follow_up || "Dalam Pemantauan",
+      catatan_tindak_lanjut: sesi.catatan_tindak_lanjut || "",
+      solusi_kesepakatan: sesi.solusi_kesepakatan || "",
+    });
+  };
 
   // ── PDF GENERATOR (Print-to-PDF via browser print) ──────────────────────────
   const handleDownloadPDF = () => {
@@ -833,17 +893,129 @@ export default function MasterDataSiswaDetail() {
                       <p className="text-emerald-700 whitespace-pre-wrap">{sesi.solusi_kesepakatan || "—"}</p>
                     </div>
                   </div>
-                  <div className="flex flex-wrap justify-between gap-2 pt-2 border-t border-slate-100 text-xs">
+                  <div className="flex flex-wrap justify-between items-center gap-2 pt-2 border-t border-slate-100 text-xs">
                     <span className="text-slate-500">Konselor: <b className="text-slate-700">{sesi.pegawai?.nama || "Guru BK / Wali Kelas"}</b></span>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2">
                       <span className="px-2 py-0.5 rounded-md font-bold text-[10px] bg-slate-100 text-slate-600">{sesi.sifat_rahasia}</span>
-                      <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${sesi.status_follow_up === "Selesai" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>{sesi.status_follow_up}</span>
+                      <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${
+                        sesi.status_follow_up === "Selesai"
+                          ? "bg-emerald-100 text-emerald-800"
+                          : sesi.status_follow_up === "Dirujuk ke Pihak Luar"
+                          ? "bg-purple-100 text-purple-800"
+                          : "bg-blue-100 text-[#1D4ED8]"
+                      }`}>
+                        {sesi.status_follow_up}
+                      </span>
+                      <button
+                        onClick={() => openFollowUpModal(sesi)}
+                        className="flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-[#162E6E] text-slate-700 hover:text-white rounded-lg text-[11px] font-bold transition-all cursor-pointer"
+                      >
+                        <Edit3 className="w-3 h-3" />
+                        Follow Up
+                      </button>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── MODAL FOLLOW-UP SESI KONSELING ─────────────────────────── */}
+      {followUpModalData.isOpen && followUpModalData.sesi && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="border-b pb-3">
+              <h3 className="text-base font-bold text-slate-800">Follow-Up Sesi Konsultasi</h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Topik: <strong className="text-slate-700">{followUpModalData.sesi.topik_konseling}</strong>
+              </p>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1.5">Pilih Status Perkembangan Kasus *</label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {[
+                    { value: "Dalam Pemantauan", label: "Dalam Pemantauan", desc: "Masih observasi", color: "border-blue-300 text-blue-800 bg-blue-50/50" },
+                    { value: "Selesai", label: "Selesai", desc: "Kasus tuntas", color: "border-emerald-300 text-emerald-800 bg-emerald-50/50" },
+                    { value: "Dirujuk ke Pihak Luar", label: "Dirujuk ke Pihak Luar", desc: "Dilempar ke pihak luar", color: "border-purple-300 text-purple-800 bg-purple-50/50" },
+                  ].map((opt) => {
+                    const isSelected = followUpModalData.status_follow_up === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setFollowUpModalData({ ...followUpModalData, status_follow_up: opt.value })}
+                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                          isSelected
+                            ? `${opt.color} ring-2 ring-blue-500 shadow-sm font-bold`
+                            : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        <span className="font-bold text-xs">{opt.label}</span>
+                        <span className="text-[10px] text-slate-400 mt-1">{opt.desc}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">
+                  Catatan Follow-Up / Keterangan Pihak Luar *
+                </label>
+                <textarea
+                  rows={4}
+                  placeholder={
+                    followUpModalData.status_follow_up === "Dirujuk ke Pihak Luar"
+                      ? "Jelaskan alasan dan pihak luar rujukan (Dokter, Psikolog, Orang Tua Khusus, dll)..."
+                      : followUpModalData.status_follow_up === "Selesai"
+                      ? "Tuliskan ringkasan evaluasi akhir bahwa masalah telah tuntas terselesaikan..."
+                      : "Tuliskan catatan perkembangan dan jadwal pemantauan lanjutan bersama santri..."
+                  }
+                  value={followUpModalData.catatan_tindak_lanjut}
+                  onChange={(e) => setFollowUpModalData({ ...followUpModalData, catatan_tindak_lanjut: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#162E6E]"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Solusi & Kesepakatan Tambahan (Opsional)</label>
+                <textarea
+                  rows={2}
+                  placeholder="Tambahkan kesepakatan baru jika ada..."
+                  value={followUpModalData.solusi_kesepakatan}
+                  onChange={(e) => setFollowUpModalData({ ...followUpModalData, solusi_kesepakatan: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t">
+              <button
+                onClick={() => setFollowUpModalData({ ...followUpModalData, isOpen: false })}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                onClick={() => {
+                  updateFollowUpMutation.mutate({
+                    konseling_id: followUpModalData.sesi.konseling_id,
+                    status_follow_up: followUpModalData.status_follow_up,
+                    catatan_tindak_lanjut: followUpModalData.catatan_tindak_lanjut,
+                    solusi_kesepakatan: followUpModalData.solusi_kesepakatan,
+                  });
+                }}
+                disabled={updateFollowUpMutation.isPending}
+                className="px-4 py-2 bg-[#162E6E] hover:bg-[#122456] text-white text-xs font-bold rounded-xl cursor-pointer shadow-sm"
+              >
+                {updateFollowUpMutation.isPending ? "Menyimpan..." : "Simpan Follow Up"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -888,13 +1060,13 @@ export default function MasterDataSiswaDetail() {
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Status Follow-up</label>
                   <select value={konselingForm.status_follow_up} onChange={(e) => setKonselingForm({ ...konselingForm, status_follow_up: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold">
-                    {["Dalam Pemantauan", "Perlu Sesi Lanjutan", "Selesai", "Dirujuk ke Pihak Luar"].map((s) => <option key={s}>{s}</option>)}
+                    {["Dalam Pemantauan", "Selesai", "Dirujuk ke Pihak Luar"].map((s) => <option key={s}>{s}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Sifat Kerahasiaan</label>
                   <select value={konselingForm.sifat_rahasia} onChange={(e) => setKonselingForm({ ...konselingForm, sifat_rahasia: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold">
-                    {["Internal Guru/Wali Kelas", "Sangat Rahasia (Hanya BK)", "Boleh Diinfokan ke Ortu", "Umum"].map((s) => <option key={s}>{s}</option>)}
+                    {["Internal Guru/Wali Kelas", "Sangat Rahasia", "Terbuka"].map((s) => <option key={s}>{s}</option>)}
                   </select>
                 </div>
               </div>
