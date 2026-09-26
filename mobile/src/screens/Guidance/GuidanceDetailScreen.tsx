@@ -12,6 +12,9 @@ import {
   StatusBar,
   Modal,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
 } from "react-native";
 import {
   ChevronLeft,
@@ -957,16 +960,37 @@ export const GuidanceDetailScreen = () => {
         animationType="slide"
         onRequestClose={() => setAddModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.modalOverlay}
+        >
+          <TouchableOpacity
+            style={styles.modalDismissArea}
+            activeOpacity={1}
+            onPress={() => {
+              Keyboard.dismiss();
+              setAddModalVisible(false);
+            }}
+          />
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Catat Sesi Konsultasi Baru</Text>
-              <TouchableOpacity onPress={() => setAddModalVisible(false)}>
+              <TouchableOpacity
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setAddModalVisible(false);
+                }}
+              >
                 <X size={18} color="#64748B" />
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalBody}>
+            <ScrollView
+              style={styles.modalBody}
+              contentContainerStyle={{ paddingBottom: 16 }}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
               <Text style={styles.inputLabel}>Kategori Masalah</Text>
               <View style={styles.pillSelectorRow}>
                 {["Akademik", "Karakter", "Sosial", "Keluarga", "Karier"].map((k) => (
@@ -1023,7 +1047,13 @@ export const GuidanceDetailScreen = () => {
             </ScrollView>
 
             <View style={styles.modalFooter}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setAddModalVisible(false)}>
+              <TouchableOpacity
+                style={styles.cancelBtn}
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setAddModalVisible(false);
+                }}
+              >
                 <Text style={styles.cancelBtnText}>Batal</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -1039,7 +1069,7 @@ export const GuidanceDetailScreen = () => {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Modal Follow Up */}
@@ -1049,16 +1079,37 @@ export const GuidanceDetailScreen = () => {
         animationType="slide"
         onRequestClose={() => setFollowUpModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.modalOverlay}
+        >
+          <TouchableOpacity
+            style={styles.modalDismissArea}
+            activeOpacity={1}
+            onPress={() => {
+              Keyboard.dismiss();
+              setFollowUpModalVisible(false);
+            }}
+          />
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Follow-Up Sesi Konsultasi</Text>
-              <TouchableOpacity onPress={() => setFollowUpModalVisible(false)}>
+              <TouchableOpacity
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setFollowUpModalVisible(false);
+                }}
+              >
                 <X size={18} color="#64748B" />
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalBody}>
+            <ScrollView
+              style={styles.modalBody}
+              contentContainerStyle={{ paddingBottom: 16 }}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
               <Text style={styles.inputLabel}>Status Perkembangan Kasus</Text>
               <View style={styles.statusRowContainer}>
                 {["Dalam Pemantauan", "Selesai", "Dirujuk ke Pihak Luar"].map((st) => (
@@ -1099,7 +1150,10 @@ export const GuidanceDetailScreen = () => {
             <View style={styles.modalFooter}>
               <TouchableOpacity
                 style={styles.cancelBtn}
-                onPress={() => setFollowUpModalVisible(false)}
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setFollowUpModalVisible(false);
+                }}
               >
                 <Text style={styles.cancelBtnText}>Batal</Text>
               </TouchableOpacity>
@@ -1116,7 +1170,7 @@ export const GuidanceDetailScreen = () => {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -1566,12 +1620,17 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.6)",
     justifyContent: "flex-end",
   },
+  modalDismissArea: {
+    flex: 1,
+  },
   modalCard: {
     backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    padding: 20,
-    maxHeight: "80%",
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: Platform.OS === "ios" ? 30 : 18,
+    maxHeight: "85%",
   },
   modalHeader: {
     flexDirection: "row",
@@ -1580,7 +1639,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#EEF2F6",
     paddingBottom: 12,
-    marginBottom: 14,
+    marginBottom: 12,
   },
   modalTitle: {
     fontSize: 15,
@@ -1588,7 +1647,8 @@ const styles = StyleSheet.create({
     color: "#0F172A",
   },
   modalBody: {
-    marginBottom: 14,
+    maxHeight: 320,
+    marginBottom: 12,
   },
   statusRowContainer: {
     flexDirection: "row",
