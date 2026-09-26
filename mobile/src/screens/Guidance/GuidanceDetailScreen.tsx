@@ -30,9 +30,12 @@ import {
   Calendar,
   X,
   User,
+  Save,
+  ShieldCheck,
+  Check,
 } from "lucide-react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
-import { guidanceService, KonselingSesi } from "../../api/guidanceService";
+import { guidanceService, KonselingSesi, GuidanceDetail } from "../../api/guidanceService";
 
 export const GuidanceDetailScreen = () => {
   const route = useRoute<any>();
@@ -40,10 +43,66 @@ export const GuidanceDetailScreen = () => {
   const { siswaId, namaSiswa } = route.params || {};
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [siswaDetail, setSiswaDetail] = useState<any>(null);
 
   // Tab: 'profil' (360° Data & Fundamental) atau 'konseling'
   const [activeTab, setActiveTab] = useState<"profil" | "konseling">("profil");
+
+  // Form State Editable Guidance Detail
+  const [formData, setFormData] = useState<GuidanceDetail>({
+    jarak_rumah_sekolah: "",
+    transportasi: "Motor",
+    kepemilikan_rumah: "Milik Sendiri",
+    daya_listrik: "1.300 VA",
+    sumber_air: "Sumur Bor",
+    akses_internet: "Wifi",
+    perangkat_belajar: "Ada",
+
+    no_hp_siswa: "",
+    email_siswa: "",
+    instagram: "",
+    facebook: "",
+    tiktok: "",
+    twitter_x: "",
+
+    merokok: "Tidak",
+    riwayat_penyakit: "",
+    riwayat_alergi: "",
+    riwayat_operasi: "",
+    gangguan_kesehatan: "",
+    dalam_masa_pengobatan: "",
+    asuransi_kesehatan: "BPJS Kesehatan",
+    kontak_darurat_nama: "",
+    kontak_darurat_hubungan: "",
+    kontak_darurat_hp: "",
+
+    internship_nama: "",
+    internship_alamat: "",
+    internship_bidang: "",
+    internship_divisi: "",
+    internship_kompetensi: "",
+
+    lanjut_kuliah: "Ya",
+    target_pendidikan: "S1 (Sarjana)",
+    prodi_pilihan: "",
+    universitas_tujuan: "",
+    persiapan: "",
+    sumber_biaya: "Orang Tua / Mandiri",
+    jalur_masuk: "SNBT / UTBK",
+    dukungan_diharapkan: "",
+
+    skor_wudhu: 3,
+    skor_doa_sholat: 3,
+    skor_praktik_sholat: 3,
+    skor_jamaah_masjid: 3,
+    skor_alquran: 3,
+    skor_hafalan_juz30: 3,
+    skor_disiplin: 3,
+    skor_rapi: 3,
+    skor_adab: 3,
+    catatan_fundamental: "",
+  });
 
   // Modal Tambah Sesi Konsultasi
   const [addModalVisible, setAddModalVisible] = useState(false);
@@ -67,6 +126,15 @@ export const GuidanceDetailScreen = () => {
       setIsLoading(true);
       const data = await guidanceService.getSiswaDetail(siswaId);
       setSiswaDetail(data);
+      if (data?.guidance_detail) {
+        setFormData((prev) => ({
+          ...prev,
+          ...data.guidance_detail,
+          internship_nama: data.guidance_detail.internship_nama || data.guidance_detail.internship_instansi || "",
+          prodi_pilihan: data.guidance_detail.prodi_pilihan || data.guidance_detail.prodi_tujuan || "",
+          persiapan: data.guidance_detail.persiapan || data.guidance_detail.persiapan_kuliah || "",
+        }));
+      }
     } catch (err: any) {
       console.warn("Error fetching siswa detail:", err);
       Alert.alert("Gagal Memuat", "Tidak dapat mengambil data bimbingan santri.");
@@ -78,6 +146,24 @@ export const GuidanceDetailScreen = () => {
   useEffect(() => {
     fetchDetail();
   }, [fetchDetail]);
+
+  const updateField = (key: keyof GuidanceDetail, value: any) => {
+    setFormData((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleSaveProfile = async () => {
+    if (!siswaId) return;
+    try {
+      setIsSaving(true);
+      await guidanceService.saveSiswaDetail(siswaId, formData);
+      Alert.alert("Berhasil", "Pembaruan profil 360° & aspek fundamental santri berhasil disimpan!");
+      fetchDetail();
+    } catch (err: any) {
+      Alert.alert("Gagal Menyimpan", err.response?.data?.message || "Terjadi kesalahan saat menyimpan data santri.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleAddKonseling = async () => {
     if (!newTopik.trim() || !newKeluhan.trim()) {
@@ -133,15 +219,15 @@ export const GuidanceDetailScreen = () => {
   };
 
   const fundamentalItems = [
-    { key: "skor_wudhu", label: "Wudhu" },
-    { key: "skor_doa_sholat", label: "Do'a Sholat" },
-    { key: "skor_praktik_sholat", label: "Praktik Sholat" },
-    { key: "skor_jamaah_masjid", label: "Jama'ah Masjid" },
-    { key: "skor_alquran", label: "Tilawah / Al-Qur'an" },
-    { key: "skor_hafalan_juz30", label: "Hafalan Juz 30" },
-    { key: "skor_disiplin", label: "Disiplin Waktu" },
-    { key: "skor_rapi", label: "Kerapihan Diri" },
-    { key: "skor_adab", label: "Adab & Akhlak" },
+    { key: "skor_wudhu" as keyof GuidanceDetail, label: "1. Wudhu", desc: "Ketepatan rukun, sunnah & tertib wudhu" },
+    { key: "skor_doa_sholat" as keyof GuidanceDetail, label: "2. Do'a Sholat", desc: "Hafalan bacaan iftitah, ruku, sujud & tasyahud" },
+    { key: "skor_praktik_sholat" as keyof GuidanceDetail, label: "3. Praktik Sholat", desc: "Thuma'ninah & kekhusyukan gerakan sholat" },
+    { key: "skor_jamaah_masjid" as keyof GuidanceDetail, label: "4. Sholat Jama'ah", desc: "Kedisiplinan hadir sholat 5 waktu di masjid" },
+    { key: "skor_alquran" as keyof GuidanceDetail, label: "5. Al-Qur'an & Tilawah", desc: "Kelancaran tajwid, makhraj & tilawah harian" },
+    { key: "skor_hafalan_juz30" as keyof GuidanceDetail, label: "6. Hafalan Juz 30", desc: "Kelancaran hafalan juz amma & muroja'ah" },
+    { key: "skor_disiplin" as keyof GuidanceDetail, label: "7. Disiplin Waktu", desc: "Kepatuhan jadwal bangun, KBM & istirahat" },
+    { key: "skor_rapi" as keyof GuidanceDetail, label: "8. Kerapihan Diri", desc: "Kerapihan pakaian, lemari & kamar asrama" },
+    { key: "skor_adab" as keyof GuidanceDetail, label: "9. Adab & Akhlak", desc: "Sopan santun kepada guru, murobbi & kawan" },
   ];
 
   const skorConfig: Record<number, { label: string; color: string; bg: string }> = {
@@ -151,7 +237,6 @@ export const GuidanceDetailScreen = () => {
     4: { label: "4: Mandiri & Istiqomah", color: "#16A34A", bg: "#F0FDF4" },
   };
 
-  const g = siswaDetail?.guidance_detail || {};
   const konselingList: KonselingSesi[] = siswaDetail?.konseling_sesi || [];
 
   return (
@@ -172,9 +257,27 @@ export const GuidanceDetailScreen = () => {
             {siswaDetail?.nama || namaSiswa || "Detail Santri"}
           </Text>
           <Text style={styles.headerSubtitle}>
-            NIS: {siswaDetail?.nis || "-"} • Kelas: {siswaDetail?.kelas?.nama_kelas || "-"}
+            NIS: {siswaDetail?.nis || "-"} • Kelas: {siswaDetail?.kelas?.nama_kelas || "-"} ({siswaDetail?.kelas?.lembaga?.nama_lembaga || "-"})
           </Text>
         </View>
+
+        {activeTab === "profil" && (
+          <TouchableOpacity
+            style={styles.saveTopBtn}
+            onPress={handleSaveProfile}
+            disabled={isSaving}
+            activeOpacity={0.8}
+          >
+            {isSaving ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <Save size={15} color="#FFFFFF" />
+                <Text style={styles.saveTopBtnText}>Simpan</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Tab Switcher */}
@@ -203,149 +306,549 @@ export const GuidanceDetailScreen = () => {
       {isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#162E6E" />
-          <Text style={styles.loadingText}>Memuat detail santri...</Text>
+          <Text style={styles.loadingText}>Memuat data lengkap santri...</Text>
         </View>
       ) : activeTab === "profil" ? (
-        <ScrollView style={styles.body} contentContainerStyle={{ paddingBottom: 40 }}>
-          {/* 1. Pemetaan 9 Aspek Fundamental */}
+        <ScrollView style={styles.body} contentContainerStyle={{ paddingBottom: 60 }}>
+          {/* ═══════════════════════════════════════════════════════
+              SEKSI A: PEMETAAN 9 ASPEK FUNDAMENTAL (EDITABLE)
+          ════════════════════════════════════════════════════════ */}
           <View style={styles.sectionCard}>
             <View style={styles.sectionHeader}>
-              <Sparkles size={16} color="#F59E0B" />
-              <Text style={styles.sectionTitle}>Pemetaan 9 Aspek Fundamental</Text>
+              <View style={[styles.sectionIconCircle, { backgroundColor: "#FEF3C7" }]}>
+                <Sparkles size={16} color="#F59E0B" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.sectionTitle}>A. Pemetaan 9 Aspek Fundamental</Text>
+                <Text style={styles.sectionSubtitle}>Pilih skor evaluasi pembiasaan santri (Skala 1 - 4)</Text>
+              </View>
             </View>
+
             <View style={styles.fundamentalGrid}>
               {fundamentalItems.map((item) => {
-                const score = g[item.key] || 1;
-                const conf = skorConfig[score] || skorConfig[1];
+                const currentScore = Number(formData[item.key]) || 1;
+                const conf = skorConfig[currentScore] || skorConfig[1];
                 return (
-                  <View key={item.key} style={styles.fundamentalItem}>
-                    <Text style={styles.fundamentalItemLabel}>{item.label}</Text>
-                    <View style={[styles.fundamentalScoreBadge, { backgroundColor: conf.bg }]}>
-                      <Text style={[styles.fundamentalScoreText, { color: conf.color }]}>
-                        {conf.label}
-                      </Text>
+                  <View key={item.key} style={styles.fundamentalEditCard}>
+                    <View style={styles.fundamentalTopRow}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.fundamentalItemLabel}>{item.label}</Text>
+                        <Text style={styles.fundamentalItemDesc}>{item.desc}</Text>
+                      </View>
+                      <View style={[styles.fundamentalScoreBadge, { backgroundColor: conf.bg }]}>
+                        <Text style={[styles.fundamentalScoreText, { color: conf.color }]}>
+                          {conf.label}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Button Selector 1 - 4 */}
+                    <View style={styles.scoreSelectorRow}>
+                      {[1, 2, 3, 4].map((num) => {
+                        const isSelected = currentScore === num;
+                        const btnConf = skorConfig[num];
+                        return (
+                          <TouchableOpacity
+                            key={num}
+                            style={[
+                              styles.scoreBtn,
+                              isSelected && {
+                                backgroundColor: btnConf.bg,
+                                borderColor: btnConf.color,
+                                borderWidth: 2,
+                              },
+                            ]}
+                            onPress={() => updateField(item.key, num)}
+                            activeOpacity={0.8}
+                          >
+                            <Text
+                              style={[
+                                styles.scoreBtnText,
+                                isSelected && { color: btnConf.color, fontWeight: "900" },
+                              ]}
+                            >
+                              {num}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
                     </View>
                   </View>
                 );
               })}
             </View>
 
-            {g.catatan_fundamental && (
-              <View style={styles.catatanBox}>
-                <Text style={styles.catatanLabel}>Catatan Bimbingan Fundamental:</Text>
-                <Text style={styles.catatanText}>{g.catatan_fundamental}</Text>
+            <View style={{ marginTop: 14 }}>
+              <Text style={styles.inputLabel}>Catatan Bimbingan Fundamental Murobbi:</Text>
+              <TextInput
+                style={styles.textArea}
+                multiline
+                numberOfLines={3}
+                placeholder="Tuliskan catatan perkembangan pembiasaan ibadah / adab santri..."
+                placeholderTextColor="#94A3B8"
+                value={formData.catatan_fundamental || ""}
+                onChangeText={(val) => updateField("catatan_fundamental", val)}
+              />
+            </View>
+          </View>
+
+          {/* ═══════════════════════════════════════════════════════
+              SEKSI B: TEMPAT TINGGAL & FASILITAS (EDITABLE)
+          ════════════════════════════════════════════════════════ */}
+          <View style={styles.sectionCard}>
+            <View style={styles.sectionHeader}>
+              <View style={[styles.sectionIconCircle, { backgroundColor: "#EFF6FF" }]}>
+                <Home size={16} color="#162E6E" />
               </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.sectionTitle}>B. Tempat Tinggal & Fasilitas Santri</Text>
+                <Text style={styles.sectionSubtitle}>Mobilitas, sarana belajar & kondisi rumah</Text>
+              </View>
+            </View>
+
+            <Text style={styles.inputLabel}>Jarak Rumah ke Sekolah</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Contoh: 5 km / 500 meter"
+              placeholderTextColor="#94A3B8"
+              value={formData.jarak_rumah_sekolah || ""}
+              onChangeText={(val) => updateField("jarak_rumah_sekolah", val)}
+            />
+
+            <Text style={[styles.inputLabel, { marginTop: 10 }]}>Moda Transportasi</Text>
+            <View style={styles.pillSelectorRow}>
+              {["Motor", "Mobil", "Jalan Kaki", "Antar Jemput", "Lainnya"].map((opt) => (
+                <TouchableOpacity
+                  key={opt}
+                  style={[
+                    styles.pillOption,
+                    formData.transportasi === opt && styles.pillOptionActive,
+                  ]}
+                  onPress={() => updateField("transportasi", opt)}
+                >
+                  <Text
+                    style={[
+                      styles.pillOptionText,
+                      formData.transportasi === opt && styles.pillOptionTextActive,
+                    ]}
+                  >
+                    {opt}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={[styles.inputLabel, { marginTop: 10 }]}>Kepemilikan Rumah</Text>
+            <View style={styles.pillSelectorRow}>
+              {["Milik Sendiri", "Kontrak"].map((opt) => (
+                <TouchableOpacity
+                  key={opt}
+                  style={[
+                    styles.pillOption,
+                    formData.kepemilikan_rumah === opt && styles.pillOptionActive,
+                  ]}
+                  onPress={() => updateField("kepemilikan_rumah", opt)}
+                >
+                  <Text
+                    style={[
+                      styles.pillOptionText,
+                      formData.kepemilikan_rumah === opt && styles.pillOptionTextActive,
+                    ]}
+                  >
+                    {opt}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={[styles.inputLabel, { marginTop: 10 }]}>Daya Listrik Rumah</Text>
+            <View style={styles.pillSelectorRow}>
+              {["450 VA", "900 VA", "1.300 VA", "2.200 VA", "3.500 VA+"].map((opt) => (
+                <TouchableOpacity
+                  key={opt}
+                  style={[
+                    styles.pillOption,
+                    formData.daya_listrik === opt && styles.pillOptionActive,
+                  ]}
+                  onPress={() => updateField("daya_listrik", opt)}
+                >
+                  <Text
+                    style={[
+                      styles.pillOptionText,
+                      formData.daya_listrik === opt && styles.pillOptionTextActive,
+                    ]}
+                  >
+                    {opt}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={[styles.inputLabel, { marginTop: 10 }]}>Sumber Air Minum</Text>
+            <View style={styles.pillSelectorRow}>
+              {["Sumur Bor", "PDAM / PAM"].map((opt) => (
+                <TouchableOpacity
+                  key={opt}
+                  style={[
+                    styles.pillOption,
+                    formData.sumber_air === opt && styles.pillOptionActive,
+                  ]}
+                  onPress={() => updateField("sumber_air", opt)}
+                >
+                  <Text
+                    style={[
+                      styles.pillOptionText,
+                      formData.sumber_air === opt && styles.pillOptionTextActive,
+                    ]}
+                  >
+                    {opt}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={[styles.inputLabel, { marginTop: 10 }]}>Akses Internet</Text>
+            <View style={styles.pillSelectorRow}>
+              {["Wifi", "Paket Data", "Paket Data + Wifi", "Tidak Ada"].map((opt) => (
+                <TouchableOpacity
+                  key={opt}
+                  style={[
+                    styles.pillOption,
+                    formData.akses_internet === opt && styles.pillOptionActive,
+                  ]}
+                  onPress={() => updateField("akses_internet", opt)}
+                >
+                  <Text
+                    style={[
+                      styles.pillOptionText,
+                      formData.akses_internet === opt && styles.pillOptionTextActive,
+                    ]}
+                  >
+                    {opt}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* ═══════════════════════════════════════════════════════
+              SEKSI C: DATA SOSIAL & DIGITAL (EDITABLE)
+          ════════════════════════════════════════════════════════ */}
+          <View style={styles.sectionCard}>
+            <View style={styles.sectionHeader}>
+              <View style={[styles.sectionIconCircle, { backgroundColor: "#FAF5FF" }]}>
+                <Share2 size={16} color="#7E22CE" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.sectionTitle}>C. Data Sosial & Kontak Digital</Text>
+                <Text style={styles.sectionSubtitle}>Nomor kontak pribadi & akun media sosial</Text>
+              </View>
+            </View>
+
+            <Text style={styles.inputLabel}>No HP / WhatsApp Santri</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Contoh: 08123456789"
+              placeholderTextColor="#94A3B8"
+              keyboardType="phone-pad"
+              value={formData.no_hp_siswa || ""}
+              onChangeText={(val) => updateField("no_hp_siswa", val)}
+            />
+
+            <Text style={[styles.inputLabel, { marginTop: 10 }]}>Email Santri</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Contoh: santri@gmail.com"
+              placeholderTextColor="#94A3B8"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={formData.email_siswa || ""}
+              onChangeText={(val) => updateField("email_siswa", val)}
+            />
+
+            <Text style={[styles.inputLabel, { marginTop: 10 }]}>Instagram</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Contoh: @username"
+              placeholderTextColor="#94A3B8"
+              autoCapitalize="none"
+              value={formData.instagram || ""}
+              onChangeText={(val) => updateField("instagram", val)}
+            />
+
+            <Text style={[styles.inputLabel, { marginTop: 10 }]}>TikTok</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Contoh: @username_tiktok"
+              placeholderTextColor="#94A3B8"
+              autoCapitalize="none"
+              value={formData.tiktok || ""}
+              onChangeText={(val) => updateField("tiktok", val)}
+            />
+
+            <Text style={[styles.inputLabel, { marginTop: 10 }]}>Facebook</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Nama akun Facebook"
+              placeholderTextColor="#94A3B8"
+              value={formData.facebook || ""}
+              onChangeText={(val) => updateField("facebook", val)}
+            />
+          </View>
+
+          {/* ═══════════════════════════════════════════════════════
+              SEKSI D: RIWAYAT KESEHATAN & DARURAT (EDITABLE)
+          ════════════════════════════════════════════════════════ */}
+          <View style={styles.sectionCard}>
+            <View style={styles.sectionHeader}>
+              <View style={[styles.sectionIconCircle, { backgroundColor: "#FEF2F2" }]}>
+                <HeartPulse size={16} color="#DC2626" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.sectionTitle}>D. Riwayat Kesehatan & Kontak Darurat</Text>
+                <Text style={styles.sectionSubtitle}>Kesiapsiagaan penanganan medis asrama</Text>
+              </View>
+            </View>
+
+            <Text style={styles.inputLabel}>Perokok</Text>
+            <View style={styles.pillSelectorRow}>
+              {["Tidak", "Ya"].map((opt) => (
+                <TouchableOpacity
+                  key={opt}
+                  style={[
+                    styles.pillOption,
+                    formData.merokok === opt && styles.pillOptionActive,
+                  ]}
+                  onPress={() => updateField("merokok", opt)}
+                >
+                  <Text
+                    style={[
+                      styles.pillOptionText,
+                      formData.merokok === opt && styles.pillOptionTextActive,
+                    ]}
+                  >
+                    {opt}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={[styles.inputLabel, { marginTop: 10 }]}>Riwayat Penyakit</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Contoh: Asma, Maag kronis (kosongkan bila tidak ada)"
+              placeholderTextColor="#94A3B8"
+              value={formData.riwayat_penyakit || ""}
+              onChangeText={(val) => updateField("riwayat_penyakit", val)}
+            />
+
+            <Text style={[styles.inputLabel, { marginTop: 10 }]}>Riwayat Alergi</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Contoh: Alergi udang, debu, obat tertentu"
+              placeholderTextColor="#94A3B8"
+              value={formData.riwayat_alergi || ""}
+              onChangeText={(val) => updateField("riwayat_alergi", val)}
+            />
+
+            <Text style={[styles.inputLabel, { marginTop: 10 }]}>Asuransi Kesehatan</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Contoh: BPJS Kesehatan / Asuransi Swasta"
+              placeholderTextColor="#94A3B8"
+              value={formData.asuransi_kesehatan || ""}
+              onChangeText={(val) => updateField("asuransi_kesehatan", val)}
+            />
+
+            {/* Kontak Darurat */}
+            <View style={styles.daruratEditCard}>
+              <Text style={styles.daruratCardTitle}>Kontak Darurat Kesehatan:</Text>
+
+              <Text style={[styles.inputLabel, { marginTop: 6 }]}>Nama Kontak Darurat</Text>
+              <TextInput
+                style={styles.textInputWhite}
+                placeholder="Nama Lengkap"
+                placeholderTextColor="#94A3B8"
+                value={formData.kontak_darurat_nama || ""}
+                onChangeText={(val) => updateField("kontak_darurat_nama", val)}
+              />
+
+              <Text style={[styles.inputLabel, { marginTop: 8 }]}>Hubungan Keluarga</Text>
+              <TextInput
+                style={styles.textInputWhite}
+                placeholder="Contoh: Paman / Kakak Kandung / Bibi"
+                placeholderTextColor="#94A3B8"
+                value={formData.kontak_darurat_hubungan || ""}
+                onChangeText={(val) => updateField("kontak_darurat_hubungan", val)}
+              />
+
+              <Text style={[styles.inputLabel, { marginTop: 8 }]}>Nomor HP Darurat</Text>
+              <TextInput
+                style={styles.textInputWhite}
+                placeholder="Contoh: 081298765432"
+                placeholderTextColor="#94A3B8"
+                keyboardType="phone-pad"
+                value={formData.kontak_darurat_hp || ""}
+                onChangeText={(val) => updateField("kontak_darurat_hp", val)}
+              />
+            </View>
+          </View>
+
+          {/* ═══════════════════════════════════════════════════════
+              SEKSI E: INTERNSHIP & PRAKTIK DAKWAH (EDITABLE)
+          ════════════════════════════════════════════════════════ */}
+          <View style={styles.sectionCard}>
+            <View style={styles.sectionHeader}>
+              <View style={[styles.sectionIconCircle, { backgroundColor: "#FEF3C7" }]}>
+                <Briefcase size={16} color="#D97706" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.sectionTitle}>E. Rencana Internship & Praktik Dakwah</Text>
+                <Text style={styles.sectionSubtitle}>Proyeksi magang, dakwah & keahlian santri</Text>
+              </View>
+            </View>
+
+            <Text style={styles.inputLabel}>Nama Instansi Tujuan</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Contoh: RSI Gresik / Lazisnu / Bank Syariah"
+              placeholderTextColor="#94A3B8"
+              value={formData.internship_nama || ""}
+              onChangeText={(val) => updateField("internship_nama", val)}
+            />
+
+            <Text style={[styles.inputLabel, { marginTop: 10 }]}>Alamat / Kota Instansi</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Kota / Alamat instansi"
+              placeholderTextColor="#94A3B8"
+              value={formData.internship_alamat || ""}
+              onChangeText={(val) => updateField("internship_alamat", val)}
+            />
+
+            <Text style={[styles.inputLabel, { marginTop: 10 }]}>Bidang Instansi</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Contoh: Pendidikan / Kesehatan / Keuangan"
+              placeholderTextColor="#94A3B8"
+              value={formData.internship_bidang || ""}
+              onChangeText={(val) => updateField("internship_bidang", val)}
+            />
+
+            <Text style={[styles.inputLabel, { marginTop: 10 }]}>Kompetensi yang Ingin Dikembangkan</Text>
+            <TextInput
+              style={styles.textArea}
+              multiline
+              numberOfLines={2}
+              placeholder="Uraikan keahlian yang ingin dipelajari..."
+              placeholderTextColor="#94A3B8"
+              value={formData.internship_kompetensi || ""}
+              onChangeText={(val) => updateField("internship_kompetensi", val)}
+            />
+          </View>
+
+          {/* ═══════════════════════════════════════════════════════
+              SEKSI F: PENDIDIKAN LANJUTAN & KULIAH (EDITABLE)
+          ════════════════════════════════════════════════════════ */}
+          <View style={styles.sectionCard}>
+            <View style={styles.sectionHeader}>
+              <View style={[styles.sectionIconCircle, { backgroundColor: "#ECFDF5" }]}>
+                <GraduationCap size={16} color="#059669" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.sectionTitle}>F. Rencana Pendidikan Lanjutan (Kuliah)</Text>
+                <Text style={styles.sectionSubtitle}>Arah studi perguruan tinggi & karier santri</Text>
+              </View>
+            </View>
+
+            <Text style={styles.inputLabel}>Rencana Lanjut Kuliah</Text>
+            <View style={styles.pillSelectorRow}>
+              {["Ya", "Tidak"].map((opt) => (
+                <TouchableOpacity
+                  key={opt}
+                  style={[
+                    styles.pillOption,
+                    formData.lanjut_kuliah === opt && styles.pillOptionActive,
+                  ]}
+                  onPress={() => updateField("lanjut_kuliah", opt)}
+                >
+                  <Text
+                    style={[
+                      styles.pillOptionText,
+                      formData.lanjut_kuliah === opt && styles.pillOptionTextActive,
+                    ]}
+                  >
+                    {opt}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={[styles.inputLabel, { marginTop: 10 }]}>Target Jenjang Pendidikan</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Contoh: S1 / D4 / Ma'had Aly / Al-Azhar"
+              placeholderTextColor="#94A3B8"
+              value={formData.target_pendidikan || ""}
+              onChangeText={(val) => updateField("target_pendidikan", val)}
+            />
+
+            <Text style={[styles.inputLabel, { marginTop: 10 }]}>Program Studi Pilihan</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Contoh: Teknik Informatika / Kedokteran / Tafsir"
+              placeholderTextColor="#94A3B8"
+              value={formData.prodi_pilihan || ""}
+              onChangeText={(val) => updateField("prodi_pilihan", val)}
+            />
+
+            <Text style={[styles.inputLabel, { marginTop: 10 }]}>Universitas / Kampus Tujuan</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Contoh: ITS Surabaya / UIN Malang / UI"
+              placeholderTextColor="#94A3B8"
+              value={formData.universitas_tujuan || ""}
+              onChangeText={(val) => updateField("universitas_tujuan", val)}
+            />
+
+            <Text style={[styles.inputLabel, { marginTop: 10 }]}>Persiapan yang Dilakukan</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Contoh: Bimbel UTBK, Kursus Bahasa Arab"
+              placeholderTextColor="#94A3B8"
+              value={formData.persiapan || ""}
+              onChangeText={(val) => updateField("persiapan", val)}
+            />
+
+            <Text style={[styles.inputLabel, { marginTop: 10 }]}>Jalur Masuk</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Contoh: SNBP / SNBT / Beasiswa PBSB / Mandiri"
+              placeholderTextColor="#94A3B8"
+              value={formData.jalur_masuk || ""}
+              onChangeText={(val) => updateField("jalur_masuk", val)}
+            />
+          </View>
+
+          {/* ── TOMBOL SIMPAN DI BAGIAN PALING BAWAH ───────────────── */}
+          <TouchableOpacity
+            style={styles.saveBottomBtn}
+            onPress={handleSaveProfile}
+            disabled={isSaving}
+            activeOpacity={0.85}
+          >
+            {isSaving ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <Save size={18} color="#FFFFFF" />
+                <Text style={styles.saveBottomBtnText}>Simpan Perubahan Data Santri</Text>
+              </>
             )}
-          </View>
-
-          {/* 2. Tempat Tinggal & Fasilitas */}
-          <View style={styles.sectionCard}>
-            <View style={styles.sectionHeader}>
-              <Home size={16} color="#162E6E" />
-              <Text style={styles.sectionTitle}>Tempat Tinggal & Fasilitas</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Jarak Rumah-Sekolah</Text>
-              <Text style={styles.infoValue}>{g.jarak_rumah_sekolah || "-"}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Transportasi</Text>
-              <Text style={styles.infoValue}>{g.transportasi || "-"}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Kepemilikan Rumah</Text>
-              <Text style={styles.infoValue}>{g.kepemilikan_rumah || "-"}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Daya Listrik</Text>
-              <Text style={styles.infoValue}>{g.daya_listrik || "-"}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Akses Internet</Text>
-              <Text style={styles.infoValue}>{g.akses_internet || "-"}</Text>
-            </View>
-          </View>
-
-          {/* 3. Data Sosial & Kontak Digital */}
-          <View style={styles.sectionCard}>
-            <View style={styles.sectionHeader}>
-              <Share2 size={16} color="#7E22CE" />
-              <Text style={styles.sectionTitle}>Data Sosial & Kontak Digital</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>No HP Siswa</Text>
-              <Text style={styles.infoValue}>{g.no_hp_siswa || "-"}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Email Siswa</Text>
-              <Text style={styles.infoValue}>{g.email_siswa || "-"}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Instagram</Text>
-              <Text style={styles.infoValue}>{g.instagram || "-"}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>TikTok</Text>
-              <Text style={styles.infoValue}>{g.tiktok || "-"}</Text>
-            </View>
-          </View>
-
-          {/* 4. Riwayat Kesehatan & Kontak Darurat */}
-          <View style={styles.sectionCard}>
-            <View style={styles.sectionHeader}>
-              <HeartPulse size={16} color="#DC2626" />
-              <Text style={styles.sectionTitle}>Riwayat Kesehatan & Darurat</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Merokok</Text>
-              <Text style={styles.infoValue}>{g.merokok || "Tidak"}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Riwayat Penyakit</Text>
-              <Text style={styles.infoValue}>{g.riwayat_penyakit || "-"}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Riwayat Alergi</Text>
-              <Text style={styles.infoValue}>{g.riwayat_alergi || "-"}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Asuransi Kesehatan</Text>
-              <Text style={styles.infoValue}>{g.asuransi_kesehatan || "-"}</Text>
-            </View>
-            <View style={styles.daruratBox}>
-              <Text style={styles.daruratLabel}>Kontak Darurat:</Text>
-              <Text style={styles.daruratText}>
-                {g.kontak_darurat_nama ? `${g.kontak_darurat_nama} (${g.kontak_darurat_hubungan || "Keluarga"}) - ${g.kontak_darurat_hp || "-"}` : "Belum diisi"}
-              </Text>
-            </View>
-          </View>
-
-          {/* 5. Internship & Pendidikan Lanjutan */}
-          <View style={styles.sectionCard}>
-            <View style={styles.sectionHeader}>
-              <GraduationCap size={16} color="#059669" />
-              <Text style={styles.sectionTitle}>Pendidikan Lanjutan & Karier</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Lanjut Kuliah</Text>
-              <Text style={styles.infoValue}>{g.lanjut_kuliah || "-"}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Target Pendidikan</Text>
-              <Text style={styles.infoValue}>{g.target_pendidikan || "-"}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Program Studi</Text>
-              <Text style={styles.infoValue}>{g.prodi_pilihan || "-"}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Universitas Tujuan</Text>
-              <Text style={styles.infoValue}>{g.universitas_tujuan || "-"}</Text>
-            </View>
-          </View>
+          </TouchableOpacity>
         </ScrollView>
       ) : (
-        <ScrollView style={styles.body} contentContainerStyle={{ paddingBottom: 40 }}>
+        <ScrollView style={styles.body} contentContainerStyle={{ paddingBottom: 60 }}>
           {/* Tombol Catat Sesi Baru */}
           <TouchableOpacity
             style={styles.addKonselingBtn}
@@ -401,7 +904,35 @@ export const GuidanceDetailScreen = () => {
                 <View style={styles.konselingCardFooter}>
                   <View style={styles.statusRow}>
                     <Text style={styles.statusLabel}>Status:</Text>
-                    <Text style={styles.statusValue}>{sesi.status_follow_up}</Text>
+                    <View
+                      style={[
+                        styles.statusBadgeSmall,
+                        {
+                          backgroundColor:
+                            sesi.status_follow_up === "Selesai"
+                              ? "#DCFCE7"
+                              : sesi.status_follow_up === "Dirujuk ke Pihak Luar"
+                              ? "#F3E8FF"
+                              : "#DBEAFE",
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.statusBadgeTextSmall,
+                          {
+                            color:
+                              sesi.status_follow_up === "Selesai"
+                                ? "#15803D"
+                                : sesi.status_follow_up === "Dirujuk ke Pihak Luar"
+                                ? "#7E22CE"
+                                : "#1D4ED8",
+                          },
+                        ]}
+                      >
+                        {sesi.status_follow_up}
+                      </Text>
+                    </View>
                   </View>
 
                   <TouchableOpacity
@@ -436,7 +967,30 @@ export const GuidanceDetailScreen = () => {
             </View>
 
             <ScrollView style={styles.modalBody}>
-              <Text style={styles.inputLabel}>Topik / Judul Masalah *</Text>
+              <Text style={styles.inputLabel}>Kategori Masalah</Text>
+              <View style={styles.pillSelectorRow}>
+                {["Akademik", "Karakter", "Sosial", "Keluarga", "Karier"].map((k) => (
+                  <TouchableOpacity
+                    key={k}
+                    style={[
+                      styles.pillOption,
+                      newKategori === k && styles.pillOptionActive,
+                    ]}
+                    onPress={() => setNewKategori(k)}
+                  >
+                    <Text
+                      style={[
+                        styles.pillOptionText,
+                        newKategori === k && styles.pillOptionTextActive,
+                      ]}
+                    >
+                      {k}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={[styles.inputLabel, { marginTop: 10 }]}>Topik / Judul Masalah *</Text>
               <TextInput
                 style={styles.textInput}
                 placeholder="Contoh: Konsultasi Akademik & Disiplin"
@@ -450,7 +1004,7 @@ export const GuidanceDetailScreen = () => {
                 style={styles.textArea}
                 multiline
                 numberOfLines={3}
-                placeholder="Ceritakan pokok persoalan..."
+                placeholder="Ceritakan pokok persoalan santri..."
                 placeholderTextColor="#94A3B8"
                 value={newKeluhan}
                 onChangeText={setNewKeluhan}
@@ -461,7 +1015,7 @@ export const GuidanceDetailScreen = () => {
                 style={styles.textArea}
                 multiline
                 numberOfLines={2}
-                placeholder="Rencana aksi yang disepakati..."
+                placeholder="Rencana aksi yang disepakati bersama..."
                 placeholderTextColor="#94A3B8"
                 value={newSolusi}
                 onChangeText={setNewSolusi}
@@ -585,7 +1139,7 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 12,
     backgroundColor: "rgba(255, 255, 255, 0.15)",
-    marginRight: 12,
+    marginRight: 10,
   },
   headerTitleContainer: {
     flex: 1,
@@ -599,6 +1153,20 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#CBD5E1",
     marginTop: 2,
+  },
+  saveTopBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#2563EB",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
+    gap: 4,
+  },
+  saveTopBtnText: {
+    fontSize: 11.5,
+    fontWeight: "800",
+    color: "#FFFFFF",
   },
   tabContainer: {
     flexDirection: "row",
@@ -660,90 +1228,177 @@ const styles = StyleSheet.create({
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 10,
     borderBottomWidth: 1,
     borderBottomColor: "#F1F5F9",
     paddingBottom: 10,
     marginBottom: 12,
   },
+  sectionIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   sectionTitle: {
-    fontSize: 13,
+    fontSize: 13.5,
     fontWeight: "800",
     color: "#0F172A",
   },
-  fundamentalGrid: {
-    gap: 8,
+  sectionSubtitle: {
+    fontSize: 10.5,
+    color: "#64748B",
+    marginTop: 1,
   },
-  fundamentalItem: {
+  fundamentalGrid: {
+    gap: 10,
+  },
+  fundamentalEditCard: {
+    backgroundColor: "#F8FAFC",
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#EEF2F6",
+  },
+  fundamentalTopRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#F8FAFC",
-    padding: 10,
-    borderRadius: 10,
+    marginBottom: 8,
   },
   fundamentalItemLabel: {
-    fontSize: 11.5,
-    fontWeight: "600",
-    color: "#334155",
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  fundamentalItemDesc: {
+    fontSize: 10,
+    color: "#64748B",
+    marginTop: 1,
   },
   fundamentalScoreBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: 6,
   },
   fundamentalScoreText: {
-    fontSize: 10.5,
+    fontSize: 10,
     fontWeight: "800",
   },
-  catatanBox: {
-    backgroundColor: "#EFF6FF",
-    padding: 10,
-    borderRadius: 10,
-    marginTop: 10,
-  },
-  catatanLabel: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: "#1E40AF",
-    marginBottom: 2,
-  },
-  catatanText: {
-    fontSize: 11.5,
-    color: "#1E3A8A",
-    lineHeight: 16,
-  },
-  infoRow: {
+  scoreSelectorRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F8FAFC",
+    gap: 8,
   },
-  infoLabel: {
+  scoreBtn: {
+    flex: 1,
+    paddingVertical: 7,
+    borderRadius: 8,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  scoreBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#475569",
+  },
+  inputLabel: {
     fontSize: 11,
-    color: "#64748B",
-  },
-  infoValue: {
-    fontSize: 11.5,
     fontWeight: "700",
-    color: "#1E293B",
+    color: "#334155",
+    marginBottom: 5,
   },
-  daruratBox: {
-    backgroundColor: "#FEF2F2",
-    padding: 10,
+  textInput: {
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
     borderRadius: 10,
-    marginTop: 10,
+    paddingHorizontal: 12,
+    height: 40,
+    fontSize: 12,
+    color: "#0F172A",
   },
-  daruratLabel: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: "#991B1B",
-    marginBottom: 2,
-  },
-  daruratText: {
+  textInputWhite: {
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#FECDD3",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 38,
     fontSize: 11.5,
-    color: "#7F1D1D",
+    color: "#0F172A",
+  },
+  textArea: {
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 10,
+    padding: 10,
+    fontSize: 12,
+    color: "#0F172A",
+    textAlignVertical: "top",
+  },
+  pillSelectorRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  pillOption: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: "#F1F5F9",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  pillOptionActive: {
+    backgroundColor: "#162E6E",
+    borderColor: "#162E6E",
+  },
+  pillOptionText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#475569",
+  },
+  pillOptionTextActive: {
+    color: "#FFFFFF",
+    fontWeight: "800",
+  },
+  daruratEditCard: {
+    backgroundColor: "#FFF1F2",
+    borderWidth: 1,
+    borderColor: "#FECDD3",
+    padding: 12,
+    borderRadius: 12,
+    marginTop: 12,
+  },
+  daruratCardTitle: {
+    fontSize: 11.5,
+    fontWeight: "800",
+    color: "#9F1239",
+  },
+  saveBottomBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#162E6E",
+    paddingVertical: 14,
+    borderRadius: 14,
+    gap: 8,
+    shadowColor: "#162E6E",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
+    marginTop: 6,
+  },
+  saveBottomBtnText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#FFFFFF",
   },
   addKonselingBtn: {
     flexDirection: "row",
@@ -883,10 +1538,14 @@ const styles = StyleSheet.create({
     fontSize: 10.5,
     color: "#64748B",
   },
-  statusValue: {
-    fontSize: 10.5,
+  statusBadgeSmall: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  statusBadgeTextSmall: {
+    fontSize: 10,
     fontWeight: "700",
-    color: "#162E6E",
   },
   followUpActionBtn: {
     flexDirection: "row",
@@ -930,32 +1589,6 @@ const styles = StyleSheet.create({
   },
   modalBody: {
     marginBottom: 14,
-  },
-  inputLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#334155",
-    marginBottom: 4,
-  },
-  textInput: {
-    backgroundColor: "#F8FAFC",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    height: 40,
-    fontSize: 11.5,
-    color: "#0F172A",
-  },
-  textArea: {
-    backgroundColor: "#F8FAFC",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    borderRadius: 10,
-    padding: 10,
-    fontSize: 11.5,
-    color: "#0F172A",
-    textAlignVertical: "top",
   },
   statusRowContainer: {
     flexDirection: "row",
