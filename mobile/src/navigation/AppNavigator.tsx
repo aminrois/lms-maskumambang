@@ -13,6 +13,7 @@ import { WaliJadwalScreen } from "../screens/Wali/WaliJadwalScreen";
 import { WaliLmsScreen } from "../screens/Wali/WaliLmsScreen";
 import { WaliKeuanganScreen } from "../screens/Wali/WaliKeuanganScreen";
 import { WaliGuidanceScreen } from "../screens/Wali/WaliGuidanceScreen";
+import { WaliDetailSantriScreen } from "../screens/Wali/WaliDetailSantriScreen";
 import { GuidanceHomeScreen } from "../screens/Guidance/GuidanceHomeScreen";
 import { GuidanceDetailScreen } from "../screens/Guidance/GuidanceDetailScreen";
 import { MainTabNavigator } from "./MainTabNavigator";
@@ -135,6 +136,13 @@ export const AppNavigator = () => {
             <Stack.Screen
               name="WaliGuidance"
               component={WaliGuidanceScreen}
+              options={{
+                animation: "slide_from_right",
+              }}
+            />
+            <Stack.Screen
+              name="WaliDetailSantri"
+              component={WaliDetailSantriScreen}
               options={{
                 animation: "slide_from_right",
               }}

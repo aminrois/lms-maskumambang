@@ -103,6 +103,8 @@ export const ParentDashboardScreen = () => {
   const [showKeuanganModal, setShowKeuanganModal] = useState(false);
   const [showBeritaModal, setShowBeritaModal] = useState(false);
   const [showLainnyaModal, setShowLainnyaModal] = useState(false);
+  const [showIzinModal, setShowIzinModal] = useState(false);
+  const [showKalenderModal, setShowKalenderModal] = useState(false);
 
   // Wali Modals
   const [showTahfidzModal, setShowTahfidzModal] = useState(false);
@@ -439,9 +441,10 @@ export const ParentDashboardScreen = () => {
         </View>
 
         {/* ═══════════════════════════════════════════════════════
-            3. QUICK ACTION 8-GRID MENU (Sama seperti Guru)
+            3. QUICK ACTION 12-GRID MENU WALI SANTRI
         ════════════════════════════════════════════════════════ */}
         <View style={styles.menuGridContainer}>
+          {/* Row 1: Akademik & Hafalan */}
           <View style={styles.menuGridRow}>
             {/* 1. LMS Santri */}
             <TouchableOpacity
@@ -492,8 +495,60 @@ export const ParentDashboardScreen = () => {
             </TouchableOpacity>
           </View>
 
+          {/* Row 2: Bimbingan, Keuangan & Profil Santri */}
           <View style={[styles.menuGridRow, { marginTop: 12 }]}>
-            {/* 5. Arah Kiblat */}
+            {/* 5. Bimbingan & Karakter Santri (Guidance) */}
+            <TouchableOpacity
+              style={styles.gridCard}
+              onPress={() => navigation.navigate("WaliGuidance", { siswaId: selectedSiswaId })}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.gridIconCircle, { backgroundColor: "#162E6E" }]}>
+                <Compass size={24} color="#FFFFFF" />
+              </View>
+              <Text style={styles.gridCardTitle}>Bimbingan</Text>
+            </TouchableOpacity>
+
+            {/* 6. Keuangan & Tagihan SPP */}
+            <TouchableOpacity
+              style={styles.gridCard}
+              onPress={() => navigation.navigate("WaliKeuangan", { siswaId: selectedSiswaId })}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.gridIconCircle, { backgroundColor: "#6366f1" }]}>
+                <Wallet size={24} color="#FFFFFF" />
+              </View>
+              <Text style={styles.gridCardTitle}>Keuangan</Text>
+            </TouchableOpacity>
+
+            {/* 7. Detail Santri (Biodata & Foto Lengkap) */}
+            <TouchableOpacity
+              style={styles.gridCard}
+              onPress={() => navigation.navigate("WaliDetailSantri", { siswaId: selectedSiswaId })}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.gridIconCircle, { backgroundColor: "#0891b2" }]}>
+                <User size={24} color="#FFFFFF" />
+              </View>
+              <Text style={styles.gridCardTitle}>Detail Santri</Text>
+            </TouchableOpacity>
+
+            {/* 8. Izin Santri (Perizinan & Pulang) */}
+            <TouchableOpacity
+              style={styles.gridCard}
+              onPress={() => setShowIzinModal(true)}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.gridIconCircle, { backgroundColor: "#ea580c" }]}>
+                <FileText size={24} color="#FFFFFF" />
+              </View>
+              <Text style={styles.gridCardTitle}>Izin Santri</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Row 3: Islami & Informasi */}
+          <View style={[styles.menuGridRow, { marginTop: 12 }]}>
+            {/* 9. Arah Kiblat */}
             <TouchableOpacity
               style={styles.gridCard}
               onPress={() => setShowKiblatModal(true)}
@@ -505,7 +560,7 @@ export const ParentDashboardScreen = () => {
               <Text style={styles.gridCardTitle}>Arah Kiblat</Text>
             </TouchableOpacity>
 
-            {/* 6. Doa & Dzikir */}
+            {/* 10. Doa & Dzikir */}
             <TouchableOpacity
               style={styles.gridCard}
               onPress={() => setShowDoaModal(true)}
@@ -517,7 +572,7 @@ export const ParentDashboardScreen = () => {
               <Text style={styles.gridCardTitle}>Doa & Dzikir</Text>
             </TouchableOpacity>
 
-            {/* 7. Berita (Langsung navigasi ke Layar Berita seperti Guru) */}
+            {/* 11. Berita Pesantren */}
             <TouchableOpacity
               style={styles.gridCard}
               onPress={() => navigation.navigate("Berita")}
@@ -529,16 +584,16 @@ export const ParentDashboardScreen = () => {
               <Text style={styles.gridCardTitle}>Berita</Text>
             </TouchableOpacity>
 
-            {/* 8. Bimbingan & Karakter Santri (Guidance) */}
+            {/* 12. Kalender Akademik & Agenda */}
             <TouchableOpacity
               style={styles.gridCard}
-              onPress={() => navigation.navigate("WaliGuidance", { siswaId: selectedSiswaId })}
+              onPress={() => setShowKalenderModal(true)}
               activeOpacity={0.8}
             >
-              <View style={[styles.gridIconCircle, { backgroundColor: "#162E6E" }]}>
-                <Compass size={24} color="#FFFFFF" />
+              <View style={[styles.gridIconCircle, { backgroundColor: "#d97706" }]}>
+                <Calendar size={24} color="#FFFFFF" />
               </View>
-              <Text style={styles.gridCardTitle}>Bimbingan</Text>
+              <Text style={styles.gridCardTitle}>Kalender</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -958,6 +1013,102 @@ export const ParentDashboardScreen = () => {
                 📞 (031) 3949 123{"\n"}
                 🌐 www.maskumambang.ac.id
               </Text>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── MODAL IZIN SANTRI ────────────────────────────────────────── */}
+      <Modal
+        visible={showIzinModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowIzinModal(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalSheetContainer}>
+            <View style={styles.modalSheetHeader}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <View style={[styles.modalHeaderIconCircle, { backgroundColor: "#FFEDD5" }]}>
+                  <FileText size={20} color="#EA580C" />
+                </View>
+                <View>
+                  <Text style={styles.modalSheetTitle}>Layanan Perizinan Santri</Text>
+                  <Text style={styles.modalSheetSubtitle}>Informasi & Prosedur Izin Santri</Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={() => setShowIzinModal(false)} style={styles.modalCloseBtn}>
+                <X size={20} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ padding: 18 }}>
+              <View style={{ backgroundColor: "#FFF7ED", padding: 14, borderRadius: 14, borderWidth: 1, borderColor: "#FED7AA", marginBottom: 14 }}>
+                <Text style={{ fontSize: 13, fontWeight: "800", color: "#9A3412", marginBottom: 4 }}>
+                  Ketentuan Perizinan Santri Pesantren:
+                </Text>
+                <Text style={{ fontSize: 11.5, color: "#C2410C", lineHeight: 18 }}>
+                  1. Izin Pulang / Pesiar wajib dikoordinasikan langsung dengan Murobbi / Wali Kamar Asrama.{"\n"}
+                  2. Izin Sakit ditangani oleh Poskestren / Petugas Medis Pesantren.{"\n"}
+                  3. Sambangan wali santri dibuka pada jadwal kunjungan resmi asrama.
+                </Text>
+              </View>
+
+              <Text style={{ fontSize: 12.5, fontWeight: "800", color: "#0F172A", marginBottom: 8 }}>
+                Kontak Koordinator Asrama:
+              </Text>
+              <View style={{ backgroundColor: "#F8FAFC", padding: 12, borderRadius: 12, borderWidth: 1, borderColor: "#E2E8F0" }}>
+                <Text style={{ fontSize: 12, fontWeight: "700", color: "#162E6E" }}>
+                  Sekretariat & Keasramaan Maskumambang
+                </Text>
+                <Text style={{ fontSize: 11, color: "#64748B", marginTop: 2 }}>
+                  Hotline Izin & Sambang: (031) 3949 123 / WhatsApp Asrama
+                </Text>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── MODAL KALENDER AKADEMIK & AGENDA ────────────────────────── */}
+      <Modal
+        visible={showKalenderModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowKalenderModal(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalSheetContainer}>
+            <View style={styles.modalSheetHeader}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <View style={[styles.modalHeaderIconCircle, { backgroundColor: "#FEF3C7" }]}>
+                  <Calendar size={20} color="#D97706" />
+                </View>
+                <View>
+                  <Text style={styles.modalSheetTitle}>Kalender Akademik & Agenda</Text>
+                  <Text style={styles.modalSheetSubtitle}>Jadwal Kegiatan & Kalender Pesantren</Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={() => setShowKalenderModal(false)} style={styles.modalCloseBtn}>
+                <X size={20} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ padding: 18 }}>
+              {[
+                { tanggal: "29 Sep 2026", judul: "Ujian Penilaian Tengah Semester (PTS)", kategori: "Akademik", warna: "#2563EB", bg: "#EFF6FF" },
+                { tanggal: "10 Okt 2026", judul: "Agenda Sambangan & Kunjungan Santri", kategori: "Keasramaan", warna: "#16A34A", bg: "#F0FDF4" },
+                { tanggal: "15 Nov 2026", judul: "Munaqosyah & Ujian Tahfidz Al-Qur'an", kategori: "Tahfidz", warna: "#D97706", bg: "#FFFBEB" },
+                { tanggal: "10 Des 2026", judul: "Penilaian Akhir Semester (PAS Ganjil)", kategori: "Akademik", warna: "#7C3AED", bg: "#FAF5FF" },
+              ].map((ev, idx) => (
+                <View key={idx} style={{ backgroundColor: "#F8FAFC", padding: 14, borderRadius: 14, borderWidth: 1, borderColor: "#E2E8F0", marginBottom: 10 }}>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <View style={{ backgroundColor: ev.bg, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
+                      <Text style={{ fontSize: 10, fontWeight: "800", color: ev.warna }}>{ev.kategori}</Text>
+                    </View>
+                    <Text style={{ fontSize: 11, fontWeight: "700", color: "#64748B" }}>{ev.tanggal}</Text>
+                  </View>
+                  <Text style={{ fontSize: 13, fontWeight: "800", color: "#0F172A", marginTop: 2 }}>{ev.judul}</Text>
+                </View>
+              ))}
             </ScrollView>
           </View>
         </View>
