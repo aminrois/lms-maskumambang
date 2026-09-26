@@ -2,7 +2,8 @@ import {
   LayoutDashboard, Building, Book, GraduationCap, User,
   Calendar, BarChart, FileText, BookOpen, Clock,
   PenTool, Clipboard, Eye, CalendarDays, BookMarked, RotateCcw,
-  Sparkles, Target, History, UserCheck, Users, Wallet, ShieldCheck, Settings
+  Sparkles, Target, History, UserCheck, Users, Wallet, ShieldCheck, Settings,
+  Compass, MessageSquare
 } from "lucide-react";
 
 export type MenuItem = {
@@ -33,6 +34,13 @@ export const allMenuGroups: MenuGroup[] = [
       { name: "Riwayat Setoran", icon: History, path: "/tahfidz/riwayat", allowedRoles: ['Super Admin', 'Direktur', 'Guru Tahfidz', 'Wali Kelas', 'Wali Murid'], color: "purple" },
       { name: "Penugasan Kelas", icon: UserCheck, path: "/tahfidz/penugasan", allowedRoles: ['Super Admin', 'Direktur'], color: "amber" },
       { name: "Kelompok Halaqoh", icon: Users, path: "/tahfidz/halaqah", allowedRoles: ['Super Admin', 'Direktur', 'Guru Tahfidz'], color: "teal" },
+    ]
+  },
+  {
+    category: "Bimbingan & Konseling",
+    items: [
+      { name: "Profil 360° Santri", icon: Compass, path: "/guidance", allowedRoles: ['Super Admin', 'Direktur', 'Kepala Sekolah', 'WaKa Kurikulum', 'Admin Lembaga', 'Wali Kelas', 'Guru'], color: "blue" },
+      { name: "Sesi Konsultasi & BK", icon: MessageSquare, path: "/guidance/sesi-konseling", allowedRoles: ['Super Admin', 'Direktur', 'Kepala Sekolah', 'WaKa Kurikulum', 'Admin Lembaga', 'Wali Kelas', 'Guru'], color: "emerald" },
     ]
   },
   {

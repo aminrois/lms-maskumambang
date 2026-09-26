@@ -98,6 +98,7 @@ model Pegawai {
   tahfidz_pengampu        TahfidzPengampu[]
   tahfidz_setoran         TahfidzSetoran[]
   tahfidz_halaqah         TahfidzHalaqah[]
+  konseling_sesi          SiswaKonselingSesi[]
 
   @@index([user_id])
   @@index([status])
@@ -194,6 +195,8 @@ model Siswa {
   tahfidz_halaqah_siswa TahfidzHalaqahSiswa[]
   tagihan_siswa       TagihanSiswa[]
   pembayaran_transaksi PembayaranTransaksi[]
+  guidance_detail     SiswaGuidanceDetail?
+  konseling_sesi      SiswaKonselingSesi[]
 
   @@index([kelas_id])
   @@index([status])
@@ -678,4 +681,104 @@ model PembayaranTransaksiItem {
   @@index([tagihan_id])
   @@map("pembayaran_transaksi_item")
 }
+
+// ═══════════════════════════════════════════════════════
+// MODUL GUIDANCE & DETAIL SANTRI 360° (BK / KONSELING)
+// ═══════════════════════════════════════════════════════
+
+model SiswaGuidanceDetail {
+  id                      Int      @id @default(autoincrement())
+  siswa_id                Int      @unique
+
+  // 1. Tempat Tinggal & Fasilitas
+  jarak_rumah_sekolah     String?  // Jarak teks atau km
+  transportasi            String?  // 'Antar Jemput' | 'Jalan Kaki' | 'Motor' | 'Mobil' | 'Lainnya'
+  kepemilikan_rumah       String?  // 'Kontrak' | 'Milik Sendiri'
+  daya_listrik            String?  // '450 VA' | '900 VA' | '1.300 VA' | '2.200 VA' | '3.500 VA' | '4.400 VA' | '5.500 VA' | 'Lebih dari 5.500'
+  sumber_air              String?  // 'PDAM / PAM' | 'Sumur Bor'
+  akses_internet          String?  // 'Paket Data' | 'Wifi' | 'Paket data + wifi' | 'Tidak ada'
+  perangkat_belajar       String?  // 'Ada' | 'Tidak'
+
+  // 2. Data Sosial & Digital
+  no_hp_siswa             String?
+  email_siswa             String?
+  instagram               String?
+  facebook                String?
+  tiktok                  String?
+  twitter_x               String?
+
+  // 3. Riwayat Kesehatan & Kontak Darurat
+  merokok                 String?  // 'Ya' | 'Tidak'
+  riwayat_penyakit        String?
+  riwayat_alergi          String?
+  riwayat_operasi         String?
+  gangguan_kesehatan      String?
+  dalam_masa_pengobatan   String?
+  asuransi_kesehatan      String?
+  kontak_darurat_nama     String?
+  kontak_darurat_hubungan String?
+  kontak_darurat_hp       String?
+
+  // 4. Rencana Internship / Dakwah
+  internship_nama         String?
+  internship_alamat       String?
+  internship_bidang       String?
+  internship_divisi       String?
+  internship_kompetensi   String?
+
+  // 5. Rencana Pendidikan Lanjutan
+  lanjut_kuliah           String?  // 'Ya' | 'Tidak'
+  target_pendidikan       String?
+  prodi_pilihan           String?
+  universitas_tujuan      String?
+  persiapan               String?
+  sumber_biaya            String?
+  jalur_masuk             String?
+  dukungan_diharapkan     String?
+
+  // 6. Aspek Fundamental (Skala 1 - 4: 1=Belum Bisa, 2=Bisa, 3=Bisa butuh kontrol, 4=Mandiri & Istiqomah)
+  skor_wudhu              Int?     @default(1)
+  skor_doa_sholat         Int?     @default(1)
+  skor_praktik_sholat     Int?     @default(1)
+  skor_jamaah_masjid      Int?     @default(1)
+  skor_alquran            Int?     @default(1)
+  skor_hafalan_juz30      Int?     @default(1)
+  skor_disiplin           Int?     @default(1)
+  skor_rapi               Int?     @default(1)
+  skor_adab               Int?     @default(1)
+
+  catatan_fundamental     String?
+  updated_at              DateTime @updatedAt
+  created_at              DateTime @default(now())
+
+  siswa                   Siswa    @relation(fields: [siswa_id], references: [siswa_id], onDelete: Cascade)
+
+  @@map("siswa_guidance_detail")
+}
+
+model SiswaKonselingSesi {
+  konseling_id            Int      @id @default(autoincrement())
+  siswa_id                Int
+  pegawai_id              Int      // Murobbi / Wali Kelas / Konselor / Guru BK
+  tanggal_sesi            String   // YYYY-MM-DD
+  kategori                String   // 'Akademik' | 'Karakter & Kedisiplinan' | 'Sosial & Emosional' | 'Keluarga' | 'Karier & Studi Lanjut' | 'Kesehatan' | 'Lainnya'
+  topik_konseling         String
+  keluhan_masalah         String
+  dinamika_konseling      String?
+  solusi_kesepakatan      String?
+  status_follow_up        String   @default("Dalam Pemantauan") // 'Selesai' | 'Dalam Pemantauan' | 'Perlu Rujukan Lanjut'
+  sifat_rahasia           String   @default("Internal Guru/Wali Kelas") // 'Sangat Rahasia' | 'Internal Guru/Wali Kelas' | 'Terbuka'
+  catatan_tindak_lanjut   String?
+  created_at              DateTime @default(now())
+  updated_at              DateTime @updatedAt
+
+  siswa                   Siswa    @relation(fields: [siswa_id], references: [siswa_id], onDelete: Cascade)
+  pegawai                 Pegawai  @relation(fields: [pegawai_id], references: [pegawai_id], onDelete: Cascade)
+
+  @@index([siswa_id])
+  @@index([pegawai_id])
+  @@index([tanggal_sesi])
+  @@map("siswa_konseling_sesi")
+}
+
 

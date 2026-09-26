@@ -66,6 +66,12 @@ const TagihanSiswaIndex       = React.lazy(() => import("./pages/Keuangan/Tagiha
 const VerifikasiTransferIndex = React.lazy(() => import("./pages/Keuangan/VerifikasiTransfer/Index"));
 const MasterTarifIndex        = React.lazy(() => import("./pages/Keuangan/MasterTarif/Index"));
 
+// Bimbingan & Konseling (Guidance)
+const GuidanceIndex           = React.lazy(() => import("./pages/Guidance/Index"));
+const GuidanceDetailSiswa     = React.lazy(() => import("./pages/Guidance/DetailSiswa"));
+const SesiKonselingIndex      = React.lazy(() => import("./pages/Guidance/SesiKonseling"));
+
+
 // Fallback loading saat halaman sedang di-fetch (lazy chunk loading)
 const PageLoader = () => (
   <div className="flex items-center justify-center h-dvh bg-[#F4F7FE]">
@@ -614,6 +620,21 @@ const App: React.FC = () => {
                   }
                 >
                   <Route path="master-tarif" element={<MasterTarifIndex />} />
+                </Route>
+              </Route>
+
+              {/* --- ROUTING LINK BIMBINGAN & KONSELING (GUIDANCE) --- */}
+              <Route path="/guidance">
+                <Route
+                  element={
+                    <ProtectedRoute
+                      allowedRoles={["Super Admin", "Direktur", "Kepala Sekolah", "WaKa Kurikulum", "Admin Lembaga", "Wali Kelas", "Guru"]}
+                    />
+                  }
+                >
+                  <Route index element={<GuidanceIndex />} />
+                  <Route path="siswa/:siswa_id" element={<GuidanceDetailSiswa />} />
+                  <Route path="sesi-konseling" element={<SesiKonselingIndex />} />
                 </Route>
               </Route>
             </Route>
