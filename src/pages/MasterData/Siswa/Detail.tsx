@@ -57,7 +57,13 @@ export default function MasterDataSiswaDetail() {
 
   useEffect(() => {
     if (guidance) {
-      setFormData({ ...guidance });
+      setFormData({
+        ...guidance,
+        // Normalize schema field names → form field keys used by EditInput
+        internship_instansi: guidance.internship_nama || guidance.internship_instansi || "",
+        prodi_tujuan: guidance.prodi_pilihan || guidance.prodi_tujuan || "",
+        persiapan_kuliah: guidance.persiapan || guidance.persiapan_kuliah || "",
+      });
     } else {
       setFormData({
         transportasi: "Motor",
@@ -305,7 +311,7 @@ export default function MasterDataSiswaDetail() {
   <!-- INTERNSHIP -->
   <h2>F. RENCANA INTERNSHIP / DAKWAH</h2>
   <div class="grid">
-    <div class="row"><div class="label">Nama Instansi</div><div class="value">${fld(guidance?.internship_instansi)}</div></div>
+    <div class="row"><div class="label">Nama Instansi</div><div class="value">${fld(guidance?.internship_nama || guidance?.internship_instansi)}</div></div>
     <div class="row"><div class="label">Alamat Instansi</div><div class="value">${fld(guidance?.internship_alamat)}</div></div>
     <div class="row"><div class="label">Bidang Instansi</div><div class="value">${fld(guidance?.internship_bidang)}</div></div>
     <div class="row"><div class="label">Divisi</div><div class="value">${fld(guidance?.internship_divisi)}</div></div>
@@ -317,9 +323,9 @@ export default function MasterDataSiswaDetail() {
   <div class="grid">
     <div class="row"><div class="label">Lanjut Kuliah</div><div class="value">${fld(guidance?.lanjut_kuliah)}</div></div>
     <div class="row"><div class="label">Target Pendidikan</div><div class="value">${fld(guidance?.target_pendidikan)}</div></div>
-    <div class="row"><div class="label">Program Studi</div><div class="value">${fld(guidance?.prodi_tujuan)}</div></div>
+    <div class="row"><div class="label">Program Studi</div><div class="value">${fld(guidance?.prodi_pilihan || guidance?.prodi_tujuan)}</div></div>
     <div class="row"><div class="label">Perguruan Tinggi</div><div class="value">${fld(guidance?.universitas_tujuan)}</div></div>
-    <div class="row"><div class="label">Persiapan</div><div class="value">${fld(guidance?.persiapan_kuliah)}</div></div>
+    <div class="row"><div class="label">Persiapan</div><div class="value">${fld(guidance?.persiapan || guidance?.persiapan_kuliah)}</div></div>
     <div class="row"><div class="label">Sumber Biaya</div><div class="value">${fld(guidance?.sumber_biaya)}</div></div>
     <div class="row"><div class="label">Jalur Masuk</div><div class="value">${fld(guidance?.jalur_masuk)}</div></div>
     <div class="row"><div class="label">Dukungan Diharapkan</div><div class="value">${fld(guidance?.dukungan_diharapkan)}</div></div>
@@ -528,14 +534,6 @@ export default function MasterDataSiswaDetail() {
           >
             <FileDown className="w-4 h-4" />
             {isDownloadingPDF ? "Menyiapkan..." : "Download PDF"}
-          </button>
-          <button
-            onClick={() => saveGuidanceMutation.mutate(formData)}
-            disabled={saveGuidanceMutation.isPending}
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#162E6E] hover:bg-[#122456] text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
-          >
-            <Save className="w-4 h-4" />
-            {saveGuidanceMutation.isPending ? "Menyimpan..." : "Simpan Perubahan"}
           </button>
         </div>
       </div>
@@ -752,6 +750,24 @@ export default function MasterDataSiswaDetail() {
                 );
               })}
             </div>
+          </div>
+
+          {/* ── TOMBOL SIMPAN PERUBAHAN DI BAGIAN PALING BAWAH ──────────────── */}
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-center sm:text-left">
+              <h4 className="font-bold text-sm text-[#162E6E]">Simpan Pembaruan Data Santri</h4>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Pastikan data tempat tinggal, sosial, kesehatan, internship, pendidikan lanjutan, dan 9 aspek fundamental telah sesuai.
+              </p>
+            </div>
+            <button
+              onClick={() => saveGuidanceMutation.mutate(formData)}
+              disabled={saveGuidanceMutation.isPending}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-[#162E6E] hover:bg-[#122456] text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all cursor-pointer shrink-0"
+            >
+              <Save className="w-4 h-4" />
+              {saveGuidanceMutation.isPending ? "Menyimpan Perubahan..." : "Simpan Perubahan"}
+            </button>
           </div>
         </div>
       )}
