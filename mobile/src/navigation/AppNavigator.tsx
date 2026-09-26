@@ -12,6 +12,9 @@ import { WaliPresensiScreen } from "../screens/Wali/WaliPresensiScreen";
 import { WaliJadwalScreen } from "../screens/Wali/WaliJadwalScreen";
 import { WaliLmsScreen } from "../screens/Wali/WaliLmsScreen";
 import { WaliKeuanganScreen } from "../screens/Wali/WaliKeuanganScreen";
+import { WaliGuidanceScreen } from "../screens/Wali/WaliGuidanceScreen";
+import { GuidanceHomeScreen } from "../screens/Guidance/GuidanceHomeScreen";
+import { GuidanceDetailScreen } from "../screens/Guidance/GuidanceDetailScreen";
 import { MainTabNavigator } from "./MainTabNavigator";
 import { useAuthStore } from "../store/useAuthStore";
 import { Colors } from "../constants/colors";
@@ -110,6 +113,28 @@ export const AppNavigator = () => {
             <Stack.Screen
               name="WaliKeuangan"
               component={WaliKeuanganScreen}
+              options={{
+                animation: "slide_from_right",
+              }}
+            />
+            {/* Fitur Guidance / Bimbingan Santri */}
+            <Stack.Screen
+              name="GuidanceHome"
+              component={GuidanceHomeScreen}
+              options={{
+                animation: "slide_from_right",
+              }}
+            />
+            <Stack.Screen
+              name="GuidanceDetail"
+              component={GuidanceDetailScreen}
+              options={{
+                animation: "slide_from_right",
+              }}
+            />
+            <Stack.Screen
+              name="WaliGuidance"
+              component={WaliGuidanceScreen}
               options={{
                 animation: "slide_from_right",
               }}

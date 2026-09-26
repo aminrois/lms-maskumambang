@@ -529,19 +529,16 @@ export const ParentDashboardScreen = () => {
               <Text style={styles.gridCardTitle}>Berita</Text>
             </TouchableOpacity>
 
-            {/* 8. Keuangan (SOON / Fitur Mendatang) */}
+            {/* 8. Bimbingan & Karakter Santri (Guidance) */}
             <TouchableOpacity
               style={styles.gridCard}
-              onPress={() => navigation.navigate("WaliKeuangan", { siswaId: selectedSiswaId })}
+              onPress={() => navigation.navigate("WaliGuidance", { siswaId: selectedSiswaId })}
               activeOpacity={0.8}
             >
-              <View style={[styles.gridIconCircle, { backgroundColor: "#6366f1" }]}>
-                <Wallet size={24} color="#FFFFFF" />
-                <View style={styles.soonBadge}>
-                  <Text style={styles.soonBadgeText}>SOON</Text>
-                </View>
+              <View style={[styles.gridIconCircle, { backgroundColor: "#162E6E" }]}>
+                <Compass size={24} color="#FFFFFF" />
               </View>
-              <Text style={styles.gridCardTitle}>Keuangan</Text>
+              <Text style={styles.gridCardTitle}>Bimbingan</Text>
             </TouchableOpacity>
           </View>
         </View>

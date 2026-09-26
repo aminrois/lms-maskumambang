@@ -430,64 +430,63 @@ export const TeacherDashboardScreen = () => {
               <Text style={styles.gridCardTitle}>Berita</Text>
             </TouchableOpacity>
 
-            {/* 8. Keuangan */}
+            {/* 8. Guidance / Bimbingan Konseling */}
             <TouchableOpacity
               style={styles.gridCard}
-              onPress={() => setShowLainnyaModal(true)}
+              onPress={() => navigation.navigate("GuidanceHome")}
               activeOpacity={0.8}
             >
-              <View style={[styles.gridIconCircle, { backgroundColor: "#6366f1" }]}>
-                <Wallet size={24} color="#FFFFFF" />
-                <View style={styles.soonBadge}>
-                  <Text style={styles.soonBadgeText}>SOON</Text>
-                </View>
+              <View style={[styles.gridIconCircle, { backgroundColor: "#162E6E" }]}>
+                <Compass size={24} color="#FFFFFF" />
               </View>
-              <Text style={styles.gridCardTitle}>Keuangan</Text>
+              <Text style={styles.gridCardTitle}>Bimbingan</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* ═══════════════════════════════════════════════════════
-            4. DUA KARTU PROGRESS & KELAS (2 Columns)
+            4. DUA KARTU FITUR UTAMA: BIMBINGAN & JADWAL MENGAJAR
         ════════════════════════════════════════════════════════ */}
         <View style={styles.dualCardContainer}>
-          {/* Card Kiri: Progress Hafalan */}
+          {/* Card Kiri: Bimbingan & Konseling (Guidance) */}
           <TouchableOpacity
             style={styles.dualCard}
-            onPress={() => navigation.navigate("TahfidzSetoran")}
+            onPress={() => navigation.navigate("GuidanceHome")}
             activeOpacity={0.85}
           >
             <View style={styles.dualCardHeader}>
               <View style={styles.dualCardTitleRow}>
-                <BookOpen size={16} color="#15803d" />
-                <Text style={styles.dualCardTitle}>Progress Hafalan</Text>
+                <Compass size={16} color="#162E6E" />
+                <Text style={styles.dualCardTitle}>Bimbingan Santri</Text>
               </View>
+              <ChevronRight size={14} color="#94A3B8" />
             </View>
 
-            <View style={styles.hafalanContentRow}>
-              {/* Circular Ring Gauge */}
-              <View style={styles.circularGauge}>
-                <View style={styles.circularInner}>
-                  <Text style={styles.gaugeNumber}>12</Text>
-                  <Text style={styles.gaugeUnit}>Juz</Text>
+            <View style={styles.lmsClassBox}>
+              <View style={styles.lmsClassTop}>
+                <View style={[styles.lmsIconBox, { backgroundColor: "#EFF6FF" }]}>
+                  <Sparkles size={18} color="#162E6E" />
+                </View>
+                <View style={[styles.lmsClassBadge, { backgroundColor: "#EFF6FF" }]}>
+                  <Text style={[styles.lmsClassBadgeText, { color: "#1D4ED8" }]}>Profil 360°</Text>
                 </View>
               </View>
 
-              {/* Detail Hafalan */}
-              <View style={styles.hafalanDetails}>
-                <Text style={styles.hafalanJuz}>Juz 29</Text>
-                <Text style={styles.hafalanSurat}>Surat An-Naml</Text>
-                <Text style={styles.hafalanHalaman}>Halaman 12 – 15</Text>
+              <Text style={styles.lmsClassName} numberOfLines={1}>
+                9 Aspek Fundamental
+              </Text>
+              <Text style={styles.lmsTeacherName} numberOfLines={1}>
+                Pemantauan & Sesi Konseling
+              </Text>
 
-                <View style={styles.progressBarBg}>
-                  <View style={[styles.progressBarFill, { width: "75%" }]} />
-                </View>
-                <Text style={styles.progressStatusText}>3/4 setoran</Text>
+              <View style={[styles.progressBarBg, { marginTop: 8 }]}>
+                <View style={[styles.progressBarFill, { width: "80%", backgroundColor: "#162E6E" }]} />
               </View>
+              <Text style={styles.progressStatusText}>Pantau Santri Binaan ›</Text>
             </View>
           </TouchableOpacity>
 
-          {/* Card Kanan: Kelas di LMS */}
+          {/* Card Kanan: Jadwal & Presensi Mengajar */}
           <TouchableOpacity
             style={styles.dualCard}
             onPress={() => navigation.navigate("JadwalTab")}
@@ -495,32 +494,33 @@ export const TeacherDashboardScreen = () => {
           >
             <View style={styles.dualCardHeader}>
               <View style={styles.dualCardTitleRow}>
-                <GraduationCap size={16} color="#1d4ed8" />
-                <Text style={styles.dualCardTitle}>Kelas di LMS</Text>
+                <Calendar size={16} color="#15803d" />
+                <Text style={styles.dualCardTitle}>Jadwal Mengajar</Text>
               </View>
+              <ChevronRight size={14} color="#94A3B8" />
             </View>
 
             <View style={styles.lmsClassBox}>
               <View style={styles.lmsClassTop}>
-                <View style={styles.lmsIconBox}>
-                  <BookOpen size={18} color="#1d4ed8" />
+                <View style={[styles.lmsIconBox, { backgroundColor: "#F0FDF4" }]}>
+                  <BookOpen size={18} color="#15803d" />
                 </View>
-                <View style={styles.lmsClassBadge}>
-                  <Text style={styles.lmsClassBadgeText}>Hari ini</Text>
+                <View style={[styles.lmsClassBadge, { backgroundColor: "#F0FDF4" }]}>
+                  <Text style={[styles.lmsClassBadgeText, { color: "#15803d" }]}>Hari Ini</Text>
                 </View>
               </View>
 
               <Text style={styles.lmsClassName} numberOfLines={1}>
-                Fiqih Ibadah
+                Agenda KBM & Kelas
               </Text>
               <Text style={styles.lmsTeacherName} numberOfLines={1}>
-                Ust. Ahmad Fauzi
+                Presensi & Jurnal Mengajar
               </Text>
 
               <View style={[styles.progressBarBg, { marginTop: 8 }]}>
-                <View style={[styles.progressBarFill, { width: "40%", backgroundColor: "#3b82f6" }]} />
+                <View style={[styles.progressBarFill, { width: "100%", backgroundColor: "#15803d" }]} />
               </View>
-              <Text style={styles.progressStatusText}>2/5 materi</Text>
+              <Text style={styles.progressStatusText}>Buka Jadwal KBM ›</Text>
             </View>
           </TouchableOpacity>
         </View>

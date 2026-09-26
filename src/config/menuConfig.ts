@@ -39,8 +39,8 @@ export const allMenuGroups: MenuGroup[] = [
   {
     category: "Bimbingan & Konseling",
     items: [
-      { name: "Profil 360° Santri", icon: Compass, path: "/guidance", allowedRoles: ['Super Admin', 'Direktur', 'Kepala Sekolah', 'WaKa Kurikulum', 'Admin Lembaga', 'Wali Kelas', 'Guru', 'Guru Tahfidz', 'Murobbi'], color: "blue" },
-      { name: "Sesi Konsultasi & BK", icon: MessageSquare, path: "/guidance/sesi-konseling", allowedRoles: ['Super Admin', 'Direktur', 'Kepala Sekolah', 'WaKa Kurikulum', 'Admin Lembaga', 'Wali Kelas', 'Guru', 'Guru Tahfidz', 'Murobbi'], color: "emerald" },
+      { name: "Profil 360° Santri", icon: Compass, path: "/guidance", allowedRoles: ['Super Admin', 'Direktur', 'Wali Kelas', 'Murobbi', 'Guru Tahfidz'], color: "blue" },
+      { name: "Sesi Konsultasi & BK", icon: MessageSquare, path: "/guidance/sesi-konseling", allowedRoles: ['Super Admin', 'Direktur', 'Wali Kelas', 'Murobbi', 'Guru Tahfidz'], color: "emerald" },
     ]
   },
   {

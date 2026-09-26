@@ -637,11 +637,7 @@ const App: React.FC = () => {
                       allowedRoles={[
                         "Super Admin",
                         "Direktur",
-                        "Kepala Sekolah",
-                        "WaKa Kurikulum",
-                        "Admin Lembaga",
                         "Wali Kelas",
-                        "Guru",
                         "Guru Tahfidz",
                         "Murobbi",
                       ]}
