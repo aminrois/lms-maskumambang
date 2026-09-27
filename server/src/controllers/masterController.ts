@@ -110,6 +110,8 @@ export const createSiswa = async (req: Request, res: Response, next: NextFunctio
     if (data.tahun_masuk) data.tahun_masuk = Number(data.tahun_masuk);
     if (data.wali_murid_id) data.wali_murid_id = Number(data.wali_murid_id);
     if (data.kelas_id) data.kelas_id = Number(data.kelas_id);
+    if (data.anak_ke !== undefined) data.anak_ke = data.anak_ke ? Number(data.anak_ke) : null;
+    if (data.jumlah_saudara !== undefined) data.jumlah_saudara = data.jumlah_saudara ? Number(data.jumlah_saudara) : null;
 
     const siswa = await prisma.siswa.create({ data });
     res.status(201).json(siswa);
@@ -125,6 +127,8 @@ export const updateSiswa = async (req: Request, res: Response, next: NextFunctio
     if (data.tahun_masuk) data.tahun_masuk = Number(data.tahun_masuk);
     if (data.wali_murid_id) data.wali_murid_id = Number(data.wali_murid_id);
     if (data.kelas_id) data.kelas_id = Number(data.kelas_id);
+    if (data.anak_ke !== undefined) data.anak_ke = data.anak_ke ? Number(data.anak_ke) : null;
+    if (data.jumlah_saudara !== undefined) data.jumlah_saudara = data.jumlah_saudara ? Number(data.jumlah_saudara) : null;
 
     const siswa = await prisma.siswa.update({
       where: { siswa_id: Number(id) },

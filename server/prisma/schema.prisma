@@ -143,6 +143,7 @@ model WaliMurid {
   nik_wali            String
   alamat              String
   status              String   // 'Wafat' | 'Hidup'
+  status_pernikahan_ortu String? // 'Bersama (Utuh)' | 'Cerai Hidup' | 'Cerai Mati'
   no_hp_ayah          String?
   no_hp_ibu           String?
   no_hp_wali          String
@@ -173,7 +174,14 @@ model Siswa {
   alamat              String?
   kode_pos            String?
   status              String?           @default("Aktif") // 'Aktif' | 'Tidak Aktif'
-  keterangan_asrama   String            @default("Tidak") // 'Ya' | 'Tidak'
+  keterangan_asrama   String            @default("Mukim") // 'Mukim' | 'Non-Mukim'
+  golongan_darah      String?           // 'A' | 'B' | 'AB' | 'O' | '-'
+  anak_ke             Int?
+  jumlah_saudara      Int?
+  status_anak         String?           // 'Anak Kandung' | 'Anak Tiri' | 'Anak Angkat'
+  jenjang_sekolah_asal String?          // 'SD' | 'MI' | 'SMP' | 'MTs' | dll
+  tahun_lulus_asal    String?
+  no_ijazah_skl       String?
   wali_murid_id       Int?
   kelas_id            Int?
   no_kk               String?
@@ -709,7 +717,12 @@ model SiswaGuidanceDetail {
   twitter_x               String?
 
   // 3. Riwayat Kesehatan & Kontak Darurat
-  merokok                 String?  // 'Ya' | 'Tidak'
+  tinggi_badan            Int?     // cm
+  berat_badan             Int?     // kg
+  buta_warna              String?  // 'Tidak' | 'Buta Warna Parsial' | 'Buta Warna Total'
+  kondisi_mata_kiri       String?  // misal: 'Normal', 'Minus: 1, Cyl: 1'
+  kondisi_mata_kanan      String?  // misal: 'Normal', 'Minus: 1, Cyl: 1'
+  merokok                 String?  // 'Ya' | 'Tidak' | 'Pernah Merokok'
   riwayat_penyakit        String?
   riwayat_alergi          String?
   riwayat_operasi         String?

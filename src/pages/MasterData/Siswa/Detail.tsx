@@ -291,14 +291,19 @@ export default function MasterDataSiswaDetail() {
     <div class="row"><div class="label">NIS</div><div class="value">${fld(siswa.nis)}</div></div>
     <div class="row"><div class="label">NISN</div><div class="value">${fld(siswa.nisn)}</div></div>
     <div class="row"><div class="label">NIK</div><div class="value">${fld(siswa.nik)}</div></div>
+    <div class="row"><div class="label">No. Kartu Keluarga (KK)</div><div class="value">${fld(siswa.no_kk)}</div></div>
+    <div class="row"><div class="label">No. Akta Kelahiran</div><div class="value">${fld(siswa.no_akta_kelahiran)}</div></div>
     <div class="row"><div class="label">Jenis Kelamin</div><div class="value">${siswa.jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan'}</div></div>
     <div class="row"><div class="label">Tempat, Tanggal Lahir</div><div class="value">${fld(siswa.tempat_lahir)}, ${fld(siswa.tanggal_lahir)}</div></div>
+    <div class="row"><div class="label">Golongan Darah</div><div class="value">${fld(siswa.golongan_darah)}</div></div>
+    <div class="row"><div class="label">Anak Ke / Jumlah Saudara</div><div class="value">${siswa.anak_ke ? `Anak ke-${siswa.anak_ke}` : '-'} ${siswa.jumlah_saudara ? `dari ${siswa.jumlah_saudara} bersaudara` : ''}</div></div>
+    <div class="row"><div class="label">Status Anak</div><div class="value">${fld(siswa.status_anak)}</div></div>
     <div class="row"><div class="label">Agama</div><div class="value">${fld(siswa.agama)}</div></div>
     <div class="row"><div class="label">Kewarganegaraan</div><div class="value">${fld(siswa.kewarganegaraan)}</div></div>
     <div class="row"><div class="label">Tahun Masuk</div><div class="value">${fld(siswa.tahun_masuk)}</div></div>
-    <div class="row"><div class="label">Asal Sekolah</div><div class="value">${fld(siswa.asal_sekolah)}</div></div>
-    <div class="row"><div class="label">No. Akta Kelahiran</div><div class="value">${fld(siswa.no_akta_kelahiran)}</div></div>
-    <div class="row"><div class="label">No. KK</div><div class="value">${fld(siswa.no_kk)}</div></div>
+    <div class="row"><div class="label">Status Asrama / Tinggal</div><div class="value">${siswa.keterangan_asrama === 'Ya' || siswa.keterangan_asrama === 'Mukim' ? 'Mukim (Mondok)' : 'Non-Mukim'}</div></div>
+    <div class="row"><div class="label">Asal Sekolah</div><div class="value">${fld(siswa.asal_sekolah)} (${fld(siswa.jenjang_sekolah_asal)})</div></div>
+    <div class="row"><div class="label">Tahun Lulus / No Seri Ijazah</div><div class="value">${fld(siswa.tahun_lulus_asal)} / ${fld(siswa.no_ijazah_skl)}</div></div>
   </div>
   <div class="row" style="margin-top:6px">
     <div class="label">Alamat Lengkap</div>
@@ -307,28 +312,39 @@ export default function MasterDataSiswaDetail() {
 
   <!-- DATA ORANG TUA -->
   <h2>B. DATA ORANG TUA & WALI</h2>
+  ${siswa.wali_murid?.status_pernikahan_ortu ? `<div style="margin-bottom:8px;font-weight:bold;color:#4338ca;background:#eef2ff;padding:4px 8px;border-radius:4px">Status Pernikahan Orang Tua: ${siswa.wali_murid.status_pernikahan_ortu}</div>` : ''}
   <div class="grid-3">
     <div>
-      <h3>🧑 Ayah</h3>
-      <div class="row"><div class="label">Nama</div><div class="value">${fld(siswa.wali_murid?.nama_ayah)}</div></div>
+      <h3>🧑 Data Ayah Kandung</h3>
+      <div class="row"><div class="label">Nama Ayah</div><div class="value">${fld(siswa.wali_murid?.nama_ayah)}</div></div>
       <div class="row"><div class="label">Status</div><div class="value">${fld(siswa.wali_murid?.status_ayah)}</div></div>
-      <div class="row"><div class="label">No HP</div><div class="value">${fld(siswa.wali_murid?.no_hp_ayah)}</div></div>
+      <div class="row"><div class="label">NIK Ayah</div><div class="value">${fld(siswa.wali_murid?.nik_ayah)}</div></div>
+      <div class="row"><div class="label">Tempat, Tgl Lahir</div><div class="value">${fld(siswa.wali_murid?.tempat_lahir_ayah)}, ${fld(siswa.wali_murid?.tanggal_lahir_ayah)}</div></div>
+      <div class="row"><div class="label">Pendidikan</div><div class="value">${fld(siswa.wali_murid?.pendidikan_ayah)}</div></div>
       <div class="row"><div class="label">Pekerjaan</div><div class="value">${fld(siswa.wali_murid?.pekerjaan_ayah)}</div></div>
       <div class="row"><div class="label">Penghasilan</div><div class="value">${fld(siswa.wali_murid?.penghasilan_ayah)}</div></div>
+      <div class="row"><div class="label">No. WhatsApp / HP</div><div class="value">${fld(siswa.wali_murid?.no_hp_ayah)}</div></div>
+      <div class="row"><div class="label">Email</div><div class="value">${fld(siswa.wali_murid?.email_ayah)}</div></div>
     </div>
     <div>
-      <h3>👩 Ibu</h3>
-      <div class="row"><div class="label">Nama</div><div class="value">${fld(siswa.wali_murid?.nama_ibu)}</div></div>
+      <h3>👩 Data Ibu Kandung</h3>
+      <div class="row"><div class="label">Nama Ibu</div><div class="value">${fld(siswa.wali_murid?.nama_ibu)}</div></div>
       <div class="row"><div class="label">Status</div><div class="value">${fld(siswa.wali_murid?.status_ibu)}</div></div>
-      <div class="row"><div class="label">No HP</div><div class="value">${fld(siswa.wali_murid?.no_hp_ibu)}</div></div>
+      <div class="row"><div class="label">NIK Ibu</div><div class="value">${fld(siswa.wali_murid?.nik_ibu)}</div></div>
+      <div class="row"><div class="label">Tempat, Tgl Lahir</div><div class="value">${fld(siswa.wali_murid?.tempat_lahir_ibu)}, ${fld(siswa.wali_murid?.tanggal_lahir_ibu)}</div></div>
+      <div class="row"><div class="label">Pendidikan</div><div class="value">${fld(siswa.wali_murid?.pendidikan_ibu)}</div></div>
       <div class="row"><div class="label">Pekerjaan</div><div class="value">${fld(siswa.wali_murid?.pekerjaan_ibu)}</div></div>
       <div class="row"><div class="label">Penghasilan</div><div class="value">${fld(siswa.wali_murid?.penghasilan_ibu)}</div></div>
+      <div class="row"><div class="label">No. WhatsApp / HP</div><div class="value">${fld(siswa.wali_murid?.no_hp_ibu)}</div></div>
+      <div class="row"><div class="label">Email</div><div class="value">${fld(siswa.wali_murid?.email_ibu)}</div></div>
     </div>
     <div>
-      <h3>👤 Wali</h3>
+      <h3>👤 Data Wali Utama</h3>
       <div class="row"><div class="label">Nama Wali</div><div class="value">${fld(siswa.wali_murid?.nama_wali)}</div></div>
-      <div class="row"><div class="label">No HP Wali</div><div class="value">${fld(siswa.wali_murid?.no_hp_wali)}</div></div>
-      <div class="row"><div class="label">Alamat</div><div class="value">${fld(siswa.wali_murid?.alamat)}</div></div>
+      <div class="row"><div class="label">Status</div><div class="value">${fld(siswa.wali_murid?.status)}</div></div>
+      <div class="row"><div class="label">NIK Wali</div><div class="value">${fld(siswa.wali_murid?.nik_wali)}</div></div>
+      <div class="row"><div class="label">No. WhatsApp / HP</div><div class="value">${fld(siswa.wali_murid?.no_hp_wali)}</div></div>
+      <div class="row"><div class="label">Alamat Lengkap</div><div class="value">${fld(siswa.wali_murid?.alamat)}</div></div>
     </div>
   </div>
 
@@ -630,16 +646,22 @@ export default function MasterDataSiswaDetail() {
               <InfoField label="NIS" value={siswa?.nis} />
               <InfoField label="NISN" value={siswa?.nisn} />
               <InfoField label="NIK" value={siswa?.nik} />
+              <InfoField label="No. Kartu Keluarga (KK)" value={siswa?.no_kk} />
+              <InfoField label="No. Akta Kelahiran" value={siswa?.no_akta_kelahiran} />
               <InfoField label="Jenis Kelamin" value={siswa?.jenis_kelamin === "L" ? "Laki-laki" : "Perempuan"} />
               <InfoField label="Tempat Lahir" value={siswa?.tempat_lahir} />
               <InfoField label="Tanggal Lahir" value={siswa?.tanggal_lahir} />
+              <InfoField label="Golongan Darah" value={siswa?.golongan_darah} />
+              <InfoField label="Anak Ke / Dari" value={siswa?.anak_ke ? `Anak ke-${siswa.anak_ke} dari ${siswa.jumlah_saudara || '-'} bersaudara` : "—"} />
+              <InfoField label="Status Anak" value={siswa?.status_anak} />
               <InfoField label="Agama" value={siswa?.agama} />
               <InfoField label="Kewarganegaraan" value={siswa?.kewarganegaraan} />
               <InfoField label="Tahun Masuk" value={siswa?.tahun_masuk} />
-              <InfoField label="Asal Sekolah" value={siswa?.asal_sekolah} />
-              <InfoField label="No. Akta Kelahiran" value={siswa?.no_akta_kelahiran} />
-              <InfoField label="No. KK" value={siswa?.no_kk} />
-              <InfoField label="Status" value={siswa?.status} />
+              <InfoField label="Status Tinggal / Asrama" value={siswa?.keterangan_asrama === "Ya" || siswa?.keterangan_asrama === "Mukim" ? "Mukim (Mondok)" : "Non-Mukim"} />
+              <InfoField label="Asal Sekolah" value={siswa?.asal_sekolah ? `${siswa.asal_sekolah} (${siswa.jenjang_sekolah_asal || 'Sekolah Asal'})` : "—"} />
+              <InfoField label="Tahun Lulus Asal" value={siswa?.tahun_lulus_asal} />
+              <InfoField label="No. Ijazah / SKL" value={siswa?.no_ijazah_skl} />
+              <InfoField label="Status Santri" value={siswa?.status} />
               <div className="sm:col-span-2 md:col-span-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
                 <span className="text-[10px] font-semibold text-slate-400 block mb-0.5 uppercase tracking-wide">Alamat Lengkap</span>
                 <span className="text-xs font-bold text-slate-800">
@@ -656,36 +678,62 @@ export default function MasterDataSiswaDetail() {
           </div>
 
           {/* B. DATA ORANG TUA */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-            <SectionHeader label="B. Data Orang Tua & Wali Santri" sub="Informasi kontak keluarga dan penanggung jawab" />
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 space-y-4">
+            <SectionHeader label="B. Data Orang Tua & Wali Santri" sub="Informasi detail kontak keluarga, status, dan penanggung jawab" />
+            
+            {/* Status Pernikahan Ortu Banner */}
+            <div className="p-3 bg-gradient-to-r from-blue-50/70 to-indigo-50/70 border border-blue-100 rounded-xl flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-700">Kondisi Rumah Tangga / Status Pernikahan Orang Tua:</span>
+              </div>
+              <span className="px-3 py-1 bg-white text-indigo-700 font-bold text-xs rounded-lg border border-indigo-200 shadow-2xs">
+                {siswa?.wali_murid?.status_pernikahan_ortu || "Bersama (Utuh)"}
+              </span>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[
-                { title: "Ayah", color: "text-blue-700", fields: [
+                { title: "Data Ayah Kandung", color: "text-blue-700", bgHeader: "bg-blue-50/60 border-blue-100", fields: [
                   { l: "Nama Ayah", v: siswa?.wali_murid?.nama_ayah },
-                  { l: "Status", v: siswa?.wali_murid?.status_ayah },
-                  { l: "No HP", v: siswa?.wali_murid?.no_hp_ayah },
+                  { l: "Status Ayah", v: siswa?.wali_murid?.status_ayah },
+                  { l: "NIK Ayah", v: siswa?.wali_murid?.nik_ayah },
+                  { l: "Tempat Lahir", v: siswa?.wali_murid?.tempat_lahir_ayah },
+                  { l: "Tanggal Lahir", v: siswa?.wali_murid?.tanggal_lahir_ayah },
+                  { l: "Pendidikan", v: siswa?.wali_murid?.pendidikan_ayah },
                   { l: "Pekerjaan", v: siswa?.wali_murid?.pekerjaan_ayah },
                   { l: "Penghasilan", v: siswa?.wali_murid?.penghasilan_ayah },
+                  { l: "No. WhatsApp / HP", v: siswa?.wali_murid?.no_hp_ayah },
+                  { l: "Email", v: siswa?.wali_murid?.email_ayah },
                 ]},
-                { title: "Ibu", color: "text-rose-700", fields: [
+                { title: "Data Ibu Kandung", color: "text-rose-700", bgHeader: "bg-rose-50/60 border-rose-100", fields: [
                   { l: "Nama Ibu", v: siswa?.wali_murid?.nama_ibu },
-                  { l: "Status", v: siswa?.wali_murid?.status_ibu },
-                  { l: "No HP", v: siswa?.wali_murid?.no_hp_ibu },
+                  { l: "Status Ibu", v: siswa?.wali_murid?.status_ibu },
+                  { l: "NIK Ibu", v: siswa?.wali_murid?.nik_ibu },
+                  { l: "Tempat Lahir", v: siswa?.wali_murid?.tempat_lahir_ibu },
+                  { l: "Tanggal Lahir", v: siswa?.wali_murid?.tanggal_lahir_ibu },
+                  { l: "Pendidikan", v: siswa?.wali_murid?.pendidikan_ibu },
                   { l: "Pekerjaan", v: siswa?.wali_murid?.pekerjaan_ibu },
                   { l: "Penghasilan", v: siswa?.wali_murid?.penghasilan_ibu },
+                  { l: "No. WhatsApp / HP", v: siswa?.wali_murid?.no_hp_ibu },
+                  { l: "Email", v: siswa?.wali_murid?.email_ibu },
                 ]},
-                { title: "Wali Utama", color: "text-emerald-700", fields: [
+                { title: "Data Wali Utama", color: "text-emerald-700", bgHeader: "bg-emerald-50/60 border-emerald-100", fields: [
                   { l: "Nama Wali", v: siswa?.wali_murid?.nama_wali },
-                  { l: "No HP Wali", v: siswa?.wali_murid?.no_hp_wali },
-                  { l: "Alamat", v: siswa?.wali_murid?.alamat },
+                  { l: "Status Wali", v: siswa?.wali_murid?.status },
+                  { l: "NIK Wali", v: siswa?.wali_murid?.nik_wali },
+                  { l: "No. WhatsApp / HP", v: siswa?.wali_murid?.no_hp_wali },
+                  { l: "Alamat Lengkap", v: siswa?.wali_murid?.alamat },
                 ]},
-              ].map(({ title, color, fields }) => (
+              ].map(({ title, color, bgHeader, fields }) => (
                 <div key={title} className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-                  <h4 className={`font-bold text-xs ${color} flex items-center gap-1.5`}><User className="w-3.5 h-3.5" />{title}</h4>
+                  <div className={`p-2 rounded-lg ${bgHeader} border flex items-center gap-1.5`}>
+                    <User className={`w-3.5 h-3.5 ${color}`} />
+                    <h4 className={`font-bold text-xs ${color}`}>{title}</h4>
+                  </div>
                   {fields.map(({ l, v }) => (
-                    <div key={l} className="text-xs border-b border-slate-100 pb-1 last:border-0">
-                      <span className="text-slate-400">{l}: </span>
-                      <span className="font-bold text-slate-700">{v || "—"}</span>
+                    <div key={l} className="text-xs border-b border-slate-100 py-1 last:border-0 flex justify-between items-start gap-2">
+                      <span className="text-slate-400 shrink-0">{l}:</span>
+                      <span className="font-bold text-slate-700 text-right wrap-break-word">{v || "—"}</span>
                     </div>
                   ))}
                 </div>
@@ -722,9 +770,14 @@ export default function MasterDataSiswaDetail() {
 
           {/* E. RIWAYAT KESEHATAN */}
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-            <SectionHeader label="E. Riwayat Kesehatan & Kontak Darurat" sub="Penting untuk penanganan medis & kesiapsiagaan asrama" />
+            <SectionHeader label="E. Riwayat Kesehatan & Kondisi Fisik" sub="Penting untuk pemantauan medis, kesiapsiagaan asrama, dan kontak darurat" />
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-              <EditSelect label="Merokok" field="merokok" options={["Tidak", "Ya"]} />
+              <EditInput label="Tinggi Badan (cm)" field="tinggi_badan" placeholder="Contoh: 160" type="number" />
+              <EditInput label="Berat Badan (kg)" field="berat_badan" placeholder="Contoh: 50" type="number" />
+              <EditSelect label="Status Buta Warna" field="buta_warna" options={["Tidak", "Buta Warna Parsial", "Buta Warna Total"]} />
+              <EditInput label="Kondisi Mata Kiri" field="kondisi_mata_kiri" placeholder="Contoh: Normal / Minus 1.5, Cyl 0.5" />
+              <EditInput label="Kondisi Mata Kanan" field="kondisi_mata_kanan" placeholder="Contoh: Normal / Minus 1.5, Cyl 0.5" />
+              <EditSelect label="Merokok" field="merokok" options={["Tidak", "Ya", "Pernah Merokok"]} />
               <EditInput label="Riwayat Penyakit" field="riwayat_penyakit" placeholder="Contoh: Asma, Maag" />
               <EditInput label="Riwayat Alergi" field="riwayat_alergi" placeholder="Contoh: Seafood, debu" />
               <EditInput label="Riwayat Operasi" field="riwayat_operasi" placeholder="Contoh: Operasi usus buntu 2024" />

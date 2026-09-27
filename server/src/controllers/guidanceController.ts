@@ -277,6 +277,11 @@ export async function upsertGuidanceDetail(req: Request, res: Response) {
         twitter_x: body.twitter_x || null,
 
         // Riwayat Kesehatan
+        tinggi_badan: body.tinggi_badan ? parseInt(body.tinggi_badan, 10) : null,
+        berat_badan: body.berat_badan ? parseInt(body.berat_badan, 10) : null,
+        buta_warna: body.buta_warna || null,
+        kondisi_mata_kiri: body.kondisi_mata_kiri || null,
+        kondisi_mata_kanan: body.kondisi_mata_kanan || null,
         merokok: body.merokok || null,
         riwayat_penyakit: body.riwayat_penyakit || null,
         riwayat_alergi: body.riwayat_alergi || null,
@@ -333,6 +338,11 @@ export async function upsertGuidanceDetail(req: Request, res: Response) {
         tiktok: body.tiktok,
         twitter_x: body.twitter_x,
 
+        tinggi_badan: body.tinggi_badan !== undefined ? (body.tinggi_badan ? parseInt(body.tinggi_badan, 10) : null) : undefined,
+        berat_badan: body.berat_badan !== undefined ? (body.berat_badan ? parseInt(body.berat_badan, 10) : null) : undefined,
+        buta_warna: body.buta_warna,
+        kondisi_mata_kiri: body.kondisi_mata_kiri,
+        kondisi_mata_kanan: body.kondisi_mata_kanan,
         merokok: body.merokok,
         riwayat_penyakit: body.riwayat_penyakit,
         riwayat_alergi: body.riwayat_alergi,

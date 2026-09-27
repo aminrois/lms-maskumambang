@@ -80,7 +80,14 @@ export interface SISWA {
   alamat?: string;
   kode_pos?: string;
   status?: 'Aktif' | 'Tidak Aktif';
-  keterangan_asrama: 'Ya' | 'Tidak';
+  keterangan_asrama: 'Mukim' | 'Non-Mukim' | 'Ya' | 'Tidak' | string;
+  golongan_darah?: string;
+  anak_ke?: number;
+  jumlah_saudara?: number;
+  status_anak?: string;
+  jenjang_sekolah_asal?: string;
+  tahun_lulus_asal?: string;
+  no_ijazah_skl?: string;
   wali_murid_id?: number;
   kelas_id?: number;
   no_kk?: string;
@@ -92,6 +99,7 @@ export interface SISWA {
   kabupaten_kota?: string;
   provinsi?: string;
   alamat_sekolah_asal?: string;
+  foto?: string;
 }
 
 export interface SISWA_CREATE {
@@ -112,7 +120,14 @@ export interface SISWA_CREATE {
   alamat?: string;
   kode_pos?: string;
   status?: 'Aktif' | 'Tidak Aktif';
-  keterangan_asrama: 'Ya' | 'Tidak';
+  keterangan_asrama: 'Mukim' | 'Non-Mukim' | 'Ya' | 'Tidak' | string;
+  golongan_darah?: string;
+  anak_ke?: number;
+  jumlah_saudara?: number;
+  status_anak?: string;
+  jenjang_sekolah_asal?: string;
+  tahun_lulus_asal?: string;
+  no_ijazah_skl?: string;
   wali_murid_id?: number;
   kelas_id?: number;
   no_kk?: string;
@@ -124,6 +139,7 @@ export interface SISWA_CREATE {
   kabupaten_kota?: string;
   provinsi?: string;
   alamat_sekolah_asal?: string;
+  foto?: string;
 }
 
 export interface SISWA_UPDATE {
@@ -144,7 +160,14 @@ export interface SISWA_UPDATE {
   alamat?: string;
   kode_pos?: string;
   status?: 'Aktif' | 'Tidak Aktif';
-  keterangan_asrama?: 'Ya' | 'Tidak';
+  keterangan_asrama?: 'Mukim' | 'Non-Mukim' | 'Ya' | 'Tidak' | string;
+  golongan_darah?: string;
+  anak_ke?: number;
+  jumlah_saudara?: number;
+  status_anak?: string;
+  jenjang_sekolah_asal?: string;
+  tahun_lulus_asal?: string;
+  no_ijazah_skl?: string;
   wali_murid_id?: number;
   kelas_id?: number;
   no_kk?: string;
@@ -156,6 +179,7 @@ export interface SISWA_UPDATE {
   kabupaten_kota?: string;
   provinsi?: string;
   alamat_sekolah_asal?: string;
+  foto?: string;
 }
 
 export interface PEGAWAI {
@@ -264,6 +288,7 @@ export interface WALI_MURID {
   nik_wali: string;
   alamat: string;
   status: 'Wafat' | 'Hidup';
+  status_pernikahan_ortu?: string;
   no_hp_ayah?: string;
   no_hp_ibu?: string;
   no_hp_wali: string;
@@ -295,6 +320,7 @@ export interface WALI_MURID_CREATE {
   nik_wali: string;
   alamat: string;
   status: 'Wafat' | 'Hidup';
+  status_pernikahan_ortu?: string;
   no_hp_ayah?: string;
   no_hp_ibu?: string;
   no_hp_wali: string;
@@ -326,6 +352,7 @@ export interface WALI_MURID_UPDATE {
   nik_wali?: string;
   alamat?: string;
   status?: 'Wafat' | 'Hidup';
+  status_pernikahan_ortu?: string;
   no_hp_ayah?: string;
   no_hp_ibu?: string;
   no_hp_wali?: string;
