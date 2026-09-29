@@ -1,15 +1,36 @@
-import { ChevronLeft, ChevronRight, Loader2, Calendar, Users, FileText, CheckCircle2, XCircle, Download, HeartPulse, Info } from "lucide-react";
+import { useState } from "react";
+import { ChevronLeft, ChevronRight, Loader2, Calendar, Users, FileText, CheckCircle2, XCircle, Download, HeartPulse, Info, Clock, AlertTriangle, ShieldCheck, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { utils, writeFile } from "xlsx";
 
 interface RekapResultViewProps {
   isGlobalRole: boolean;
+  isGuru?: boolean;
   filter: any;
   currentPage: number;
   setCurrentPage: (p: number) => void;
   mapels: any[];
   paginatedData: any[];
   rekapData: any[];
+  rekapDisiplinGuru?: {
+    totalSesi: number;
+    tepatWaktu: number;
+    terlambat: number;
+    terlaluCepat: number;
+    belumAdaStatus: number;
+    persenTepatWaktu: string;
+    sessionList: Array<{
+      jurnal_id: number;
+      tanggal: string;
+      pertemuan_ke: number;
+      status: 'Tepat Waktu' | 'Terlambat' | 'Terlalu Cepat' | 'Belum Ditentukan';
+      waktu_input: string;
+      guru_nama: string;
+      mapel_nama: string;
+      rentang_jam: string;
+      catatan?: string;
+    }>;
+  };
   totalPages: number;
   isLoading: boolean;
   isError: boolean;
@@ -31,12 +52,14 @@ interface RekapResultViewProps {
 
 export function RekapResultView({
   isGlobalRole,
+  isGuru,
   filter,
   currentPage,
   setCurrentPage,
   mapels,
   paginatedData,
   rekapData,
+  rekapDisiplinGuru,
   totalPages,
   isLoading,
   isError,
@@ -48,6 +71,7 @@ export function RekapResultView({
   onBackToKelas,
   onBackToLembaga
 }: RekapResultViewProps) {
+  const [showDisiplinDetails, setShowDisiplinDetails] = useState(false);
   const handleExportExcel = () => {
     const selectedMapelObj = mapels.find((m: any) => String(m.mapel_id) === String(filter.mapel_id));
     const mapelNama = selectedMapelObj ? selectedMapelObj.nama_mapel : "Semua Mapel";
@@ -120,9 +144,9 @@ export function RekapResultView({
               name="mapel_id"
               value={filter.mapel_id || ''}
               onChange={onFilterChange}
-              className="text-xs border-slate-200 rounded-lg focus:ring-blue-500 focus:border-blue-500 bg-white py-1.5 px-3"
+              className="text-xs border-slate-200 rounded-lg focus:ring-blue-500 focus:border-blue-500 bg-white py-1.5 px-3 font-medium text-slate-700"
             >
-              <option value="">Semua Mapel</option>
+              {!isGuru && <option value="">Semua Mapel</option>}
               {mapels.map((m: any) => (
                 <option key={m.mapel_id} value={m.mapel_id}>{m.nama_mapel}</option>
               ))}
@@ -201,6 +225,128 @@ export function RekapResultView({
           </div>
         </div>
       </div>
+
+      {/* Monitoring Kedisiplinan Guru Pengampu */}
+      {rekapDisiplinGuru && rekapDisiplinGuru.totalSesi > 0 && (
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
+          <div className="p-5 bg-gradient-to-r from-slate-900 to-indigo-950 text-white flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-[#FACC15]">
+                <Clock className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-base text-white">Monitoring Kedisiplinan Guru Pengampu</h3>
+                  <span className="text-[10px] uppercase font-extrabold tracking-wider bg-indigo-500/30 text-indigo-200 border border-indigo-400/40 px-2 py-0.5 rounded-md">
+                    Disiplin KBM
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 mt-0.5">
+                  Evaluasi ketepatan waktu pengisian absensi & jurnal mengajar terhadap jadwal kelas.
+                </p>
+              </div>
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowDisiplinDetails(!showDisiplinDetails)}
+              className="bg-white/10 hover:bg-white/20 text-white border-white/20 rounded-xl text-xs flex items-center gap-1.5 self-start md:self-auto cursor-pointer"
+            >
+              <span>{showDisiplinDetails ? "Sembunyikan Rincian" : "Lihat Rincian Sesi"}</span>
+              {showDisiplinDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </Button>
+          </div>
+
+          {/* Quick Metrics Bar */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-slate-100 bg-slate-50/70 border-b border-slate-100">
+            <div className="p-4 text-center">
+              <span className="text-xs font-semibold text-slate-500 block">Total Pertemuan</span>
+              <span className="text-lg font-bold text-slate-800 mt-0.5 block">{rekapDisiplinGuru.totalSesi} Sesi</span>
+            </div>
+            <div className="p-4 text-center bg-emerald-50/40">
+              <span className="text-xs font-semibold text-emerald-700 block">Tepat Waktu</span>
+              <div className="flex items-center justify-center gap-1.5 mt-0.5">
+                <span className="text-lg font-bold text-emerald-700">{rekapDisiplinGuru.tepatWaktu}</span>
+                <span className="text-xs font-semibold text-emerald-600">({rekapDisiplinGuru.persenTepatWaktu}%)</span>
+              </div>
+            </div>
+            <div className="p-4 text-center bg-rose-50/40">
+              <span className="text-xs font-semibold text-rose-700 block">Terlambat</span>
+              <span className="text-lg font-bold text-rose-700 mt-0.5 block">{rekapDisiplinGuru.terlambat} Sesi</span>
+            </div>
+            <div className="p-4 text-center bg-amber-50/40">
+              <span className="text-xs font-semibold text-amber-700 block">Terlalu Cepat</span>
+              <span className="text-lg font-bold text-amber-700 mt-0.5 block">{rekapDisiplinGuru.terlaluCepat} Sesi</span>
+            </div>
+          </div>
+
+          {/* Detailed Session History */}
+          {showDisiplinDetails && (
+            <div className="p-5 animate-in fade-in duration-200">
+              <div className="overflow-x-auto rounded-xl border border-slate-200">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-slate-100 text-slate-600 font-bold uppercase tracking-wider border-b border-slate-200">
+                    <tr>
+                      <th className="px-4 py-3">Pertemuan</th>
+                      <th className="px-4 py-3">Tanggal</th>
+                      <th className="px-4 py-3">Mata Pelajaran & Guru</th>
+                      <th className="px-4 py-3 text-center">Jadwal Kelas</th>
+                      <th className="px-4 py-3 text-center">Waktu Input</th>
+                      <th className="px-4 py-3 text-center">Status Kedisiplinan</th>
+                      <th className="px-4 py-3">Keterangan / Catatan</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {rekapDisiplinGuru.sessionList.map((session, idx) => (
+                      <tr key={session.jurnal_id || idx} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-4 py-3 font-bold text-slate-800 whitespace-nowrap">
+                          Pertemuan ke-{session.pertemuan_ke || idx + 1}
+                        </td>
+                        <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
+                          {session.tanggal}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="font-semibold text-slate-800">{session.mapel_nama}</div>
+                          <div className="text-slate-500 text-[11px]">{session.guru_nama}</div>
+                        </td>
+                        <td className="px-4 py-3 text-center font-medium text-slate-600 whitespace-nowrap">
+                          {session.rentang_jam} WIB
+                        </td>
+                        <td className="px-4 py-3 text-center font-mono font-medium text-slate-700 whitespace-nowrap">
+                          {session.waktu_input !== '-' ? `${session.waktu_input} WIB` : '-'}
+                        </td>
+                        <td className="px-4 py-3 text-center whitespace-nowrap">
+                          {session.status === 'Tepat Waktu' ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-bold text-[11px] bg-emerald-100 text-emerald-800 border border-emerald-300">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Tepat Waktu
+                            </span>
+                          ) : session.status === 'Terlambat' ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-bold text-[11px] bg-rose-100 text-rose-800 border border-rose-300">
+                              <XCircle className="w-3 h-3 text-rose-600" /> Terlambat
+                            </span>
+                          ) : session.status === 'Terlalu Cepat' ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-bold text-[11px] bg-amber-100 text-amber-800 border border-amber-300">
+                              <AlertTriangle className="w-3 h-3 text-amber-600" /> Terlalu Cepat
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] bg-slate-100 text-slate-600">
+                              {session.status}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-slate-500 text-[11px] max-w-xs truncate">
+                          {session.catatan || "-"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Data Table */}
       <div className="bg-white border border-gray-100 rounded-xl shadow-xs overflow-hidden">

@@ -98,11 +98,110 @@ export function useFormAbsensi({ selections, setCurrentStep }: UseFormAbsensiPro
         }
     }, [siswas, existingJurnalData, isLoadingExistingJurnal]);
 
+    // Fetch info jam akademik jadwal untuk perhitungan kedisiplinan guru
+    const { data: jadwalTimeInfoList = [] } = useQuery({
+        queryKey: ['kbm', 'jadwal-time-info', selections.jadwal_ids],
+        queryFn: async () => {
+            if (!selections.jadwal_ids || selections.jadwal_ids.length === 0) return [];
+            const { restClient } = await import('@/lib/api/axios');
+            try {
+                const res = await restClient.get('/jadwal_pelajaran', {
+                    params: {
+                        jadwal_id: `in.(${selections.jadwal_ids.join(',')})`,
+                        select: 'jadwal_id,hari,jam_mulai:jam_akademik!jam_mulai_id(jam_mulai,jam_selesai,urutan_jam),jam_selesai:jam_akademik!jam_selesai_id(jam_mulai,jam_selesai,urutan_jam)'
+                    }
+                });
+                return res.data || [];
+            } catch (_) {
+                return [];
+            }
+        },
+        enabled: !!selections.jadwal_ids && selections.jadwal_ids.length > 0
+    });
+
+    // Helper untuk menghitung status disiplin
+    const getDisiplinStatus = () => {
+        const formatter = new Intl.DateTimeFormat('en-GB', {
+            timeZone: 'Asia/Jakarta',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        });
+        const currentTime = formatter.format(new Date()).replace(/\./g, ':');
+
+        const startTimes: string[] = [];
+        const endTimes: string[] = [];
+
+        jadwalTimeInfoList.forEach((j: any) => {
+            if (j.jam_mulai?.jam_mulai) startTimes.push(j.jam_mulai.jam_mulai);
+            if (j.jam_selesai?.jam_selesai) {
+                endTimes.push(j.jam_selesai.jam_selesai);
+            } else if (j.jam_mulai?.jam_selesai) {
+                endTimes.push(j.jam_mulai.jam_selesai);
+            }
+        });
+
+        if (startTimes.length === 0 || endTimes.length === 0) {
+            return {
+                status: 'Tepat Waktu' as const,
+                keterangan: `Absensi dilakukan pukul ${currentTime.substring(0, 5)} WIB`,
+                jamMulai: null,
+                jamSelesai: null,
+                jamInput: currentTime.substring(0, 5)
+            };
+        }
+
+        startTimes.sort();
+        endTimes.sort();
+
+        const earliestStart = startTimes[0];
+        const latestEnd = endTimes[endTimes.length - 1];
+
+        const toMinutes = (t: string) => {
+            const [h, m] = t.split(':').map(Number);
+            return (h || 0) * 60 + (m || 0);
+        };
+
+        const currentMin = toMinutes(currentTime);
+        const startMin = toMinutes(earliestStart);
+        const endMin = toMinutes(latestEnd);
+
+        const startDisplay = earliestStart.substring(0, 5);
+        const endDisplay = latestEnd.substring(0, 5);
+        const currentDisplay = currentTime.substring(0, 5);
+
+        let status: 'Tepat Waktu' | 'Terlambat' | 'Terlalu Cepat' = 'Tepat Waktu';
+        let keterangan = '';
+
+        if (currentMin < startMin) {
+            status = 'Terlalu Cepat';
+            keterangan = `Absensi dilakukan pukul ${currentDisplay} WIB (Sebelum jadwal mulai ${startDisplay})`;
+        } else if (currentMin > endMin) {
+            status = 'Terlambat';
+            keterangan = `Absensi dilakukan pukul ${currentDisplay} WIB (Melewati jadwal selesai ${endDisplay})`;
+        } else {
+            status = 'Tepat Waktu';
+            keterangan = `Absensi dilakukan pukul ${currentDisplay} WIB (Sesuai jadwal ${startDisplay} - ${endDisplay})`;
+        }
+
+        return {
+            status,
+            keterangan,
+            jamMulai: startDisplay,
+            jamSelesai: endDisplay,
+            jamInput: currentDisplay
+        };
+    };
+
     const submitMutation = useMutation({
         mutationFn: async () => {
             if (!selections.jadwal_ids || selections.jadwal_ids.length === 0 || !selections.pertemuan) {
                 throw new Error("Data Jadwal atau Pertemuan tidak lengkap.");
             }
+
+            // Hitung status kedisiplinan guru saat absensi disubmit
+            const disiplin = getDisiplinStatus();
 
             // 1. Resolve detail_id RPP yang valid untuk pertemuan ini
             let actualDetailId: number | undefined = undefined;
@@ -158,10 +257,6 @@ export function useFormAbsensi({ selections, setCurrentStep }: UseFormAbsensiPro
                 }
             }
 
-            // Percobaan D dihapus — fallback getAllLessonPlans saat submit
-            // menyebabkan statement timeout (query berat saat save).
-            // Percobaan A, B, C sudah cukup sebagai fallback.
-
             const todayDate = new Date().toISOString().split('T')[0];
             const formatter = new Intl.DateTimeFormat('en-GB', {
                 timeZone: 'Asia/Jakarta',
@@ -196,6 +291,7 @@ export function useFormAbsensi({ selections, setCurrentStep }: UseFormAbsensiPro
                     lesson_plan_detail_id: finalDetailId,
                     pertemuan_ke: selections.pertemuan,
                     tanggal: primaryJurnal.tanggal || todayDate,
+                    status: disiplin.status,
                     catatan_tambahan: catatan.trim()
                 });
 
@@ -220,6 +316,7 @@ export function useFormAbsensi({ selections, setCurrentStep }: UseFormAbsensiPro
                     lesson_plan_detail_id: finalDetailId,
                     pertemuan_ke: selections.pertemuan,
                     tanggal: todayDate,
+                    status: disiplin.status,
                     catatan_tambahan: catatan.trim()
                 });
                 jurnalId = jurnalResponse.jurnal_id;
@@ -251,11 +348,15 @@ export function useFormAbsensi({ selections, setCurrentStep }: UseFormAbsensiPro
             await Promise.all(absensiPromises);
         },
         onSuccess: () => {
-            toast.success("Absensi dan Jurnal berhasil disimpan!");
+            const disiplin = getDisiplinStatus();
+            toast.success(`Absensi berhasil disimpan! Status Kedisiplinan: ${disiplin.status}`, {
+                description: disiplin.keterangan
+            });
             queryClient.invalidateQueries({ queryKey: ['kbm', 'jurnals-index'] });
             queryClient.invalidateQueries({ queryKey: ['kbm', 'jurnal_monitoring'] });
             queryClient.invalidateQueries({ queryKey: ['kbm', 'absensi'] });
             queryClient.invalidateQueries({ queryKey: ['kbm', 'existing-jurnal'] });
+            queryClient.invalidateQueries({ queryKey: ['kbm', 'rekap-jurnals-raw'] });
             setCurrentStep(1);
         },
         onError: (error: any) => {
@@ -270,6 +371,7 @@ export function useFormAbsensi({ selections, setCurrentStep }: UseFormAbsensiPro
 
     // Pertemuan hanya terkunci jika data absensi SUDAH DIISI (ada minimal 1 data absensi)
     const isEditMode = !!(existingJurnalData?.jurnal && existingJurnalData.absensiList && existingJurnalData.absensiList.length > 0);
+    const disiplinInfo = getDisiplinStatus();
 
     return {
         absensiMap,
@@ -278,6 +380,7 @@ export function useFormAbsensi({ selections, setCurrentStep }: UseFormAbsensiPro
         siswas,
         isLoading,
         isEditMode,
+        disiplinInfo,
         canCreate,
         canUpdate,
         submitMutation,

@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, ArrowLeft, Lock, PlusCircle } from "lucide-react";
+import { Loader2, ArrowLeft, Lock, PlusCircle, Clock } from "lucide-react";
 import type { AbsensiState } from "../Index";
 import { useFormAbsensi } from "../hooks/useFormAbsensi";
 
@@ -17,6 +17,7 @@ export default function FormAbsensi({ selections, setCurrentStep }: FormAbsensiP
         siswas,
         isLoading,
         isEditMode,
+        disiplinInfo,
         canCreate,
         canUpdate,
         submitMutation,
@@ -52,6 +53,31 @@ export default function FormAbsensi({ selections, setCurrentStep }: FormAbsensiP
                             <Lock className="w-3.5 h-3.5" /> Pertemuan ini sudah selesai dilakukan dan otomatis terkunci. Data tidak dapat diedit kembali.
                         </p>
                     )}
+
+                    {/* Status Kedisiplinan Guru */}
+                    <div className={`mt-3 p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs ${
+                        disiplinInfo.status === 'Tepat Waktu' ? 'bg-emerald-50/80 border-emerald-200 text-emerald-900' :
+                        disiplinInfo.status === 'Terlambat' ? 'bg-rose-50/80 border-rose-200 text-rose-900' :
+                        'bg-amber-50/80 border-amber-200 text-amber-900'
+                    }`}>
+                        <div className="flex items-center gap-2.5">
+                            <Clock className={`w-4 h-4 shrink-0 ${
+                                disiplinInfo.status === 'Tepat Waktu' ? 'text-emerald-600' :
+                                disiplinInfo.status === 'Terlambat' ? 'text-rose-600' : 'text-amber-600'
+                            }`} />
+                            <div>
+                                <span className="font-bold">Status Waktu Input: </span>
+                                <span>{disiplinInfo.keterangan}</span>
+                            </div>
+                        </div>
+                        <span className={`px-2.5 py-1 rounded-full font-bold text-xs shrink-0 self-start sm:self-auto border ${
+                            disiplinInfo.status === 'Tepat Waktu' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
+                            disiplinInfo.status === 'Terlambat' ? 'bg-rose-100 text-rose-800 border-rose-300' :
+                            'bg-amber-100 text-amber-800 border-amber-300'
+                        }`}>
+                            {disiplinInfo.status}
+                        </span>
+                    </div>
                 </div>
             </div>
 

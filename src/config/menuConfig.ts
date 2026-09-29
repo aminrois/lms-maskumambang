@@ -48,7 +48,7 @@ export const allMenuGroups: MenuGroup[] = [
     items: [
       { name: "Lembaga", icon: Building, path: "/master-data/lembaga", allowedRoles: ['Super Admin', 'Direktur'], color: "emerald" },
       { name: "Kelas", icon: Book, path: "/master-data/kelas", allowedRoles: ['Super Admin', 'Direktur', 'Kepala Sekolah', 'WaKa Kurikulum', 'Admin Lembaga'], color: "rose" },
-      { name: "Siswa", icon: GraduationCap, path: "/master-data/siswa", allowedRoles: ['Super Admin', 'Direktur', 'WaKa Kurikulum', 'Admin Lembaga'], color: "cyan" },
+      { name: "Siswa", icon: GraduationCap, path: "/master-data/siswa", allowedRoles: ['Super Admin', 'Direktur', 'Kepala Sekolah', 'WaKa Kurikulum', 'Admin Lembaga'], color: "cyan" },
       { name: "Pegawai", icon: User, path: "/master-data/pegawai", allowedRoles: ['Super Admin', 'Direktur', 'Kepala Sekolah', 'WaKa Kurikulum', 'Admin Lembaga'], color: "purple" },
       { name: "Wali Murid", icon: User, path: "/master-data/wali-murid", allowedRoles: ['Super Admin', 'Direktur', 'Admin Lembaga'], color: "indigo" },
       { name: "Tahun Ajaran", icon: CalendarDays, path: "/master-data/tahun-ajaran", allowedRoles: ['Super Admin'], color: "pink" },

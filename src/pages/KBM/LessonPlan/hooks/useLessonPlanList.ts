@@ -284,6 +284,12 @@ export function useLessonPlanList() {
 
   const executeVerify = async (action: "Disetujui" | "Revisi") => {
     if (!selectedPlan) return;
+    if ((role === "Direktur" || role === "Super Admin") && selectedPlan.status_verifikasi_kepsek !== "Disetujui" && action === "Disetujui") {
+      toast.error("RPP ini belum disetujui oleh Kepala Sekolah. Kepala Sekolah harus memverifikasi terlebih dahulu.");
+      setIsApproveModalOpen(false);
+      return;
+    }
+
     setIsVerifying(true);
     try {
       if (role === "Kepala Sekolah") {
@@ -292,7 +298,7 @@ export function useLessonPlanList() {
           p_action: action,
           p_catatan_revisi: action === "Revisi" ? revisiNote : "",
         });
-      } else if (role === "Direktur") {
+      } else if (role === "Direktur" || role === "Super Admin") {
         await verifyLessonPlanDirektur({
           p_lesson_plan_id: selectedPlan.lesson_plan_id,
           p_action: action,
@@ -309,6 +315,7 @@ export function useLessonPlanList() {
       }
 
       queryClient.invalidateQueries({ queryKey: Array.from(QUERY_KEY) });
+      queryClient.invalidateQueries({ queryKey: ['kbm', 'absensi'] });
     } catch (error) {
       console.error(error);
       toast.error("Gagal memproses verifikasi. Silakan coba lagi.");
@@ -332,6 +339,12 @@ export function useLessonPlanList() {
     if (!selectedDetailForVerify) return;
     const { plan, detail } = selectedDetailForVerify;
 
+    if ((role === "Direktur" || role === "Super Admin") && detail.status_verifikasi_kepsek !== "Disetujui" && action === "Disetujui") {
+      toast.error(`Pertemuan Ke-${detail.pertemuan_ke} belum disetujui oleh Kepala Sekolah. Verifikasi Kepala Sekolah diperlukan terlebih dahulu.`);
+      setIsDetailApproveModalOpen(false);
+      return;
+    }
+
     setIsVerifyingDetail(true);
     try {
       let detailId = detail.detail_id;
@@ -345,10 +358,10 @@ export function useLessonPlanList() {
           isi: detail.isi || null,
           status_verifikasi_kepsek: role === "Kepala Sekolah" ? action : "Menunggu Verifikasi",
           catatan_revisi_kepsek: role === "Kepala Sekolah" && action === "Revisi" ? detailRevisiNote : "",
-          status_verifikasi_direktur: role === "Direktur" ? action : "Menunggu Verifikasi",
-          catatan_revisi_direktur: role === "Direktur" && action === "Revisi" ? detailRevisiNote : "",
+          status_verifikasi_direktur: role === "Direktur" || role === "Super Admin" ? action : "Menunggu Verifikasi",
+          catatan_revisi_direktur: (role === "Direktur" || role === "Super Admin") && action === "Revisi" ? detailRevisiNote : "",
           verified_by_kepsek: role === "Kepala Sekolah" ? (pegawai_id || null) : null,
-          verified_by_direktur: role === "Direktur" ? (pegawai_id || null) : null,
+          verified_by_direktur: role === "Direktur" || role === "Super Admin" ? (pegawai_id || null) : null,
         });
         detailId = created.detail_id;
       } else {
@@ -369,6 +382,30 @@ export function useLessonPlanList() {
         }
       }
 
+      // Cek dan sinkronkan status parent Lesson Plan jika semua detail sudah disetujui
+      try {
+        const allDetails = await getLessonPlanDetails({ lesson_plan_id: `eq.${plan.lesson_plan_id}` });
+        const allKepsekOk = allDetails.length > 0 && allDetails.every(d => 
+          (d.detail_id === detailId ? (role === "Kepala Sekolah" ? action === "Disetujui" : d.status_verifikasi_kepsek === "Disetujui") : d.status_verifikasi_kepsek === "Disetujui")
+        );
+        const allDirekturOk = allDetails.length > 0 && allDetails.every(d => 
+          (d.detail_id === detailId ? (role === "Direktur" || role === "Super Admin" ? action === "Disetujui" : d.status_verifikasi_direktur === "Disetujui") : d.status_verifikasi_direktur === "Disetujui")
+        );
+
+        if (allKepsekOk && allDirekturOk) {
+          await restClient.patch(`/lesson_plan?lesson_plan_id=eq.${plan.lesson_plan_id}`, {
+            status_verifikasi_kepsek: "Disetujui",
+            status_verifikasi_direktur: "Disetujui",
+          });
+        } else if (allKepsekOk) {
+          await restClient.patch(`/lesson_plan?lesson_plan_id=eq.${plan.lesson_plan_id}`, {
+            status_verifikasi_kepsek: "Disetujui",
+          });
+        }
+      } catch (syncErr) {
+        console.warn("Gagal sinkronisasi parent status RPP:", syncErr);
+      }
+
       if (action === "Disetujui") {
         toast.success(`Pertemuan Ke-${detail.pertemuan_ke} telah disetujui.`);
         setIsDetailApproveModalOpen(false);
@@ -378,6 +415,7 @@ export function useLessonPlanList() {
       }
 
       queryClient.invalidateQueries({ queryKey: Array.from(QUERY_KEY) });
+      queryClient.invalidateQueries({ queryKey: ['kbm', 'absensi'] });
     } catch (error) {
       console.error(error);
       toast.error("Gagal memproses verifikasi pertemuan. Silakan coba lagi.");
@@ -396,7 +434,8 @@ export function useLessonPlanList() {
         return plan.status_verifikasi_kepsek !== "Disetujui";
       }
       if (role === "Direktur" || role === "Super Admin") {
-        return plan.status_verifikasi_direktur !== "Disetujui" || plan.status_verifikasi_kepsek !== "Disetujui";
+        // Direktur hanya menyetujui yang SUDAH disetujui Kepsek, dan BELUM disetujui Direktur
+        return plan.status_verifikasi_kepsek === "Disetujui" && plan.status_verifikasi_direktur !== "Disetujui";
       }
       return false;
     });
@@ -404,7 +443,7 @@ export function useLessonPlanList() {
 
   const handleOpenSetujuiSemua = () => {
     if (eligiblePlansToApprove.length === 0) {
-      toast.info("Seluruh Lesson Plan (RPP) sudah berstatus Disetujui.");
+      toast.info("Seluruh Lesson Plan (RPP) yang memenuhi syarat sudah berstatus Disetujui.");
       return;
     }
     setIsApproveAllModalOpen(true);
@@ -421,8 +460,9 @@ export function useLessonPlanList() {
         lesson_plan_ids: planIds,
       });
 
-      toast.success(res.message || `Berhasil menyetujui ${planIds.length} Lesson Plan beserta seluruh pertemuannya!`);
+      toast.success(res.message || `Berhasil menyetujui ${planIds.length} Lesson Plan!`);
       queryClient.invalidateQueries({ queryKey: Array.from(QUERY_KEY) });
+      queryClient.invalidateQueries({ queryKey: ['kbm', 'absensi'] });
       setIsApproveAllModalOpen(false);
     } catch (error: any) {
       console.error("Gagal menyetujui semua RPP:", error);

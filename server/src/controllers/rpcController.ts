@@ -422,18 +422,23 @@ export const bulkVerifyLessonPlans = async (req: AuthRequest, res: Response, nex
         verifiedCount: planIds.length
       });
     } else {
-      // Direktur atau Super Admin menyetujui RPP (dan memastikan status kepsek & direktur Disetujui)
+      // Direktur atau Super Admin HANYA menyetujui RPP dan detail yang SUDAH disetujui oleh Kepala Sekolah
       const plans = await prisma.lessonPlan.findMany({
-        where: planWhere,
+        where: {
+          ...planWhere,
+          status_verifikasi_kepsek: 'Disetujui',
+        },
         select: { lesson_plan_id: true }
       });
       const planIds = plans.map(p => p.lesson_plan_id);
 
       if (planIds.length > 0) {
         await prisma.lessonPlanDetail.updateMany({
-          where: { lesson_plan_id: { in: planIds } },
-          data: {
+          where: {
+            lesson_plan_id: { in: planIds },
             status_verifikasi_kepsek: 'Disetujui',
+          },
+          data: {
             status_verifikasi_direktur: 'Disetujui',
             catatan_revisi_direktur: '',
             verified_by_direktur: pegawaiId,
@@ -441,9 +446,11 @@ export const bulkVerifyLessonPlans = async (req: AuthRequest, res: Response, nex
         });
 
         await prisma.lessonPlan.updateMany({
-          where: { lesson_plan_id: { in: planIds } },
-          data: {
+          where: {
+            lesson_plan_id: { in: planIds },
             status_verifikasi_kepsek: 'Disetujui',
+          },
+          data: {
             status_verifikasi_direktur: 'Disetujui',
             catatan_revisi_direktur: '',
             verified_by_direktur: pegawaiId,
@@ -453,7 +460,7 @@ export const bulkVerifyLessonPlans = async (req: AuthRequest, res: Response, nex
 
       res.json({
         success: true,
-        message: `Berhasil menyetujui ${planIds.length} Lesson Plan dari sisi Direktur.`,
+        message: `Berhasil menyetujui ${planIds.length} Lesson Plan yang telah disetujui Kepala Sekolah.`,
         verifiedCount: planIds.length
       });
     }

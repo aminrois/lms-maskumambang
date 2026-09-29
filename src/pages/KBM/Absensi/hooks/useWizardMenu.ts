@@ -47,6 +47,19 @@ export function isLPForSubjectAndClass(lpTitleRaw: string, mapelNamaRaw: string,
     return true;
 }
 
+function isLessonPlanOrDetailVerified(lp: any): boolean {
+    if (!lp) return false;
+    if (lp.status_verifikasi_kepsek === 'Disetujui' && lp.status_verifikasi_direktur === 'Disetujui') {
+        return true;
+    }
+    if (Array.isArray(lp.lesson_plan_detail) && lp.lesson_plan_detail.some((d: any) => 
+        d.status_verifikasi_kepsek === 'Disetujui' && d.status_verifikasi_direktur === 'Disetujui'
+    )) {
+        return true;
+    }
+    return false;
+}
+
 interface UseWizardMenuProps {
     currentStep: number;
     setCurrentStep: (step: number) => void;
@@ -62,7 +75,7 @@ export function useWizardMenu({ currentStep, setCurrentStep, selections }: UseWi
 
     // 1. Fetch Jadwal Mengajar & validasi lesson plan guru lain (Rule 1)
     const { data: sesiList = [], isLoading: isLoadingJadwal } = useQuery({
-        queryKey: ['kbm', 'absensi', 'jadwals_v6', role, pegawai_id, lembaga_id],
+        queryKey: ['kbm', 'absensi', 'jadwals_v7', role, pegawai_id, lembaga_id],
         queryFn: async () => {
             const isGlobalRole = ['Super Admin', 'Direktur', 'Admin Lembaga', 'WaKa Kurikulum'].includes(role || '');
             const params: Record<string, string> = { select: "jadwal_id,hari,pegawai_id,kelas:kelas_id(kelas_id,nama_kelas,lembaga_id),mapel:mapel_id(mapel_id,nama_mapel),jam_mulai:jam_akademik!jam_mulai_id(urutan_jam,jam_mulai)" };
@@ -72,7 +85,7 @@ export function useWizardMenu({ currentStep, setCurrentStep, selections }: UseWi
             }
 
             const lpParams: Record<string, any> = {
-                select: "lesson_plan_id,pegawai_id,jadwal_id,judul_rpp,status_verifikasi_kepsek,status_verifikasi_direktur,lesson_plan_detail(detail_id,pertemuan_ke)",
+                select: "lesson_plan_id,pegawai_id,jadwal_id,judul_rpp,status_verifikasi_kepsek,status_verifikasi_direktur,lesson_plan_detail(detail_id,pertemuan_ke,status_verifikasi_kepsek,status_verifikasi_direktur)",
                 limit: 5000
             };
             if (!isGlobalRole && pegawai_id) {
@@ -97,17 +110,12 @@ export function useWizardMenu({ currentStep, setCurrentStep, selections }: UseWi
                 });
 
                 const userHasVerified = matchedForJ.some((lp: any) =>
-                    (isGlobalRole || Number(lp.pegawai_id) === Number(pegawai_id)) &&
-                    lp.status_verifikasi_kepsek === 'Disetujui' && lp.status_verifikasi_direktur === 'Disetujui'
+                    (isGlobalRole || Number(lp.pegawai_id) === Number(pegawai_id)) && isLessonPlanOrDetailVerified(lp)
                 );
 
-                const hasAnyVerified = matchedForJ.some((lp: any) =>
-                    lp.status_verifikasi_kepsek === 'Disetujui' && lp.status_verifikasi_direktur === 'Disetujui'
-                );
+                const hasAnyVerified = matchedForJ.some((lp: any) => isLessonPlanOrDetailVerified(lp));
 
-                const hasAnyUnverified = matchedForJ.some((lp: any) =>
-                    lp.status_verifikasi_kepsek !== 'Disetujui' || lp.status_verifikasi_direktur !== 'Disetujui'
-                );
+                const hasAnyUnverified = matchedForJ.some((lp: any) => !isLessonPlanOrDetailVerified(lp));
 
                 return {
                     ...j,
@@ -171,7 +179,7 @@ export function useWizardMenu({ currentStep, setCurrentStep, selections }: UseWi
 
                 // Gunakan allLPs dari closure query di atas
                 const matchedLPs = (allLPs || []).filter((lp: any) => {
-                    const isDisetujui = lp.status_verifikasi_kepsek === 'Disetujui' && lp.status_verifikasi_direktur === 'Disetujui';
+                    const isDisetujui = isLessonPlanOrDetailVerified(lp);
                     if (!isDisetujui) return false;
 
                     if (!isGlobalRole && Number(lp.pegawai_id) !== Number(pegawai_id)) return false;
@@ -210,22 +218,19 @@ export function useWizardMenu({ currentStep, setCurrentStep, selections }: UseWi
     // 2. Fetch all verified Lesson Plans — dipisah agar bisa di-share dengan sesiList query via cache
     // PENTING: queryKey sama dengan yang di dalam sesiList agar TanStack Query dapat meng-cache-nya
     const { data: allLessonPlans = [], isLoading: isLoadingLP } = useQuery({
-        queryKey: ['kbm', 'absensi', 'all_lesson_plans_v5', role, pegawai_id],
+        queryKey: ['kbm', 'absensi', 'all_lesson_plans_v7', role, pegawai_id],
         queryFn: async () => {
-            // Filter di DB langsung: hanya LP yang sudah disetujui penuh
-            // dan milik pegawai ini (kecuali global role)
             const isGlobalRole = ['Super Admin', 'Direktur', 'Admin Lembaga', 'WaKa Kurikulum'].includes(role || '');
             const params: Record<string, any> = {
-                select: "lesson_plan_id,pegawai_id,judul_rpp,status_verifikasi_kepsek,status_verifikasi_direktur,lesson_plan_detail(detail_id,pertemuan_ke)",
-                status_verifikasi_kepsek: "eq.Disetujui",
-                status_verifikasi_direktur: "eq.Disetujui",
+                select: "lesson_plan_id,pegawai_id,judul_rpp,status_verifikasi_kepsek,status_verifikasi_direktur,lesson_plan_detail(detail_id,pertemuan_ke,status_verifikasi_kepsek,status_verifikasi_direktur)",
                 order: "lesson_plan_id.desc",
                 limit: 1000,
             };
             if (!isGlobalRole && pegawai_id) {
                 params.pegawai_id = `eq.${pegawai_id}`;
             }
-            return await getLessonPlans(params);
+            const res = await getLessonPlans(params);
+            return (res || []).filter((lp: any) => isLessonPlanOrDetailVerified(lp));
         }
     });
 

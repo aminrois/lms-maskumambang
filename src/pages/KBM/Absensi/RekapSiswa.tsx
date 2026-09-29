@@ -18,6 +18,7 @@ export default function RekapSiswa() {
     isKelasGuruLoading,
     mapels,
     rekapData,
+    rekapDisiplinGuru,
     paginatedData,
     totalPages,
     isLoading,
@@ -57,12 +58,14 @@ export default function RekapSiswa() {
       {step === 'display_results' && (
         <RekapResultView
           isGlobalRole={isGlobalRole}
+          isGuru={isGuru}
           filter={filter}
           currentPage={currentPage}
           setCurrentPage={setCurrentPage}
           mapels={mapels}
           paginatedData={paginatedData}
           rekapData={rekapData}
+          rekapDisiplinGuru={rekapDisiplinGuru}
           totalPages={totalPages}
           isLoading={isLoading}
           isError={isError}

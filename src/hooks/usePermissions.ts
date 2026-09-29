@@ -25,10 +25,10 @@ export const permissionsMap: Record<string, Partial<Record<ResourcePage, Permiss
     pengguna: r, role: r, user_role: r, lembaga: crud, siswa: crud, pegawai: crud, kelas: crud, mata_pelajaran: r, jam_akademik: r, jadwal_pelajaran: r, lesson_plan: rv, jurnal_mengajar: r, absensi_pelajaran: r, kalender_akademik: crud, activity_plan: rv, 'wali-murid': crud, tahfidz_pengampu: crud, tahfidz_setoran: crud, tahfidz_target: crud
   },
   'Kepala Sekolah': {
-    role: r, lembaga: r, pegawai: ru, kelas: r, jam_akademik: r, jadwal_pelajaran: r, lesson_plan: crudv, jurnal_mengajar: crud, absensi_pelajaran: crud, kalender_akademik: r, activity_plan: crud, tahfidz_setoran: r, tahfidz_target: r
+    role: r, lembaga: r, siswa: r, pegawai: ru, kelas: r, jam_akademik: r, jadwal_pelajaran: r, lesson_plan: crudv, jurnal_mengajar: crud, absensi_pelajaran: crud, kalender_akademik: r, activity_plan: crud, tahfidz_setoran: r, tahfidz_target: r
   },
   'WaKa Kurikulum': {
-    role: r, lembaga: r, siswa: crud, pegawai: r, kelas: r, mata_pelajaran: crud, jam_akademik: crud, jadwal_pelajaran: crud, lesson_plan: crud, jurnal_mengajar: crud, absensi_pelajaran: crud, kalender_akademik: r, tahfidz_setoran: r, tahfidz_target: r
+    role: r, lembaga: r, siswa: r, pegawai: r, kelas: r, mata_pelajaran: crud, jam_akademik: crud, jadwal_pelajaran: crud, lesson_plan: crud, jurnal_mengajar: crud, absensi_pelajaran: crud, kalender_akademik: r, tahfidz_setoran: r, tahfidz_target: r
   },
   'Admin Lembaga': {
     pengguna: crud, role: r, user_role: crud, lembaga: r, siswa: crud, pegawai: r, 'wali-murid': crud, kelas: r, mata_pelajaran: crud, jam_akademik: r, jadwal_pelajaran: r, kalender_akademik: r, tahfidz_pengampu: crud, tahfidz_setoran: crud, tahfidz_target: crud
