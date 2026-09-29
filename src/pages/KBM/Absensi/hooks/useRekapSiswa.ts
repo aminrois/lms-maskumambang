@@ -145,10 +145,10 @@ export function useRekapSiswa() {
   });
 
   // 2. Fetch Jurnals and Absensi Pelajaran raw data for the class and date range
-  const { data: rawJurnalsData = [], isLoading: isAbsensiLoading, isError: isAbsensiError } = useQuery({
+  const { data: rawJurnalsData = { jurnals: [], absensi: [] }, isLoading: isAbsensiLoading, isError: isAbsensiError } = useQuery<{ jurnals: any[]; absensi: any[] }>({
     queryKey: ['kbm', 'rekap-absensi-raw', filter.kelas_id, filter.mapel_id, filter.tanggal_mulai, filter.tanggal_akhir],
     queryFn: async () => {
-      if (!filter.kelas_id) return [];
+      if (!filter.kelas_id) return { jurnals: [], absensi: [] };
       
       let url = `/jurnal_mengajar?select=jurnal_id,tanggal,status,catatan_tambahan,pertemuan_ke,jadwal_pelajaran!inner(jadwal_id,kelas_id,mapel_id,pegawai_id,hari,mapel:mapel_id(nama_mapel),pegawai:pegawai_id(nama_lengkap),jam_mulai:jam_akademik!jam_mulai_id(jam_mulai,jam_selesai),jam_selesai:jam_akademik!jam_selesai_id(jam_mulai,jam_selesai))`;
       url += `&jadwal_pelajaran.kelas_id=eq.${filter.kelas_id}`;

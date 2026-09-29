@@ -23,7 +23,7 @@ export default function SiswaTable({
   paginatedData,
   currentPage,
   itemsPerPage,
-  canUpdate,
+  canUpdate: _canUpdate,
   canDelete,
   isBulkMode = false,
   selectedIds = [],
@@ -72,7 +72,7 @@ export default function SiswaTable({
     const startX = e.clientX;
     const startWidth = colWidths[index];
     const containerWidth = containerRef.current?.clientWidth || window.innerWidth;
-    const aksiWidth = (canUpdate || canDelete) ? 160 : 0;
+    const aksiWidth = 140;
     const checkboxWidth = isBulkMode ? 48 : 0;
     const noWidth = 50;
 
@@ -139,7 +139,7 @@ export default function SiswaTable({
     { label: "Lembaga", alignment: "text-center" },
     { label: "Wali Murid", alignment: "text-left" },
     { label: "Status", alignment: "text-left" },
-    ...((canUpdate || canDelete) ? [{ label: "Aksi", alignment: "text-center" }] : [])
+    { label: "Aksi", alignment: "text-center" }
   ];
 
   const totalWidth = colWidths.slice(0, headers.length).reduce((sum, w) => sum + w, 0) + (isBulkMode ? 48 : 0);
@@ -274,29 +274,27 @@ export default function SiswaTable({
                           {siswa.status}
                         </span>
                       </td>
-                      {(canUpdate || canDelete) && (
-                        <td className={`px-6 py-4 text-center truncate sticky right-0 z-30 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)] ${stickyBg}`}>
-                          <div className="flex items-center justify-center gap-1.5">
+                      <td className={`px-6 py-4 text-center truncate sticky right-0 z-30 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)] ${stickyBg}`}>
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            onClick={() => onDetail(siswa)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors shadow-2xs"
+                            title="Lihat Detail"
+                          >
+                            <Eye className="w-4 h-4" />
+                            Lihat
+                          </button>
+                          {canDelete && (
                             <button
-                              onClick={() => onDetail(siswa)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors shadow-2xs"
-                              title="Lihat Detail"
+                              onClick={() => onDelete(siswa)}
+                              className="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors shadow-2xs"
+                              title="Hapus Siswa"
                             >
-                              <Eye className="w-4 h-4" />
-                              Lihat
+                              <Trash2 className="w-4 h-4" />
                             </button>
-                            {canDelete && (
-                              <button
-                                onClick={() => onDelete(siswa)}
-                                className="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors shadow-2xs"
-                                title="Hapus Siswa"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      )}
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   );
                 })

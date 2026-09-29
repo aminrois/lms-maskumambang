@@ -607,6 +607,7 @@ export interface JURNAL_MENGAJAR_CREATE {
   jadwal_id: number;
   lesson_plan_detail_id?: number;
   pertemuan_ke: number;
+  status?: string;
   tanggal: string;
   catatan_tambahan?: string;
 }
@@ -615,7 +616,7 @@ export interface JURNAL_MENGAJAR_UPDATE {
   jadwal_id?: number;
   lesson_plan_detail_id?: number;
   pertemuan_ke?: number;
-  status?: 'Tertinggal' | 'Sesuai' | 'Terlalu Cepat';
+  status?: string;
   tanggal?: string;
   catatan_tambahan?: string;
 }
