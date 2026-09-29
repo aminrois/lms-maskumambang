@@ -11,6 +11,7 @@ interface UseFormAbsensiHarianProps {
 
 export function useFormAbsensiHarian({ selections }: UseFormAbsensiHarianProps) {
     const [absensiMap, setAbsensiMap] = useState<Record<number, 'Hadir' | 'Sakit' | 'Izin' | 'Alpha' | 'Dispen'>>({});
+    const [isLocked, setIsLocked] = useState(false);
     const queryClient = useQueryClient();
 
     // Fetch daftar siswa
@@ -74,6 +75,18 @@ export function useFormAbsensiHarian({ selections }: UseFormAbsensiHarianProps) 
         }
     }, [siswas, existingAbsensi]);
 
+    // Otomatis lock jika data hari ini sudah ada di database
+    useEffect(() => {
+      if (existingAbsensi.length > 0) {
+        setIsLocked(true);
+      }
+    }, [existingAbsensi]);
+
+    // Reset lock saat kelas atau tanggal berubah
+    useEffect(() => {
+      setIsLocked(false);
+    }, [selections.kelas_id, selections.tanggal]);
+
     const handleStatusChange = (siswaId: number, status: any) => {
         setAbsensiMap(prev => ({ ...prev, [siswaId]: status }));
     };
@@ -94,6 +107,7 @@ export function useFormAbsensiHarian({ selections }: UseFormAbsensiHarianProps) 
         },
         onSuccess: () => {
             toast.success("Data absensi harian berhasil disimpan!");
+            setIsLocked(true); // Kunci form setelah berhasil disimpan
             queryClient.invalidateQueries({ queryKey: ['kbm', 'absensi_harian'] });
         },
         onError: (err: any) => {
@@ -106,6 +120,8 @@ export function useFormAbsensiHarian({ selections }: UseFormAbsensiHarianProps) 
         siswas,
         isLoading: isLoadingSiswa || isLoadingAbsensi,
         absensiMap,
+        isLocked,
+        setIsLocked,
         handleStatusChange,
         submitMutation
     };

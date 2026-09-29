@@ -224,17 +224,22 @@ export function useLessonPlanList() {
       // Filter berdasarkan lembaga: gunakan jalur jadwal_id → kelas → lembaga_id
       // agar konsisten dengan Satuan Pendidikan yang ditampilkan di halaman edit pertemuan.
       // Berlaku untuk semua role yang memiliki lembaga_id (kecuali Direktur & Super Admin).
-      // Filter berdasarkan lembaga: gunakan jalur jadwal_id → kelas → lembaga_id
-      // agar konsisten dengan Satuan Pendidikan yang ditampilkan di halaman edit pertemuan.
-      // Berlaku untuk semua role yang memiliki lembaga_id (kecuali Direktur & Super Admin).
       const rolesFilterByLembaga = ['Kepala Sekolah', 'WaKa Kurikulum', 'Guru', 'Wali Kelas'];
       if (lembaga_id && rolesFilterByLembaga.includes(role ?? '')) {
         nextRows = nextRows.filter((plan) => {
+          // PENTING: RPP milik guru yang sedang login SELALU tampil (berdasarkan pegawai_id).
+          // Ini menghindari RPP berisi mapel seperti KK hilang karena jadwal_id belum tersimpan.
+          if ((role === 'Guru' || role === 'Wali Kelas') && pegawai_id && plan.pegawai_id === pegawai_id) {
+            return true;
+          }
+
           const jadwalId = (plan as any).jadwal_id;
           if (!jadwalId) {
             // Fallback: gunakan lembaga dari mapel_id jika tidak ada jadwal_id
             const mapelId = (plan as any).mapel_id;
-            return mapelId ? mapelLembagaMap.get(mapelId) === lembaga_id : false;
+            if (mapelId) return mapelLembagaMap.get(mapelId) === lembaga_id;
+            // Jika keduanya tidak ada, sembunyikan dari view role lain
+            return false;
           }
           return jadwalToLembagaMap.get(jadwalId) === lembaga_id;
         });

@@ -193,20 +193,32 @@ export function useLessonPlanForm() {
         return;
       }
       try {
-        // Query jadwal pelajaran yang diampu oleh guru ini
         const { restClient } = await import('@/lib/api/axios');
+
+        // Ambil semua jadwal_pelajaran guru ini beserta mapel join
         const jadwalRes = await restClient.get('/jadwal_pelajaran', {
           params: {
             pegawai_id: `eq.${formData.pegawai_id}`,
-            select: 'mapel_id,mapel(mapel_id,nama_mapel,lembaga_id)'
+            select: 'jadwal_id,mapel_id,mapel(mapel_id,nama_mapel,lembaga_id)'
           }
         });
 
         const jadwalList = jadwalRes.data || [];
         const mapelMap = new Map<number, MATA_PELAJARAN>();
         for (const j of jadwalList) {
+          // Tangani baik join berhasil (j.mapel object) maupun hanya mapel_id
           if (j.mapel && j.mapel.mapel_id) {
             mapelMap.set(j.mapel.mapel_id, j.mapel);
+          } else if (j.mapel_id) {
+            // Join gagal — fetch manual mapel ini
+            if (!mapelMap.has(j.mapel_id)) {
+              try {
+                const mRes = await restClient.get(`/mapel?mapel_id=eq.${j.mapel_id}&select=mapel_id,nama_mapel,lembaga_id&limit=1`);
+                if (mRes.data && mRes.data[0]) {
+                  mapelMap.set(j.mapel_id, mRes.data[0]);
+                }
+              } catch (_) { /* abaikan error individual */ }
+            }
           }
         }
 
@@ -221,19 +233,36 @@ export function useLessonPlanForm() {
           mapelRows = await getMataPelajarans(params);
         }
 
-        setMapels(mapelRows);
-
-        if (mapelRows.length > 0) {
-          setFormData(prev => {
-            const isCurrentMapelValid = mapelRows.some(m => String(m.mapel_id) === prev.mapel_id);
-            return {
-              ...prev,
-              mapel_id: isCurrentMapelValid ? prev.mapel_id : String(mapelRows[0].mapel_id)
-            };
-          });
-        } else {
-          setFormData(prev => ({ ...prev, mapel_id: "" }));
-        }
+        // KRITIS: Saat mode edit, pastikan mapel yang sudah dipilih di RPP selalu
+        // ada dalam daftar pilihan, meski mapel tsb tidak ada di jadwal aktif guru.
+        // Ini menghindari mapel KK atau mapel lama terhapus dari daftar secara diam-diam.
+        setFormData(prev => {
+          if (prev.mapel_id && !mapelRows.some(m => String(m.mapel_id) === prev.mapel_id)) {
+            // Mapel yang ada di RPP tidak ditemukan di jadwal — fetch & tambahkan ke list
+            restClient.get(`/mapel?mapel_id=eq.${prev.mapel_id}&select=mapel_id,nama_mapel,lembaga_id&limit=1`)
+              .then((mRes: any) => {
+                if (mRes.data && mRes.data[0]) {
+                  setMapels(prev2 => {
+                    const exists = prev2.some(m => m.mapel_id === mRes.data[0].mapel_id);
+                    if (exists) return prev2;
+                    return [...prev2, mRes.data[0]].sort((a, b) => a.nama_mapel.localeCompare(b.nama_mapel));
+                  });
+                }
+              })
+              .catch(() => {});
+            // Pertahankan mapel_id yang sudah ada — jangan di-reset
+            setMapels(mapelRows);
+            return prev;
+          }
+          // Mapel ada di list jadwal — update daftar normal
+          setMapels(mapelRows);
+          // Jika ini adalah create baru (mapel_id belum diset) dan ada pilihan, pilih yang pertama
+          const isCreateMode = !id;
+          if (isCreateMode && !prev.mapel_id && mapelRows.length > 0) {
+            return { ...prev, mapel_id: String(mapelRows[0].mapel_id) };
+          }
+          return prev;
+        });
       } catch (error) {
         console.error("Gagal memuat mata pelajaran untuk guru ini:", error);
         setMapels([]);
@@ -241,7 +270,7 @@ export function useLessonPlanForm() {
     };
 
     loadMapels();
-  }, [formData.pegawai_id, lembagaId]);
+  }, [formData.pegawai_id, lembagaId, id]);
 
   const tambahPertemuan = () => {
     // pertemuan_ke selalu otomatis = jumlah detail saat ini + 1

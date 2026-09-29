@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, LogOut, ChevronLeft, KeyRound, Loader2, ShieldOff, RefreshCw, Eye, EyeOff } from "lucide-react";
+import { Menu, LogOut, ChevronLeft, KeyRound, Loader2, ShieldOff, RefreshCw, Eye, EyeOff, ChevronDown } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useMenuTrackerStore } from "../store/useMenuTrackerStore";
 import { useNavigationStore } from "../store/useNavigationStore";
@@ -216,6 +216,22 @@ const MainLayout: React.FC = () => {
     items: group.items.filter(item => !item.allowedRoles || (userRole && item.allowedRoles.includes(userRole)))
   })).filter(group => group.items.length > 0);
 
+  // State collapse/expand per group — default semua terbuka
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+
+  const toggleGroup = (category: string) => {
+    setCollapsedGroups(prev => ({ ...prev, [category]: !prev[category] }));
+  };
+
+  // Otomatis buka group yang memiliki item aktif
+  useEffect(() => {
+    const activeGroup = menuGroups.find(g => g.items.some(item => location.pathname === item.path));
+    if (activeGroup) {
+      setCollapsedGroups(prev => ({ ...prev, [activeGroup.category]: false }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
+
   return (
     <div className="flex h-dvh bg-[#F4F7FE] overflow-hidden font-sans">
       {/* Mobile Overlay */}
@@ -310,35 +326,72 @@ const MainLayout: React.FC = () => {
         </div>
 
         {/* Nav Items — hanya tampil jika user memiliki role */}
-        <div className="flex-1 overflow-y-auto mt-2 space-y-4 pb-4">
-          {hasRole && menuGroups.map((group, groupIdx) => (
-            <div key={groupIdx} className="flex flex-col">
-              {(!isCollapsed || isMobileOpen) && (
-                <span className="px-6 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400/80">
-                  {group.category}
-                </span>
-              )}
-              <div className="flex flex-col space-y-1 mt-1">
-                {group.items.map((item, idx) => {
-                  const isActive = location.pathname === item.path || (location.pathname === "/" && item.path === "/");
-                  return (
-                    <Link
-                      key={idx}
-                      to={item.path}
-                      onClick={(e) => handleLinkClick(e, item.path)}
-                      className={`flex items-center gap-3 px-6 py-2.5 transition-colors border-l-[3px] ${isActive
-                        ? "bg-[#2A4080] border-[#FACC15] text-white"
-                        : "border-transparent text-slate-300 hover:bg-[#2A4080]/50 hover:text-white"
+        <div className="flex-1 overflow-y-auto mt-2 pb-4">
+          {hasRole && menuGroups.map((group, groupIdx) => {
+            const isGroupCollapsed = !!collapsedGroups[group.category];
+            const hasActiveItem = group.items.some(item => location.pathname === item.path);
+            const isUmumGroup = group.category === 'Umum';
+
+            return (
+              <div key={groupIdx} className="flex flex-col">
+                {/* Group Header — klik untuk collapse/expand (kecuali grup Umum) */}
+                {(!isCollapsed || isMobileOpen) ? (
+                  <button
+                    onClick={() => !isUmumGroup && toggleGroup(group.category)}
+                    className={`w-full flex items-center justify-between px-6 py-2 mt-2 group ${
+                      isUmumGroup ? 'cursor-default' : 'cursor-pointer hover:text-slate-200'
+                    }`}
+                  >
+                    <span className={`text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                      hasActiveItem ? 'text-[#FACC15]/90' : 'text-slate-400/80'
+                    } ${!isUmumGroup ? 'group-hover:text-slate-300' : ''}`}>
+                      {group.category}
+                    </span>
+                    {!isUmumGroup && (
+                      <ChevronDown
+                        className={`w-3 h-3 text-slate-500 transition-transform duration-200 ${
+                          isGroupCollapsed ? '-rotate-90' : ''
                         }`}
-                    >
-                      <item.icon className={`w-4 h-4 shrink-0 ${isActive ? "text-[#FACC15]" : ""}`} />
-                      {(!isCollapsed || isMobileOpen) && <span className="text-sm font-medium truncate">{item.name}</span>}
-                    </Link>
-                  );
-                })}
+                      />
+                    )}
+                  </button>
+                ) : (
+                  // Collapsed sidebar: tampilkan divider tipis
+                  groupIdx > 0 && <div className="mx-4 my-2 h-px bg-slate-700/50" />
+                )}
+
+                {/* Items — tersembunyi jika group di-collapse (tapi Umum selalu tampil) */}
+                {(!isGroupCollapsed || isUmumGroup) && (
+                  <div className={`flex flex-col space-y-0.5 ${
+                    (!isCollapsed || isMobileOpen) ? 'mt-0.5' : 'mt-1'
+                  }`}>
+                    {group.items.map((item, idx) => {
+                      const isActive = location.pathname === item.path || (location.pathname === "/" && item.path === "/");
+                      return (
+                        <Link
+                          key={idx}
+                          to={item.path}
+                          onClick={(e) => handleLinkClick(e, item.path)}
+                          className={`flex items-center gap-3 px-6 py-2.5 transition-all duration-150 border-l-[3px] ${
+                            isActive
+                              ? "bg-[#2A4080] border-[#FACC15] text-white"
+                              : "border-transparent text-slate-300 hover:bg-[#2A4080]/50 hover:text-white hover:border-slate-600/50"
+                          }`}
+                        >
+                          <item.icon className={`w-4 h-4 shrink-0 transition-colors ${
+                            isActive ? "text-[#FACC15]" : ""
+                          }`} />
+                          {(!isCollapsed || isMobileOpen) && (
+                            <span className="text-sm font-medium truncate">{item.name}</span>
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Actions Area — Ubah Password & Keluar (selalu tampil) */}

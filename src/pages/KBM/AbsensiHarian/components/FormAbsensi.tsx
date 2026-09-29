@@ -2,7 +2,7 @@ import React from 'react';
 import type { AbsensiHarianState } from '../Index';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Save, Calendar as CalendarIcon, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, Calendar as CalendarIcon, Loader2, Lock, LockOpen, CheckCircle2 } from 'lucide-react';
 import { useFormAbsensiHarian } from '../hooks/useFormAbsensiHarian';
 
 interface FormAbsensiProps {
@@ -18,6 +18,8 @@ export default function FormAbsensi({ selections, setSelections, onBack }: FormA
         siswas,
         isLoading,
         absensiMap,
+        isLocked,
+        setIsLocked,
         handleStatusChange,
         submitMutation
     } = useFormAbsensiHarian({ selections });
@@ -41,6 +43,12 @@ export default function FormAbsensi({ selections, setSelections, onBack }: FormA
                 <div className="flex-1">
                     <h2 className="text-xl font-bold flex items-center gap-2">
                         Input Absensi Kehadiran Harian
+                        {isLocked && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold border border-emerald-200">
+                                <CheckCircle2 className="w-3 h-3" />
+                                Tersimpan &amp; Terkunci
+                            </span>
+                        )}
                     </h2>
                     <p className="text-sm text-gray-500 mt-1">Kelas: {selections.kelas_nama}</p>
                 </div>
@@ -51,9 +59,34 @@ export default function FormAbsensi({ selections, setSelections, onBack }: FormA
                         value={selections.tanggal}
                         onChange={(e) => setSelections({ ...selections, tanggal: e.target.value })}
                         className="w-40"
+                        disabled={isLocked}
                     />
                 </div>
             </div>
+
+            {/* Banner informasi status terkunci */}
+            {isLocked && (
+                <div className="flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
+                    <Lock className="w-5 h-5 text-emerald-600 shrink-0" />
+                    <div className="flex-1">
+                        <p className="text-sm font-semibold text-emerald-800">Absensi sudah tersimpan dan dikunci</p>
+                        <p className="text-xs text-emerald-600 mt-0.5">
+                            Data absensi untuk kelas ini pada tanggal {selections.tanggal} telah berhasil disimpan.
+                            Klik &quot;Edit Ulang&quot; jika perlu melakukan koreksi.
+                        </p>
+                    </div>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsLocked(false)}
+                        className="border-emerald-300 text-emerald-700 hover:bg-emerald-100 shrink-0 gap-1.5"
+                    >
+                        <LockOpen className="w-3.5 h-3.5" />
+                        Edit Ulang
+                    </Button>
+                </div>
+            )}
 
             <div className="border rounded-xl overflow-hidden shadow-sm">
                 <table className="w-full text-sm text-left text-gray-600">
@@ -65,9 +98,9 @@ export default function FormAbsensi({ selections, setSelections, onBack }: FormA
                             ))}
                         </tr>
                     </thead>
-                    <tbody className="divide-y bg-white">
+                    <tbody className={`divide-y bg-white ${isLocked ? 'opacity-70' : ''}`}>
                         {siswas.map((s, idx) => (
-                            <tr key={s.siswa_id} className="hover:bg-blue-50/50 transition-colors">
+                            <tr key={s.siswa_id} className={`transition-colors ${isLocked ? 'bg-gray-50/50' : 'hover:bg-blue-50/50'}`}>
                                 <td className="px-6 py-3 font-medium text-gray-800">
                                     {idx + 1}. {s.nama}
                                     <div className="text-xs font-normal text-gray-400 mt-0.5">NIS: {s.nis}</div>
@@ -78,7 +111,7 @@ export default function FormAbsensi({ selections, setSelections, onBack }: FormA
                                             <input
                                                 type="radio"
                                                 name={`status_${s.siswa_id}`}
-                                                className={`w-5 h-5 cursor-pointer ${
+                                                className={`w-5 h-5 ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'} ${
                                                     status === 'Hadir' ? 'accent-emerald-500' :
                                                     status === 'Sakit' ? 'accent-amber-500' :
                                                     status === 'Izin' ? 'accent-blue-500' :
@@ -86,7 +119,8 @@ export default function FormAbsensi({ selections, setSelections, onBack }: FormA
                                                     'accent-purple-500'
                                                 }`}
                                                 checked={absensiMap[s.siswa_id] === status}
-                                                onChange={() => handleStatusChange(s.siswa_id, status)}
+                                                onChange={() => !isLocked && handleStatusChange(s.siswa_id, status)}
+                                                disabled={isLocked}
                                             />
                                         </div>
                                     </td>
@@ -105,18 +139,25 @@ export default function FormAbsensi({ selections, setSelections, onBack }: FormA
             </div>
 
             <div className="flex justify-end pt-4">
-                <Button 
-                    onClick={handleSave} 
-                    disabled={submitMutation.isPending || siswas.length === 0}
-                    className="bg-[#1E3A8A] hover:bg-[#1e3a8ad2] px-8"
-                >
-                    {submitMutation.isPending ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                        <Save className="w-4 h-4 mr-2" />
-                    )}
-                    Simpan Absensi
-                </Button>
+                {isLocked ? (
+                    <div className="flex items-center gap-2 text-emerald-600 font-medium text-sm">
+                        <Lock className="w-4 h-4" />
+                        <span>Absensi telah disimpan</span>
+                    </div>
+                ) : (
+                    <Button 
+                        onClick={handleSave} 
+                        disabled={submitMutation.isPending || siswas.length === 0}
+                        className="bg-[#1E3A8A] hover:bg-[#1e3a8ad2] px-8"
+                    >
+                        {submitMutation.isPending ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                            <Save className="w-4 h-4 mr-2" />
+                        )}
+                        Simpan Absensi
+                    </Button>
+                )}
             </div>
         </div>
     );
