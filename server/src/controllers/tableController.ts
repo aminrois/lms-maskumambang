@@ -664,9 +664,49 @@ export const createTableRecord = async (req: AuthRequest, res: Response, next: N
       return;
     }
 
-    const prismaModel = (prisma as any)[config.model];
     const preferHeader = (req.headers['prefer'] as string) || '';
     const wantRepresentation = preferHeader.includes('return=representation');
+
+    // Validasi batas waktu absensi mapel (maksimal 23:59 pada hari jadwal)
+    if (tableName === 'jurnal_mengajar') {
+      const itemsToValidate = Array.isArray(req.body) ? req.body : [req.body];
+      const todayDateJakarta = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Jakarta',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(new Date());
+      const INDONESIAN_DAYS = ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+      const todayDayIndex = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' })).getDay();
+      const todayDayName = INDONESIAN_DAYS[todayDayIndex];
+
+      for (const item of itemsToValidate) {
+        const itemTanggal = item.tanggal ? String(item.tanggal).split('T')[0].trim() : todayDateJakarta;
+        if (itemTanggal < todayDateJakarta) {
+          res.status(403).json({
+            success: false,
+            message: 'Batas waktu pengisian absensi telah berakhir (maksimal pukul 23:59 WIB pada hari jadwal).'
+          });
+          return;
+        }
+
+        if (item.jadwal_id) {
+          const jadwalItem = await prisma.jadwalPelajaran.findUnique({
+            where: { jadwal_id: Number(item.jadwal_id) },
+            select: { hari: true }
+          });
+          if (jadwalItem?.hari && jadwalItem.hari !== todayDayName) {
+            res.status(403).json({
+              success: false,
+              message: `Batas waktu pengisian absensi telah berakhir (hanya dapat diisi pada hari ${jadwalItem.hari} maksimal pukul 23:59 WIB).`
+            });
+            return;
+          }
+        }
+      }
+    }
+
+    const prismaModel = (prisma as any)[config.model];
 
     if (Array.isArray(req.body)) {
       const createdItems = [];

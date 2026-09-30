@@ -257,6 +257,15 @@ export function useFormAbsensi({ selections, setCurrentStep }: UseFormAbsensiPro
                 }
             }
 
+            const INDONESIAN_DAYS = ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+            const todayDayIndex = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' })).getDay();
+            const todayDayName = INDONESIAN_DAYS[todayDayIndex];
+            const scheduleDay = jadwalTimeInfoList[0]?.hari;
+
+            if (scheduleDay && scheduleDay !== todayDayName && !existingJurnalData?.jurnal) {
+                throw new Error(`Batas waktu pengisian absensi telah berakhir (hanya dapat diisi pada hari ${scheduleDay} maksimal pukul 23:59 WIB). Pertemuan ini telah dikunci.`);
+            }
+
             const todayDate = new Date().toISOString().split('T')[0];
             const formatter = new Intl.DateTimeFormat('en-GB', {
                 timeZone: 'Asia/Jakarta',
@@ -373,6 +382,12 @@ export function useFormAbsensi({ selections, setCurrentStep }: UseFormAbsensiPro
     const isEditMode = !!(existingJurnalData?.jurnal && existingJurnalData.absensiList && existingJurnalData.absensiList.length > 0);
     const disiplinInfo = getDisiplinStatus();
 
+    const INDONESIAN_DAYS = ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const todayDayIndex = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' })).getDay();
+    const todayDayName = INDONESIAN_DAYS[todayDayIndex];
+    const scheduleDay = jadwalTimeInfoList[0]?.hari || null;
+    const isLockedByDeadline = Boolean(scheduleDay && scheduleDay !== todayDayName && !existingJurnalData?.jurnal);
+
     return {
         absensiMap,
         catatan,
@@ -380,6 +395,8 @@ export function useFormAbsensi({ selections, setCurrentStep }: UseFormAbsensiPro
         siswas,
         isLoading,
         isEditMode,
+        isLockedByDeadline,
+        scheduleDay,
         disiplinInfo,
         canCreate,
         canUpdate,

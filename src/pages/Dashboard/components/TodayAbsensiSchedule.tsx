@@ -12,6 +12,7 @@ import {
   School,
   Check,
   ChevronRight,
+  Lock,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -202,6 +203,13 @@ export default function TodayAbsensiSchedule({
   }, [jadwalData, selectedDay, lessonPlans, jurnalMengajar, todayISODate]);
 
   const handleStartAbsensi = (sesi: any) => {
+    if (sesi.hari !== realTodayName) {
+      toast.error(
+        `Absensi jadwal "${sesi.namaMapel} - ${sesi.namaKelas}" hanya dapat diisi pada hari ${sesi.hari} maksimal pukul 23:59 WIB di hari tersebut.`
+      );
+      return;
+    }
+
     if (!sesi.isLPReady) {
       toast.error(
         `Lesson Plan (RPP) untuk "${sesi.namaMapel} - ${sesi.namaKelas}" belum disetujui oleh Kepala Sekolah & Direktur. Pastikan RPP telah disetujui sebelum melakukan absensi.`
@@ -385,7 +393,7 @@ export default function TodayAbsensiSchedule({
                       )}
 
                       {/* Status Pengisian Hari Ini */}
-                      {isToday && (
+                      {isToday ? (
                         sesi.isCompletedToday ? (
                           <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 border border-emerald-300">
                             <CheckCircle2 className="w-3 h-3 text-emerald-600" />
@@ -397,6 +405,11 @@ export default function TodayAbsensiSchedule({
                             Belum Absensi Hari Ini
                           </span>
                         )
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200">
+                          <Lock className="w-3 h-3 text-slate-400" />
+                          Hanya hari {sesi.hari} (s/d 23:59)
+                        </span>
                       )}
                     </div>
                   </div>
@@ -417,6 +430,17 @@ export default function TodayAbsensiSchedule({
                       >
                         <span>Lihat Jurnal</span>
                         <ChevronRight className="w-3.5 h-3.5" />
+                      </Button>
+                    ) : !isToday ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={true}
+                        className="h-8.5 px-3 rounded-xl text-xs font-bold bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed flex items-center gap-1.5"
+                        title={`Absensi hanya dapat diisi pada hari ${sesi.hari} maksimal pukul 23:59 WIB`}
+                      >
+                        <Lock className="w-3.5 h-3.5 text-slate-400" />
+                        <span>Terkunci</span>
                       </Button>
                     ) : (
                       <Button

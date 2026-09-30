@@ -53,13 +53,19 @@ export default function WizardMenu({ currentStep, setCurrentStep, selections, se
                                 const matchedLPs = s.matchedLPs || [];
                                 const defaultLP = matchedLPs.length > 0 ? matchedLPs[0] : null;
 
+                                const isNotToday = !isToday;
                                 const hasAnyLP = s.lpStatus?.hasAnyVerified || s.lpStatus?.hasAnyUnverified || matchedLPs.length > 0;
                                 const isNoLP = !hasAnyLP;
                                 const isUnverified = hasAnyLP && !s.lpStatus?.hasAnyVerified && matchedLPs.length === 0;
-                                const isDisabled = matchedLPs.length === 0;
+                                const isDisabled = matchedLPs.length === 0 || isNotToday;
                                 const otherTeachers = s.lpStatus?.othersWithVerified || [];
 
                                 const handleCardClick = () => {
+                                    if (isNotToday) {
+                                        toast.error(`Absensi jadwal "${s.mapel?.nama_mapel} - ${s.kelas?.nama_kelas}" hanya dapat diisi pada hari ${s.hari}`);
+                                        return;
+                                    }
+
                                     if (isDisabled) {
                                         if (isNoLP) {
                                             toast.error(`Anda tidak bisa mengisi absensi. Anda belum membuat Lesson Plan (RPP) untuk mata pelajaran ini.`);
@@ -88,10 +94,10 @@ export default function WizardMenu({ currentStep, setCurrentStep, selections, se
                                         key={s.sesi_key}
                                         onClick={handleCardClick}
                                         className={`p-5 rounded-2xl border transition-all duration-300 relative flex flex-col justify-between ${isDisabled
-                                                ? "opacity-60 bg-slate-50 border-slate-200 cursor-not-allowed"
-                                                : isSelected
-                                                    ? "border-2 border-indigo-600 bg-linear-to-br from-indigo-50/80 via-white to-blue-50/50 shadow-md ring-2 ring-indigo-500/20 cursor-pointer"
-                                                    : "bg-white border-slate-200/90 hover:border-indigo-300 hover:shadow-md cursor-pointer"
+                                            ? "opacity-60 bg-slate-50 border-slate-200 cursor-not-allowed"
+                                            : isSelected
+                                                ? "border-2 border-indigo-600 bg-linear-to-br from-indigo-50/80 via-white to-blue-50/50 shadow-md ring-2 ring-indigo-500/20 cursor-pointer"
+                                                : "bg-white border-slate-200/90 hover:border-indigo-300 hover:shadow-md cursor-pointer"
                                             }`}
                                     >
                                         <div>
@@ -111,7 +117,12 @@ export default function WizardMenu({ currentStep, setCurrentStep, selections, se
                                                     <span className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-xs">
                                                         <Check className="w-3.5 h-3.5 stroke-3" />
                                                     </span>
-                                                ) : null}
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-slate-200 text-slate-600 px-2.5 py-0.5 rounded-full">
+                                                        <Lock className="w-3 h-3 text-slate-500" />
+                                                        Terkunci
+                                                    </span>
+                                                )}
                                             </div>
 
                                             {/* Mapel Title */}
@@ -130,7 +141,14 @@ export default function WizardMenu({ currentStep, setCurrentStep, selections, se
 
                                         {/* RPP Selector / Warning Footer */}
                                         <div className="mt-4 pt-3 border-t border-slate-100">
-                                            {isDisabled ? (
+                                            {isNotToday ? (
+                                                <div className="p-2.5 bg-slate-100 border border-slate-200 rounded-xl text-[11px] text-slate-600 leading-relaxed flex items-start gap-2">
+                                                    <Lock className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
+                                                    <div>
+                                                        <strong>Terkunci:</strong> Hanya dapat diisi pada hari <strong>{s.hari}</strong>
+                                                    </div>
+                                                </div>
+                                            ) : isDisabled ? (
                                                 <div className="p-2.5 bg-rose-50 border border-rose-100 rounded-xl text-[11px] text-rose-700 leading-relaxed flex items-start gap-2">
                                                     <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
                                                     <div>
@@ -237,13 +255,12 @@ export default function WizardMenu({ currentStep, setCurrentStep, selections, se
                                             setSelections({ ...selections, pertemuan: n });
                                         }}
                                         title={isLocked ? `Pertemuan ke-${n} sudah selesai diisi (Terkunci)` : `Pilih Pertemuan ke-${n}`}
-                                        className={`h-12 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-1 border relative ${
-                                            isLocked
-                                                ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-75 select-none"
-                                                : isSelected
+                                        className={`h-12 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-1 border relative ${isLocked
+                                            ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-75 select-none"
+                                            : isSelected
                                                 ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-600/30 scale-[1.03] cursor-pointer"
                                                 : "bg-white text-slate-700 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/50 cursor-pointer"
-                                        }`}
+                                            }`}
                                     >
                                         {isLocked && <Lock className="w-3.5 h-3.5 text-slate-400 shrink-0" />}
                                         <span>{n}</span>

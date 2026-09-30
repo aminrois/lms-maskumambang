@@ -106,6 +106,10 @@ export function WaliKelasResultView({
         "Target RPP": row.lp_pertemuan_ke || 0,
         "Status KBM": row.status || "-",
         "Tanggal Realisasi Absensi": formattedTglJurnal,
+        "Waktu Input Absensi": (row as any).waktu_input_absensi
+          ? String((row as any).waktu_input_absensi).substring(0, 5)
+          : "-",
+        "Status Kedisiplinan": (row as any).status_kedisiplinan || "-",
         "Tanggal Rencana RPP": formattedTglRencana,
         "Catatan": row.catatan_tambahan || "-",
       };

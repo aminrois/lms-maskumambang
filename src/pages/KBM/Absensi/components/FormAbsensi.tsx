@@ -17,6 +17,8 @@ export default function FormAbsensi({ selections, setCurrentStep }: FormAbsensiP
         siswas,
         isLoading,
         isEditMode,
+        isLockedByDeadline,
+        scheduleDay,
         disiplinInfo,
         canCreate,
         canUpdate,
@@ -28,6 +30,8 @@ export default function FormAbsensi({ selections, setCurrentStep }: FormAbsensiP
         return <div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>;
     }
 
+    const isLocked = isEditMode || isLockedByDeadline;
+
     return (
         <div className="space-y-6 animate-in fade-in duration-300">
             <div className="flex items-start space-x-3 mb-6">
@@ -35,7 +39,12 @@ export default function FormAbsensi({ selections, setCurrentStep }: FormAbsensiP
                 <div className="flex-1">
                     <div className="flex items-center gap-3 flex-wrap">
                         <h2 className="text-xl font-bold">Input Absensi & Jurnal</h2>
-                        {isEditMode ? (
+                        {isLockedByDeadline ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-rose-100 text-rose-800 border border-rose-300 rounded-full text-xs font-bold">
+                                <Lock className="w-3.5 h-3.5 text-rose-600" />
+                                Terkunci (Lewat Batas 23:59)
+                            </span>
+                        ) : isEditMode ? (
                             <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 text-slate-700 border border-slate-300 rounded-full text-xs font-bold">
                                 <Lock className="w-3.5 h-3.5 text-slate-500" />
                                 Pertemuan Ke-{selections.pertemuan} (Terkunci)
@@ -48,7 +57,13 @@ export default function FormAbsensi({ selections, setCurrentStep }: FormAbsensiP
                         )}
                     </div>
                     <p className="text-sm text-gray-500 mt-1">Kelas: {selections.kelas_nama} · Mapel: {selections.mapel_nama} · Pertemuan ke-{selections.pertemuan}</p>
-                    {isEditMode && (
+                    {isLockedByDeadline && (
+                        <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-medium flex items-center gap-2 mt-2">
+                            <Lock className="w-4 h-4 text-rose-600 shrink-0" />
+                            <span>Batas waktu pengisian absensi telah berakhir. Sesi pertemuan pada hari <strong>{scheduleDay}</strong> hanya dapat diisi hingga pukul 23:59 WIB pada hari jadwal tersebut.</span>
+                        </div>
+                    )}
+                    {isEditMode && !isLockedByDeadline && (
                         <p className="text-xs text-rose-600 mt-1 font-medium flex items-center gap-1">
                             <Lock className="w-3.5 h-3.5" /> Pertemuan ini sudah selesai dilakukan dan otomatis terkunci. Data tidak dapat diedit kembali.
                         </p>
@@ -106,9 +121,9 @@ export default function FormAbsensi({ selections, setCurrentStep }: FormAbsensiP
                                         <div className="flex items-center justify-center">
                                             <input
                                                 type="radio"
-                                                disabled={isEditMode}
+                                                disabled={isLocked}
                                                 name={`status_${s.siswa_id}`}
-                                                className={`w-5 h-5 ${isEditMode ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'} ${
+                                                className={`w-5 h-5 ${isLocked ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'} ${
                                                     status === 'Hadir' ? 'accent-emerald-500' :
                                                     status === 'Sakit' ? 'accent-amber-500' :
                                                     status === 'Izin' ? 'accent-blue-500' :
@@ -116,7 +131,7 @@ export default function FormAbsensi({ selections, setCurrentStep }: FormAbsensiP
                                                     'accent-purple-500'
                                                 }`}
                                                 checked={absensiMap[s.siswa_id] === status}
-                                                onChange={() => !isEditMode && handleStatusChange(s.siswa_id, status)}
+                                                onChange={() => !isLocked && handleStatusChange(s.siswa_id, status)}
                                             />
                                         </div>
                                     </td>
@@ -137,11 +152,11 @@ export default function FormAbsensi({ selections, setCurrentStep }: FormAbsensiP
             <div className="space-y-3 p-5 bg-gray-50 border rounded-xl">
                 <label className="font-semibold text-gray-700">Catatan Jurnal Mengajar (Opsional)</label>
                 <Input
-                    disabled={isEditMode}
+                    disabled={isLocked}
                     value={catatan}
                     onChange={(e) => setCatatan(e.target.value)}
                     placeholder="Contoh: Pembelajaran berjalan lancar, 2 siswa absen..."
-                    className={`bg-white ${isEditMode ? 'cursor-not-allowed bg-slate-100 text-slate-500' : ''}`}
+                    className={`bg-white ${isLocked ? 'cursor-not-allowed bg-slate-100 text-slate-500' : ''}`}
                 />
             </div>
 
@@ -149,15 +164,17 @@ export default function FormAbsensi({ selections, setCurrentStep }: FormAbsensiP
                 {(canCreate || canUpdate) && (
                     <Button
                         onClick={() => submitMutation.mutate()}
-                        disabled={submitMutation.isPending || siswas.length === 0 || isEditMode}
+                        disabled={submitMutation.isPending || siswas.length === 0 || isLocked}
                         size="lg"
-                        className={`w-full sm:w-auto min-w-50 ${isEditMode ? 'bg-slate-400 text-white cursor-not-allowed opacity-80' : 'bg-[#243B7A] hover:bg-[#1a2b5a]'}`}
+                        className={`w-full sm:w-auto min-w-50 ${isLocked ? 'bg-slate-400 text-white cursor-not-allowed opacity-80' : 'bg-[#243B7A] hover:bg-[#1a2b5a]'}`}
                     >
                         {submitMutation.isPending
                             ? <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Menyimpan...</>
-                            : isEditMode
-                                ? <><Lock className="w-4 h-4 mr-2" /> Pertemuan Terkunci</>
-                                : "Simpan Absensi & Jurnal"
+                            : isLockedByDeadline
+                                ? <><Lock className="w-4 h-4 mr-2" /> Melewati Batas 23:59 (Terkunci)</>
+                                : isEditMode
+                                    ? <><Lock className="w-4 h-4 mr-2" /> Pertemuan Terkunci</>
+                                    : "Simpan Absensi & Jurnal"
                         }
                     </Button>
                 )}

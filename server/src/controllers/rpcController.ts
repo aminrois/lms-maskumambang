@@ -254,6 +254,37 @@ export const monitoringKbm = async (req: Request, res: Response, next: NextFunct
       const hadir = j.absensi_pelajaran ? j.absensi_pelajaran.filter(a => a.status === 'Hadir').length : 0;
       const totalSiswa = j.absensi_pelajaran ? j.absensi_pelajaran.length : 0;
 
+      // Ambil waktu input absensi: waktu_kehadiran pertama/terpagi dari absensi_pelajaran
+      const waktuList = (j.absensi_pelajaran || [])
+        .map((a: any) => a.waktu_kehadiran)
+        .filter((w: any) => !!w)
+        .sort();
+      const waktuInputAbsensi = waktuList.length > 0 ? waktuList[0] : null;
+
+      // Status Kedisiplinan: bandingkan waktu input dengan jam_selesai + toleransi 30 menit
+      let statusKedisiplinan = '-';
+      if (!waktuInputAbsensi) {
+        statusKedisiplinan = 'Belum Absen';
+      } else {
+        const jamSelesaiRaw = j.jadwal?.jam_selesai?.jam_selesai;
+        if (jamSelesaiRaw) {
+          // Ubah HH:MM atau HH:MM:SS jadi menit dari tengah malam
+          const toMinutes = (t: string) => {
+            const parts = t.substring(0, 5).split(':').map(Number);
+            return parts[0] * 60 + (parts[1] || 0);
+          };
+          const inputMenit = toMinutes(String(waktuInputAbsensi));
+          const selesaiMenit = toMinutes(String(jamSelesaiRaw));
+          const TOLERANSI_MENIT = 30;
+          statusKedisiplinan = inputMenit <= selesaiMenit + TOLERANSI_MENIT
+            ? 'Tepat Waktu'
+            : 'Terlambat';
+        } else {
+          // Tidak ada data jam_selesai, tandai hanya ada waktu input
+          statusKedisiplinan = 'Tepat Waktu';
+        }
+      }
+
       return {
         id: j.jurnal_id,
         jurnal_id: j.jurnal_id,
@@ -273,6 +304,8 @@ export const monitoringKbm = async (req: Request, res: Response, next: NextFunct
         materi: j.lesson_plan_detail?.materi || "",
         total_hadir: hadir,
         total_siswa: totalSiswa,
+        waktu_input_absensi: waktuInputAbsensi,
+        status_kedisiplinan: statusKedisiplinan,
         // Also keep nested objects for compatibility
         jadwal: j.jadwal,
         lesson_plan_detail: j.lesson_plan_detail,
@@ -839,6 +872,49 @@ export const jurnalMengajarMonitoring = async (req: AuthRequest, res: Response, 
       completedJurnalMap.set(key, j);
     });
 
+    // Helper untuk mencari jurnal yang cocok (mendukung multi-jam / blok jam mengajar)
+    const findMatchingJurnal = (j: any, tgl: string) => {
+      // 1. Cek exact match jadwal_id + tanggal
+      const exactKey = `${j.jadwal_id}_${tgl}`;
+      if (completedJurnalMap.has(exactKey)) {
+        return completedJurnalMap.get(exactKey);
+      }
+
+      // 2. Cek semua jurnal pada tanggal yang sama untuk kelas & mapel yang sama (dan guru yang sama jika ada)
+      const candidates = jurnals.filter((jm: any) => {
+        if (jm.tanggal !== tgl) return false;
+        const jmJadwal = jm.jadwal;
+        if (!jmJadwal) return false;
+
+        const sameClass = jmJadwal.kelas_id === j.kelas_id;
+        const sameMapel = jmJadwal.mapel_id === j.mapel_id;
+        const sameGuru = !j.pegawai_id || !jmJadwal.pegawai_id || jmJadwal.pegawai_id === j.pegawai_id;
+
+        return sameClass && sameMapel && sameGuru;
+      });
+
+      if (candidates.length === 1) {
+        return candidates[0];
+      }
+
+      if (candidates.length > 1) {
+        // Jika ada lebih dari 1 sesi mapel di hari yang sama, pilih yang urutan jamnya paling dekat / satu blok
+        const targetUrutan = j.jam_mulai?.urutan_jam || 0;
+        let closest = candidates[0];
+        let minDiff = Math.abs((candidates[0].jadwal?.jam_mulai?.urutan_jam || 0) - targetUrutan);
+        for (let i = 1; i < candidates.length; i++) {
+          const diff = Math.abs((candidates[i].jadwal?.jam_mulai?.urutan_jam || 0) - targetUrutan);
+          if (diff < minDiff) {
+            minDiff = diff;
+            closest = candidates[i];
+          }
+        }
+        return closest;
+      }
+
+      return null;
+    };
+
     const dayNames = ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
     // Generate list tanggal dalam rentang startDate .. endDate
@@ -860,8 +936,7 @@ export const jurnalMengajarMonitoring = async (req: AuthRequest, res: Response, 
         // Cek apakah jadwal ini jatuh pada hari tersebut
         if (j.hari !== dayOfWeek) return;
 
-        const key = `${j.jadwal_id}_${tgl}`;
-        const existingJurnal = completedJurnalMap.get(key);
+        const existingJurnal = findMatchingJurnal(j, tgl);
 
         if (existingJurnal) {
           // Hitung status_kbm berdasarkan perbandingan tanggal jurnal vs rencana_pelaksanaan_kbm

@@ -205,6 +205,39 @@ export const getJurnalMengajarById = async (req: Request, res: Response, next: N
 export const createJurnalMengajar = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const data = { ...req.body };
+    const todayDateJakarta = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Jakarta',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date());
+    const INDONESIAN_DAYS = ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const todayDayIndex = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' })).getDay();
+    const todayDayName = INDONESIAN_DAYS[todayDayIndex];
+
+    const itemTanggal = data.tanggal ? String(data.tanggal).split('T')[0].trim() : todayDateJakarta;
+    if (itemTanggal < todayDateJakarta) {
+      res.status(403).json({
+        success: false,
+        message: 'Batas waktu pengisian absensi telah berakhir (maksimal pukul 23:59 WIB pada hari jadwal).'
+      });
+      return;
+    }
+
+    if (data.jadwal_id) {
+      const jadwalItem = await prisma.jadwalPelajaran.findUnique({
+        where: { jadwal_id: Number(data.jadwal_id) },
+        select: { hari: true }
+      });
+      if (jadwalItem?.hari && jadwalItem.hari !== todayDayName) {
+        res.status(403).json({
+          success: false,
+          message: `Batas waktu pengisian absensi telah berakhir (hanya dapat diisi pada hari ${jadwalItem.hari} maksimal pukul 23:59 WIB).`
+        });
+        return;
+      }
+    }
+
     data.jadwal_id = Number(data.jadwal_id);
     if (data.lesson_plan_detail_id) data.lesson_plan_detail_id = Number(data.lesson_plan_detail_id);
     if (data.pertemuan_ke) data.pertemuan_ke = Number(data.pertemuan_ke);
@@ -333,6 +366,29 @@ export const submitAbsensiPelajaranSesi = async (req: Request, res: Response, ne
         });
         jurnalId = updated.jurnal_id;
       } else {
+        // Validasi batas waktu 23:59 hari jadwal untuk pengisian baru
+        const todayDateJakarta = new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'Asia/Jakarta',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+        }).format(new Date());
+        const INDONESIAN_DAYS = ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+        const todayDayIndex = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' })).getDay();
+        const todayDayName = INDONESIAN_DAYS[todayDayIndex];
+
+        if (todayStr < todayDateJakarta) {
+          throw new Error('Batas waktu pengisian absensi telah berakhir (maksimal pukul 23:59 WIB pada hari jadwal).');
+        }
+
+        const jadwalItem = await tx.jadwalPelajaran.findUnique({
+          where: { jadwal_id: jadwalIdNum },
+          select: { hari: true }
+        });
+        if (jadwalItem?.hari && jadwalItem.hari !== todayDayName) {
+          throw new Error(`Batas waktu pengisian absensi telah berakhir (hanya dapat diisi pada hari ${jadwalItem.hari} maksimal pukul 23:59 WIB).`);
+        }
+
         const created = await tx.jurnalMengajar.create({
           data: {
             jadwal_id: jadwalIdNum,

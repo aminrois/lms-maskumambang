@@ -461,7 +461,7 @@ const MainLayout: React.FC = () => {
 
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-[#2A4080] w-full rounded-lg transition-colors"
+            className="flex items-center gap-3 px-4 py-3 text-rose-400 hover:text-white hover:bg-rose-600/80 w-full rounded-lg transition-colors border border-transparent hover:border-rose-500/50"
           >
             <LogOut className="w-5 h-5 shrink-0" />
             {(!isCollapsed || isMobileOpen) && <span className="text-sm font-medium">Keluar</span>}

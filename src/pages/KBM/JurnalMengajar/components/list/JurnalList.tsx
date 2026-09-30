@@ -100,7 +100,7 @@ export function JurnalList({
 
               return (
                 <div
-                  key={jurnal.jurnal_id ? `jurnal_${jurnal.jurnal_id}` : `jadwal_${jurnal.jadwal_id}_${jurnal.tanggal}_${idx}`}
+                  key={`jurnal_${jurnal.jurnal_id || 'uncompleted'}_jadwal_${jurnal.jadwal_id}_${jurnal.tanggal}_${idx}`}
                   className={`rounded-2xl p-4 sm:p-5 transition-all duration-200 group flex flex-col h-full relative overflow-hidden ${
                     isDanger
                       ? "bg-linear-to-br from-rose-50/90 via-red-50/40 to-white border-2 border-rose-300 hover:border-rose-400 shadow-xs hover:shadow-md ring-2 ring-rose-500/10"
