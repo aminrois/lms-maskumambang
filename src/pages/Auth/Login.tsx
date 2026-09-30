@@ -4,8 +4,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { ShieldAlert, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { login } from '../../lib/api/services/authService';
 import { IslamicPatternBackground } from './components/IslamicPatternBackground';
-import HCaptchaWidget from '../../components/ui/HCaptchaWidget';
-import type HCaptcha from '@hcaptcha/react-hcaptcha';
+import ReCaptchaWidget, { type ReCaptchaRef } from '../../components/ui/ReCaptchaWidget';
 import { ProtectedCopyright } from '../../components/ProtectedCopyright';
 
 const Login: React.FC = () => {
@@ -20,9 +19,9 @@ const Login: React.FC = () => {
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   // Ref untuk reset widget setelah login gagal
-  const hcaptchaRef = useRef<HCaptcha>(null);
+  const recaptchaRef = useRef<ReCaptchaRef>(null);
 
-  const hasSiteKey = Boolean(import.meta.env.VITE_HCAPTCHA_SITE_KEY);
+  const hasSiteKey = Boolean(import.meta.env.VITE_RECAPTCHA_SITE_KEY || '6LesLNgtAAAAABTM_pOOGpt58UpV6iMBwHRLKL9k');
 
   // Jika user sudah login (sesi masih aktif), langsung redirect ke dashboard
   React.useEffect(() => {
@@ -37,7 +36,7 @@ const Login: React.FC = () => {
 
     // Blokir submit jika CAPTCHA aktif dan belum diverifikasi
     if (hasSiteKey && !captchaToken) {
-      setError('Harap selesaikan verifikasi CAPTCHA terlebih dahulu.');
+      setError('Harap selesaikan verifikasi reCAPTCHA terlebih dahulu.');
       return;
     }
 
@@ -48,6 +47,7 @@ const Login: React.FC = () => {
       const data = await login({
         username: nig.trim(),
         password: password,
+        captchaToken: captchaToken,
       });
 
       // Simpan token ke Zustand store & localStorage
@@ -76,7 +76,7 @@ const Login: React.FC = () => {
       navigate('/dashboard', { replace: true });
     } catch (err: any) {
       // Reset CAPTCHA setelah login gagal agar user harus verifikasi ulang
-      hcaptchaRef.current?.resetCaptcha();
+      recaptchaRef.current?.resetCaptcha();
       setCaptchaToken(null);
 
       // Prioritaskan pesan spesifik dari backend
@@ -205,14 +205,14 @@ const Login: React.FC = () => {
               </div>
             </div>
 
-            {/* hCaptcha Widget (Hanya jika VITE_HCAPTCHA_SITE_KEY diset) */}
+            {/* Google reCAPTCHA Widget */}
             {hasSiteKey && (
               <div className="pt-1">
-                <HCaptchaWidget
-                  ref={hcaptchaRef}
+                <ReCaptchaWidget
+                  ref={recaptchaRef}
                   onVerify={(token) => {
                     setCaptchaToken(token);
-                    if (error === 'Harap selesaikan verifikasi CAPTCHA terlebih dahulu.') {
+                    if (error === 'Harap selesaikan verifikasi reCAPTCHA terlebih dahulu.') {
                       setError('');
                     }
                   }}

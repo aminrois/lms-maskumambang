@@ -38,6 +38,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-lmsuser}:${POSTGRES_PASSWORD:-changeme}@db:5432/${POSTGRES_DB:-lmsdb}?connection_limit=25&pool_timeout=20
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
       CORS_ORIGIN: ${CORS_ORIGIN:-https://lms2.maskumambang.ac.id}
+      RECAPTCHA_SECRET_KEY: ${RECAPTCHA_SECRET_KEY:-6LesLNgtAAAAACm0ucBneXXkZ8ZGMxDprTztKrkP}
     networks:
       - lms_network
     healthcheck:
@@ -51,6 +52,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.frontend
+      args:
+        VITE_RECAPTCHA_SITE_KEY: ${VITE_RECAPTCHA_SITE_KEY:-6LesLNgtAAAAABTM_pOOGpt58UpV6iMBwHRLKL9k}
     container_name: lms_frontend
     restart: unless-stopped
     depends_on:

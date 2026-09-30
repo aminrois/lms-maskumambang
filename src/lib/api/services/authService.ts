@@ -5,6 +5,7 @@ export const login = async (payload: { username?: string; email?: string; passwo
   const response = await apiClient.post('/auth/login', {
     username: payload.username || payload.email,
     password: payload.password,
+    captchaToken: payload.captchaToken,
   });
   return response.data.data; // { token, user }
 };

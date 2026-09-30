@@ -4,13 +4,52 @@ import prisma from '../config/prisma';
 import { generateToken } from '../config/jwt';
 import { AuthRequest } from '../middlewares/authMiddleware';
 
+const verifyGoogleRecaptcha = async (token?: string, remoteIp?: string): Promise<boolean> => {
+  const secretKey = process.env.RECAPTCHA_SECRET_KEY || '6LesLNgtAAAAACm0ucBneXXkZ8ZGMxDprTztKrkP';
+  if (!secretKey) return true;
+  if (!token) return false;
+  if (token === 'disabled') return true;
+
+  try {
+    const params = new URLSearchParams();
+    params.append('secret', secretKey);
+    params.append('response', token);
+    if (remoteIp) params.append('remoteip', remoteIp);
+
+    const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: params.toString(),
+    });
+
+    const data = (await response.json()) as { success: boolean; [key: string]: any };
+    return Boolean(data && data.success);
+  } catch (error) {
+    console.error('Error verifying reCAPTCHA token:', error);
+    return false;
+  }
+};
+
 export const login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, captchaToken } = req.body;
     const identifier = username || email;
 
-    const cleanIdentifier = String(identifier).trim();
-    const cleanPassword = String(password).trim();
+    const cleanIdentifier = String(identifier || '').trim();
+    const cleanPassword = String(password || '').trim();
+
+    // Verifikasi Google reCAPTCHA jika dikirim dari client
+    const recaptchaSecret = process.env.RECAPTCHA_SECRET_KEY || '6LesLNgtAAAAACm0ucBneXXkZ8ZGMxDprTztKrkP';
+    if (recaptchaSecret && captchaToken !== undefined) {
+      const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket.remoteAddress;
+      const isValid = await verifyGoogleRecaptcha(captchaToken, clientIp);
+      if (!isValid) {
+        res.status(400).json({ success: false, message: 'Verifikasi Google reCAPTCHA tidak valid. Silakan coba lagi.' });
+        return;
+      }
+    }
 
     // 1. Cari user berdasarkan username atau email
     let user = await prisma.user.findFirst({
