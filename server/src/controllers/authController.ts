@@ -40,9 +40,23 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
     const cleanIdentifier = String(identifier || '').trim();
     const cleanPassword = String(password || '').trim();
 
-    // Verifikasi Google reCAPTCHA jika dikirim dari client
+    // Verifikasi Google reCAPTCHA (Bypass otomatis di localhost / development)
+    const isLocalhostRequest =
+      req.hostname === 'localhost' ||
+      req.hostname === '127.0.0.1' ||
+      req.headers.host?.includes('localhost') ||
+      req.headers.host?.includes('127.0.0.1') ||
+      req.headers.origin?.includes('localhost') ||
+      req.headers.origin?.includes('127.0.0.1') ||
+      process.env.NODE_ENV === 'development';
+
     const recaptchaSecret = process.env.RECAPTCHA_SECRET_KEY || '6LesLNgtAAAAACm0ucBneXXkZ8ZGMxDprTztKrkP';
-    if (recaptchaSecret && captchaToken !== undefined) {
+
+    if (recaptchaSecret && !isLocalhostRequest) {
+      if (!captchaToken || captchaToken === 'disabled') {
+        res.status(400).json({ success: false, message: 'Harap selesaikan verifikasi Google reCAPTCHA.' });
+        return;
+      }
       const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket.remoteAddress;
       const isValid = await verifyGoogleRecaptcha(captchaToken, clientIp);
       if (!isValid) {

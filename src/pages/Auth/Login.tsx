@@ -21,7 +21,14 @@ const Login: React.FC = () => {
   // Ref untuk reset widget setelah login gagal
   const recaptchaRef = useRef<ReCaptchaRef>(null);
 
-  const hasSiteKey = Boolean(import.meta.env.VITE_RECAPTCHA_SITE_KEY || '6LesLNgtAAAAABTM_pOOGpt58UpV6iMBwHRLKL9k');
+  const isLocalhost =
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1' ||
+      window.location.hostname.startsWith('192.168.') ||
+      window.location.hostname.endsWith('.local'));
+
+  const isCaptchaRequired = !isLocalhost && Boolean(import.meta.env.VITE_RECAPTCHA_SITE_KEY || '6LesLNgtAAAAABTM_pOOGpt58UpV6iMBwHRLKL9k');
 
   // Jika user sudah login (sesi masih aktif), langsung redirect ke dashboard
   React.useEffect(() => {
@@ -34,8 +41,8 @@ const Login: React.FC = () => {
     e.preventDefault();
     setError('');
 
-    // Blokir submit jika CAPTCHA aktif dan belum diverifikasi
-    if (hasSiteKey && !captchaToken) {
+    // Blokir submit jika CAPTCHA aktif dan belum diverifikasi (hanya di live domain / VPS)
+    if (isCaptchaRequired && !captchaToken) {
       setError('Harap selesaikan verifikasi reCAPTCHA terlebih dahulu.');
       return;
     }
@@ -130,8 +137,8 @@ const Login: React.FC = () => {
     }
   };
 
-  // Tombol submit aktif jika tidak loading (dan jika CAPTCHA diaktifkan, CAPTCHA sudah diverifikasi)
-  const isSubmitReady = (!hasSiteKey || !!captchaToken) && !loading;
+  // Tombol submit aktif jika tidak loading (dan jika CAPTCHA diaktifkan di live, CAPTCHA sudah diverifikasi)
+  const isSubmitReady = (!isCaptchaRequired || !!captchaToken) && !loading;
 
   return (
     <div className="min-h-dvh flex flex-col relative overflow-hidden font-sans bg-[#090F26]">
@@ -205,8 +212,8 @@ const Login: React.FC = () => {
               </div>
             </div>
 
-            {/* Google reCAPTCHA Widget */}
-            {hasSiteKey && (
+            {/* Google reCAPTCHA Widget (Hanya aktif di VPS / live domain) */}
+            {isCaptchaRequired && (
               <div className="pt-1">
                 <ReCaptchaWidget
                   ref={recaptchaRef}
@@ -238,7 +245,7 @@ const Login: React.FC = () => {
                   : 'bg-gray-300 text-gray-500 shadow-none cursor-not-allowed'
                 }`}
             >
-              {loading ? 'Memproses...' : (hasSiteKey && !captchaToken) ? 'Selesaikan CAPTCHA dahulu' : 'Masuk ke Sistem'}
+              {loading ? 'Memproses...' : (isCaptchaRequired && !captchaToken) ? 'Selesaikan CAPTCHA dahulu' : 'Masuk ke Sistem'}
             </button>
           </form>
 

@@ -45,6 +45,13 @@ export const ReCaptchaWidget = forwardRef<ReCaptchaRef, ReCaptchaWidgetProps>(
     const widgetIdRef = useRef<number | null>(null);
     const [isScriptLoaded, setIsScriptLoaded] = useState<boolean>(false);
 
+    const isLocalhost =
+      typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1' ||
+        window.location.hostname.startsWith('192.168.') ||
+        window.location.hostname.endsWith('.local'));
+
     const siteKey = (import.meta.env.VITE_RECAPTCHA_SITE_KEY as string) || DEFAULT_SITE_KEY;
 
     useImperativeHandle(ref, () => ({
@@ -65,8 +72,13 @@ export const ReCaptchaWidget = forwardRef<ReCaptchaRef, ReCaptchaWidgetProps>(
       },
     }));
 
-    // 1. Muat skrip Google reCAPTCHA v2 jika belum ada di DOM
+    // 1. Muat skrip Google reCAPTCHA v2 jika bukan di localhost
     useEffect(() => {
+      if (isLocalhost) {
+        onVerify('disabled');
+        return;
+      }
+
       if (!siteKey) {
         onVerify('disabled');
         return;
@@ -140,7 +152,7 @@ export const ReCaptchaWidget = forwardRef<ReCaptchaRef, ReCaptchaWidgetProps>(
       }
     }, [isScriptLoaded, siteKey, theme, size, onVerify, onExpire, onError]);
 
-    if (!siteKey) {
+    if (!siteKey || isLocalhost) {
       return null;
     }
 
