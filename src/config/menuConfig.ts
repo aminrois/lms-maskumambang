@@ -27,23 +27,6 @@ export const allMenuGroups: MenuGroup[] = [
     ]
   },
   {
-    category: "Tahfidz & Hafalan",
-    items: [
-      { name: "Input Setoran", icon: Sparkles, path: "/tahfidz/setoran", allowedRoles: ['Super Admin', 'Direktur', 'Guru Tahfidz'], color: "emerald" },
-      { name: "Target & Progres", icon: Target, path: "/tahfidz/target", allowedRoles: ['Super Admin', 'Direktur', 'Guru Tahfidz', 'Wali Kelas'], color: "blue" },
-      { name: "Riwayat Setoran", icon: History, path: "/tahfidz/riwayat", allowedRoles: ['Super Admin', 'Direktur', 'Guru Tahfidz', 'Wali Kelas', 'Wali Murid'], color: "purple" },
-      { name: "Penugasan Kelas", icon: UserCheck, path: "/tahfidz/penugasan", allowedRoles: ['Super Admin', 'Direktur'], color: "amber" },
-      { name: "Kelompok Halaqoh", icon: Users, path: "/tahfidz/halaqah", allowedRoles: ['Super Admin', 'Direktur', 'Guru Tahfidz'], color: "teal" },
-    ]
-  },
-  {
-    category: "Bimbingan & Konseling",
-    items: [
-      { name: "Profil 360° Santri", icon: Compass, path: "/guidance", allowedRoles: ['Super Admin', 'Direktur', 'Wali Kelas', 'Murobbi', 'Guru Tahfidz'], color: "blue" },
-      { name: "Sesi Konsultasi & BK", icon: MessageSquare, path: "/guidance/sesi-konseling", allowedRoles: ['Super Admin', 'Direktur', 'Wali Kelas', 'Murobbi', 'Guru Tahfidz'], color: "emerald" },
-    ]
-  },
-  {
     category: "Master Data",
     items: [
       { name: "Lembaga", icon: Building, path: "/master-data/lembaga", allowedRoles: ['Super Admin', 'Direktur'], color: "emerald" },
@@ -78,6 +61,23 @@ export const allMenuGroups: MenuGroup[] = [
       { name: "Reset Absensi", icon: RotateCcw, path: "/kbm/absensi/reset", allowedRoles: ['Direktur', 'Super Admin'], color: "rose" },
       { name: "Monitoring", icon: BarChart, path: "/kbm/monitoring/universal", allowedRoles: ['Direktur', 'Kepala Sekolah', 'WaKa Kurikulum'], color: "indigo" },
       { name: "Pantau Wali", icon: Eye, path: "/kbm/monitoring/wali-kelas", allowedRoles: ['Wali Kelas'], color: "teal" },
+    ]
+  },
+  {
+    category: "Tahfidz & Hafalan",
+    items: [
+      { name: "Input Setoran", icon: Sparkles, path: "/tahfidz/setoran", allowedRoles: ['Super Admin', 'Direktur', 'Guru Tahfidz'], color: "emerald" },
+      { name: "Target & Progres", icon: Target, path: "/tahfidz/target", allowedRoles: ['Super Admin', 'Direktur', 'Guru Tahfidz', 'Wali Kelas'], color: "blue" },
+      { name: "Riwayat Setoran", icon: History, path: "/tahfidz/riwayat", allowedRoles: ['Super Admin', 'Direktur', 'Guru Tahfidz', 'Wali Kelas', 'Wali Murid'], color: "purple" },
+      { name: "Penugasan Kelas", icon: UserCheck, path: "/tahfidz/penugasan", allowedRoles: ['Super Admin', 'Direktur'], color: "amber" },
+      { name: "Kelompok Halaqoh", icon: Users, path: "/tahfidz/halaqah", allowedRoles: ['Super Admin', 'Direktur', 'Guru Tahfidz'], color: "teal" },
+    ]
+  },
+  {
+    category: "Bimbingan & Konseling",
+    items: [
+      { name: "Profil 360° Santri", icon: Compass, path: "/guidance", allowedRoles: ['Super Admin', 'Direktur', 'Wali Kelas', 'Murobbi', 'Guru Tahfidz'], color: "blue" },
+      { name: "Sesi Konsultasi & BK", icon: MessageSquare, path: "/guidance/sesi-konseling", allowedRoles: ['Super Admin', 'Direktur', 'Wali Kelas', 'Murobbi', 'Guru Tahfidz'], color: "emerald" },
     ]
   },
   {
