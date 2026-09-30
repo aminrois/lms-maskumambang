@@ -77,15 +77,15 @@ const MainLayout: React.FC = () => {
 
   const availableRoles = isSuperAdmin
     ? [
-        'Super Admin',
-        'Direktur',
-        'Kepala Sekolah',
-        'Admin Lembaga',
-        'WaKa Kurikulum',
-        'Wali Kelas',
-        'Guru',
-        'Guru Tahfidz',
-      ]
+      'Super Admin',
+      'Direktur',
+      'Kepala Sekolah',
+      'Admin Lembaga',
+      'WaKa Kurikulum',
+      'Wali Kelas',
+      'Guru',
+      'Guru Tahfidz',
+    ]
     : (userRoles.length > 0 ? Array.from(new Set(userRoles.map(r => r.role))) : [userRole || 'Super Admin']);
 
   const hasRole = Boolean((userRoles.length > 0 && userRole) || isSuperAdmin || userRole);
@@ -229,7 +229,7 @@ const MainLayout: React.FC = () => {
     if (activeGroup) {
       setCollapsedGroups(prev => ({ ...prev, [activeGroup.category]: false }));
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
   return (
@@ -338,20 +338,17 @@ const MainLayout: React.FC = () => {
                 {(!isCollapsed || isMobileOpen) ? (
                   <button
                     onClick={() => !isUmumGroup && toggleGroup(group.category)}
-                    className={`w-full flex items-center justify-between px-6 py-2 mt-2 group ${
-                      isUmumGroup ? 'cursor-default' : 'cursor-pointer hover:text-slate-200'
-                    }`}
+                    className={`w-full flex items-center justify-between px-6 py-2 mt-2 group ${isUmumGroup ? 'cursor-default' : 'cursor-pointer hover:text-slate-200'
+                      }`}
                   >
-                    <span className={`text-[10px] font-bold uppercase tracking-wider transition-colors ${
-                      hasActiveItem ? 'text-[#FACC15]/90' : 'text-slate-400/80'
-                    } ${!isUmumGroup ? 'group-hover:text-slate-300' : ''}`}>
+                    <span className={`text-[10px] font-bold uppercase tracking-wider transition-colors ${hasActiveItem ? 'text-[#FACC15]/90' : 'text-slate-400/80'
+                      } ${!isUmumGroup ? 'group-hover:text-slate-300' : ''}`}>
                       {group.category}
                     </span>
                     {!isUmumGroup && (
                       <ChevronDown
-                        className={`w-3 h-3 text-slate-500 transition-transform duration-200 ${
-                          isGroupCollapsed ? '-rotate-90' : ''
-                        }`}
+                        className={`w-3 h-3 text-slate-500 transition-transform duration-200 ${isGroupCollapsed ? '-rotate-90' : ''
+                          }`}
                       />
                     )}
                   </button>
@@ -362,9 +359,8 @@ const MainLayout: React.FC = () => {
 
                 {/* Items — tersembunyi jika group di-collapse (tapi Umum selalu tampil) */}
                 {(!isGroupCollapsed || isUmumGroup) && (
-                  <div className={`flex flex-col space-y-0.5 ${
-                    (!isCollapsed || isMobileOpen) ? 'mt-0.5' : 'mt-1'
-                  }`}>
+                  <div className={`flex flex-col space-y-0.5 ${(!isCollapsed || isMobileOpen) ? 'mt-0.5' : 'mt-1'
+                    }`}>
                     {group.items.map((item, idx) => {
                       const isActive = location.pathname === item.path || (location.pathname === "/" && item.path === "/");
                       return (
@@ -372,15 +368,13 @@ const MainLayout: React.FC = () => {
                           key={idx}
                           to={item.path}
                           onClick={(e) => handleLinkClick(e, item.path)}
-                          className={`flex items-center gap-3 px-6 py-2.5 transition-all duration-150 border-l-[3px] ${
-                            isActive
-                              ? "bg-[#2A4080] border-[#FACC15] text-white"
-                              : "border-transparent text-slate-300 hover:bg-[#2A4080]/50 hover:text-white hover:border-slate-600/50"
-                          }`}
+                          className={`flex items-center gap-3 px-6 py-2.5 transition-all duration-150 border-l-[3px] ${isActive
+                            ? "bg-[#2A4080] border-[#FACC15] text-white"
+                            : "border-transparent text-slate-300 hover:bg-[#2A4080]/50 hover:text-white hover:border-slate-600/50"
+                            }`}
                         >
-                          <item.icon className={`w-4 h-4 shrink-0 transition-colors ${
-                            isActive ? "text-[#FACC15]" : ""
-                          }`} />
+                          <item.icon className={`w-4 h-4 shrink-0 transition-colors ${isActive ? "text-[#FACC15]" : ""
+                            }`} />
                           {(!isCollapsed || isMobileOpen) && (
                             <span className="text-sm font-medium truncate">{item.name}</span>
                           )}
@@ -558,7 +552,7 @@ const MainLayout: React.FC = () => {
           {/* Copyright Footer */}
           <footer className="w-full shrink-0 text-right py-4 pr-6 mt-auto">
             <ProtectedCopyright
-              lines={['© 2026 Universitas Negeri Malang']}
+              lines={['Maskumambang Creative Center']}
               align="right"
               fontSize={13}
               color="rgba(148, 163, 184, 0.9)"

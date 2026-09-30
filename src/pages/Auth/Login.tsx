@@ -149,7 +149,7 @@ const Login: React.FC = () => {
             />
           </div>
           <h1 className="text-xl sm:text-3xl font-extrabold tracking-wide text-transparent bg-clip-text bg-linear-to-r from-amber-200 via-yellow-100 to-white drop-shadow-sm">
-            Learning Management System (LMS)
+            Maskumambang Digital Ecosystem
           </h1>
           <p className="text-blue-200/90 text-sm sm:text-base mt-1.5 leading-relaxed max-w-sm font-semibold flex flex-col items-center">
             <span>Pondok Pesantren Maskumambang</span>
@@ -160,7 +160,7 @@ const Login: React.FC = () => {
         {/* Login Card with Glassmorphism */}
         <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/40 p-5 sm:p-10 w-full max-w-md z-10 transition-all duration-300">
           <div className="mb-5 sm:mb-8 flex flex-col items-center text-center">
-            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 mb-1 sm:mb-1.5 tracking-tight">Login System</h2>
+            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 mb-1 sm:mb-1.5 tracking-tight">Login</h2>
             <p className="text-[11px] sm:text-xs text-slate-500 font-medium">Silakan masuk menggunakan NIG dan kata sandi akun Anda</p>
           </div>
 
@@ -245,9 +245,8 @@ const Login: React.FC = () => {
           <div className="mt-10 flex justify-center items-center opacity-60">
             {/* Small Footer Logo */}
             <div className="flex items-center gap-2">
-              <img src="/logo.png" alt="Logo" className="w-5 h-5 object-contain" />
               <span className="text-[9px] font-bold text-gray-500 tracking-[0.15em] leading-tight">
-                PONDOK PESANTREN MASKUMAMBANG
+                MENYEMAI AKIDAH SAHIHAH, MENUAI AKHLAK KARIMAH
               </span>
             </div>
           </div>
@@ -258,8 +257,7 @@ const Login: React.FC = () => {
       <div className="w-full z-10 text-center px-4 pb-4 sm:pb-6 mt-4">
         <ProtectedCopyright
           lines={[
-            '© 2026 Universitas Negeri Malang',
-            'Developed by Tim UM Belajar Bersama Masyarakat (UM BBM) Pondok Pesantren Maskumambang'
+            'Maskumambang Creative Center (MCC)'
           ]}
           align="center"
           fontSize={14}
