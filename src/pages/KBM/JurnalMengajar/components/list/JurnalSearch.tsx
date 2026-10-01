@@ -9,6 +9,7 @@ interface JurnalSearchProps {
   tanggalAkhir: string;
   setTanggalAkhir: (date: string) => void;
   isDirector?: boolean;
+  isWaliKelas?: boolean;
   lembagaList?: any[];
   selectedLembagaId?: string;
   setSelectedLembagaId?: (id: string) => void;
@@ -25,6 +26,7 @@ export function JurnalSearch({
   tanggalAkhir,
   setTanggalAkhir,
   isDirector = false,
+  isWaliKelas = false,
   lembagaList = [],
   selectedLembagaId = "Semua",
   setSelectedLembagaId,
@@ -45,7 +47,7 @@ export function JurnalSearch({
         />
       </div>
 
-      {/* Filter Lembaga & Kelas (Khusus Role Direktur) */}
+      {/* Filter Lembaga & Kelas (Khusus Role Direktur / Super Admin) */}
       {isDirector && (
         <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
           {/* Dropdown Lembaga */}
@@ -79,6 +81,24 @@ export function JurnalSearch({
               ))}
             </select>
           </div>
+        </div>
+      )}
+
+      {/* Filter Kelas Khusus Role Wali Kelas (hanya menampilkan kelas-kelas asuhan yang diampu) */}
+      {isWaliKelas && !isDirector && filteredKelasList.length > 0 && (
+        <div className="relative w-full sm:w-48">
+          <select
+            value={selectedKelasId}
+            onChange={(e) => setSelectedKelasId && setSelectedKelasId(e.target.value)}
+            className="w-full bg-blue-50/50 border border-blue-200 hover:border-blue-300 text-blue-900 font-semibold text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer shadow-2xs transition-all"
+          >
+            <option value="Semua">Semua Kelas Asuhan</option>
+            {filteredKelasList.map((k: any) => (
+              <option key={k.kelas_id} value={String(k.kelas_id)}>
+                Kelas {k.nama_kelas}
+              </option>
+            ))}
+          </select>
         </div>
       )}
 

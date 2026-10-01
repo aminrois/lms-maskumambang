@@ -42,25 +42,36 @@ export function useWaliKelasMonitoring() {
   
   const user = useAuthStore(state => state.user);
   const [isWaliKelas, setIsWaliKelas] = useState<boolean | null>(null);
+  const [waliKelasList, setWaliKelasList] = useState<any[]>([]);
   const [waliKelasKelasId, setWaliKelasKelasId] = useState<number | null>(null);
   const [activeClassName, setActiveClassName] = useState("Kelas asuhan belum ditemukan");
   const [activeTeacher, setActiveTeacher] = useState("Wali Kelas");
 
   useEffect(() => {
     if (user?.pegawai_id) {
-      restClient.get('/kelas', { params: { wali_kelas_id: `eq.${user.pegawai_id}`, select: '*,pegawai:pegawai!wali_kelas_id(nama),lembaga(lembaga_id,nama_lembaga,singkatan)' } })
+      restClient.get('/kelas', { params: { wali_kelas_id: `eq.${user.pegawai_id}`, select: '*,pegawai:pegawai!wali_kelas_id(nama),lembaga(lembaga_id,nama_lembaga,singkatan)', order: 'nama_kelas.asc' } })
         .then(res => {
-          const hasClass = res.data && res.data.length > 0;
+          const classes = res.data || [];
+          const hasClass = classes.length > 0;
           setIsWaliKelas(hasClass);
+          setWaliKelasList(classes);
           if (hasClass) {
-            const firstClass = res.data[0];
-            setWaliKelasKelasId(firstClass.kelas_id);
-            setActiveClassName(firstClass.nama_kelas);
-            if (firstClass.lembaga_id) {
-              setSelectedLembagaId(String(firstClass.lembaga_id));
-            }
-            if (firstClass.pegawai?.nama) {
-              setActiveTeacher(firstClass.pegawai.nama);
+            setWaliKelasKelasId(prev => {
+              const matched = classes.find((c: any) => c.kelas_id === prev);
+              if (matched) {
+                setActiveClassName(matched.nama_kelas);
+                if (matched.lembaga_id) setSelectedLembagaId(String(matched.lembaga_id));
+                return matched.kelas_id;
+              }
+              const firstClass = classes[0];
+              setActiveClassName(firstClass.nama_kelas);
+              if (firstClass.lembaga_id) {
+                setSelectedLembagaId(String(firstClass.lembaga_id));
+              }
+              return firstClass.kelas_id;
+            });
+            if (classes[0]?.pegawai?.nama) {
+              setActiveTeacher(classes[0].pegawai.nama);
             }
           }
         })
@@ -69,6 +80,18 @@ export function useWaliKelasMonitoring() {
       setIsWaliKelas(false);
     }
   }, [user]);
+
+  const handleSelectKelas = (kelasId: number | string) => {
+    const targetId = Number(kelasId);
+    setWaliKelasKelasId(targetId);
+    const found = waliKelasList.find((c: any) => c.kelas_id === targetId);
+    if (found) {
+      setActiveClassName(found.nama_kelas);
+      if (found.lembaga_id) {
+        setSelectedLembagaId(String(found.lembaga_id));
+      }
+    }
+  };
 
   useEffect(() => {
     const loadLembagas = async () => {
@@ -177,6 +200,9 @@ export function useWaliKelasMonitoring() {
 
   return {
     isWaliKelas,
+    waliKelasList,
+    waliKelasKelasId,
+    handleSelectKelas,
     activeClassName,
     activeTeacher,
     lembagas,

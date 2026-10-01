@@ -1,10 +1,11 @@
+import { useState } from "react";
 import { useJurnalMengajarList } from "./hooks/useJurnalMengajarList";
 import { JurnalHeader } from "./components/list/JurnalHeader";
 import { JurnalSearch } from "./components/list/JurnalSearch";
 import { JurnalList } from "./components/list/JurnalList";
 import { JurnalDeleteModal } from "./components/list/JurnalDeleteModal";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle2, AlertTriangle, BookOpen, Layers } from "lucide-react";
+import { CheckCircle2, AlertTriangle, BookOpen, Layers, LayoutGrid, List } from "lucide-react";
 
 export default function KbmJurnalMengajar() {
   const navigate = useNavigate();
@@ -22,6 +23,7 @@ export default function KbmJurnalMengajar() {
     tanggalAkhir,
     setTanggalAkhir,
     isDirector,
+    isWaliKelas,
     lembagaList,
     selectedLembagaId,
     setSelectedLembagaId,
@@ -40,7 +42,16 @@ export default function KbmJurnalMengajar() {
     executeDelete
   } = useJurnalMengajarList();
 
-  const isGuruOnly = role === 'Guru';
+  const [viewMode, setViewMode] = useState<'card' | 'table'>(() => {
+    return (localStorage.getItem('jurnal_view_mode') as 'card' | 'table') || 'card';
+  });
+
+  const handleToggleViewMode = (mode: 'card' | 'table') => {
+    setViewMode(mode);
+    localStorage.setItem('jurnal_view_mode', mode);
+  };
+
+  const isGuruOnly = role === 'Guru' && !isDirector && !isWaliKelas;
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto w-full space-y-6 relative">
@@ -55,6 +66,7 @@ export default function KbmJurnalMengajar() {
           tanggalAkhir={tanggalAkhir}
           setTanggalAkhir={setTanggalAkhir}
           isDirector={isDirector}
+          isWaliKelas={isWaliKelas}
           lembagaList={lembagaList}
           selectedLembagaId={selectedLembagaId}
           setSelectedLembagaId={setSelectedLembagaId}
@@ -109,58 +121,90 @@ export default function KbmJurnalMengajar() {
         </div>
       )}
 
-      {/* Tabs Filter Status Sesi */}
-      <div className="flex items-center gap-2 border-b border-slate-200/80 pb-3 flex-wrap">
-        <button
-          type="button"
-          onClick={() => {
-            setStatusFilter('Semua');
-            setCurrentPage(1);
-          }}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            statusFilter === 'Semua'
-              ? 'bg-[#243B7A] text-white shadow-xs'
-              : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-          }`}
-        >
-          {isGuruOnly ? `Semua Jurnal (${summary.totalSesi})` : `Semua Sesi (${summary.totalSesi})`}
-        </button>
+      {/* Tabs Filter Status Sesi & Toggle View Mode (Card vs Baris) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 pb-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => {
+              setStatusFilter('Semua');
+              setCurrentPage(1);
+            }}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              statusFilter === 'Semua'
+                ? 'bg-[#243B7A] text-white shadow-xs'
+                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            {isGuruOnly ? `Semua Jurnal (${summary.totalSesi})` : `Semua Sesi (${summary.totalSesi})`}
+          </button>
 
-        {!isGuruOnly && (
-          <>
-            <button
-              type="button"
-              onClick={() => {
-                setStatusFilter('Sudah');
-                setCurrentPage(1);
-              }}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                statusFilter === 'Sudah'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100/70'
-              }`}
-            >
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              Sudah Mengajar ({summary.totalSudahMengajar})
-            </button>
+          {!isGuruOnly && (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setStatusFilter('Sudah');
+                  setCurrentPage(1);
+                }}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  statusFilter === 'Sudah'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100/70'
+                }`}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Sudah Mengajar ({summary.totalSudahMengajar})
+              </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                setStatusFilter('Belum');
-                setCurrentPage(1);
-              }}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                statusFilter === 'Belum'
-                  ? 'bg-rose-600 text-white shadow-xs'
-                  : 'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100/70'
-              }`}
-            >
-              <AlertTriangle className="w-3.5 h-3.5" />
-              Belum Mengajar ({summary.totalBelumMengajar})
-            </button>
-          </>
-        )}
+              <button
+                type="button"
+                onClick={() => {
+                  setStatusFilter('Belum');
+                  setCurrentPage(1);
+                }}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  statusFilter === 'Belum'
+                    ? 'bg-rose-600 text-white shadow-xs'
+                    : 'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100/70'
+                }`}
+              >
+                <AlertTriangle className="w-3.5 h-3.5" />
+                Belum Mengajar ({summary.totalBelumMengajar})
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* View Mode Toggle: Card vs Baris */}
+        <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-xl border border-slate-200/80 self-start sm:self-auto shrink-0 shadow-2xs">
+          <button
+            type="button"
+            onClick={() => handleToggleViewMode('card')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              viewMode === 'card'
+                ? 'bg-white text-indigo-900 shadow-xs border border-slate-200/60'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+            title="Tampilan Card"
+          >
+            <LayoutGrid className="w-3.5 h-3.5" />
+            <span>Card</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleToggleViewMode('table')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              viewMode === 'table'
+                ? 'bg-white text-indigo-900 shadow-xs border border-slate-200/60'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+            title="Tampilan Baris"
+          >
+            <List className="w-3.5 h-3.5" />
+            <span>Baris</span>
+          </button>
+        </div>
       </div>
 
       {/* List Sesi KBM & Jurnal */}
@@ -173,6 +217,7 @@ export default function KbmJurnalMengajar() {
         setCurrentPage={setCurrentPage}
         totalPages={totalPages}
         itemsPerPage={8}
+        viewMode={viewMode}
         onConfirmDelete={confirmDelete}
         onViewDetail={(id) => navigate(`/kbm/jurnal-mengajar/${id}`)}
       />

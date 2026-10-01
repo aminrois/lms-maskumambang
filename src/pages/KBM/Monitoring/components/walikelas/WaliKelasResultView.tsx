@@ -15,6 +15,9 @@ interface WaliKelasResultViewProps {
   activeClassName: string;
   activeTeacher: string;
   selectedLembaga: any;
+  waliKelasList?: any[];
+  waliKelasKelasId?: number | null;
+  onSelectKelas?: (kelasId: number | string) => void;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   statusFilter: string;
@@ -67,6 +70,9 @@ export function WaliKelasResultView({
   activeClassName,
   activeTeacher,
   selectedLembaga,
+  waliKelasList = [],
+  waliKelasKelasId,
+  onSelectKelas,
   searchTerm,
   setSearchTerm,
   statusFilter,
@@ -190,7 +196,29 @@ export function WaliKelasResultView({
       {/* Filter Toolbar */}
       <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          <div className="relative w-full sm:w-64">
+          {/* Dropdown Filter Kelas Asuhan */}
+          {waliKelasList.length > 0 && onSelectKelas && (
+            <Select 
+              value={String(waliKelasKelasId || '')} 
+              onValueChange={(val) => onSelectKelas(val)}
+            >
+              <SelectTrigger className="w-full sm:w-48 rounded-xl border-blue-200 bg-blue-50/50 text-blue-900 h-10 text-xs font-semibold">
+                <div className="flex items-center gap-1.5 truncate">
+                  <span className="text-slate-400 font-normal">Kelas:</span>
+                  <SelectValue placeholder="Pilih Kelas" />
+                </div>
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                {waliKelasList.map((k: any) => (
+                  <SelectItem key={k.kelas_id} value={String(k.kelas_id)} className="text-xs font-medium">
+                    {k.nama_kelas} {k.lembaga ? `(${k.lembaga.singkatan || k.lembaga.nama_lembaga})` : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          <div className="relative w-full sm:w-56">
             <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
             <Input
               placeholder="Cari mapel atau guru..."
@@ -201,7 +229,7 @@ export function WaliKelasResultView({
           </div>
 
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-44 rounded-xl border-slate-200 h-10 text-xs font-medium">
+            <SelectTrigger className="w-full sm:w-40 rounded-xl border-slate-200 h-10 text-xs font-medium">
               <SelectValue placeholder="Semua Status" />
             </SelectTrigger>
             <SelectContent className="rounded-xl">

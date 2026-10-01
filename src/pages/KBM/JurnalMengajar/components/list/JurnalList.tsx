@@ -17,6 +17,7 @@ interface JurnalListProps {
   itemsPerPage: number;
   onConfirmDelete: (e: React.MouseEvent, jurnal: JurnalUI) => void;
   onViewDetail: (id: number) => void;
+  viewMode?: 'card' | 'table';
 }
 
 export function getStatusBadge(input: JurnalUI | string) {
@@ -79,7 +80,8 @@ export function JurnalList({
   totalPages,
   itemsPerPage,
   onConfirmDelete,
-  onViewDetail
+  onViewDetail,
+  viewMode = 'card'
 }: JurnalListProps) {
   return (
     <div className="space-y-4">
@@ -94,110 +96,249 @@ export function JurnalList({
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {paginatedData.map((jurnal, idx) => {
-              const isDanger = !jurnal.is_completed || jurnal.is_danger;
+          {/* Tampilan Card (Grid) */}
+          {viewMode === 'card' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              {paginatedData.map((jurnal, idx) => {
+                const isDanger = !jurnal.is_completed || jurnal.is_danger;
 
-              return (
-                <div
-                  key={`jurnal_${jurnal.jurnal_id || 'uncompleted'}_jadwal_${jurnal.jadwal_id}_${jurnal.tanggal}_${idx}`}
-                  className={`rounded-2xl p-4 sm:p-5 transition-all duration-200 group flex flex-col h-full relative overflow-hidden ${
-                    isDanger
-                      ? "bg-linear-to-br from-rose-50/90 via-red-50/40 to-white border-2 border-rose-300 hover:border-rose-400 shadow-xs hover:shadow-md ring-2 ring-rose-500/10"
-                      : "bg-white border border-slate-200/90 hover:border-indigo-300 shadow-2xs hover:shadow-md cursor-pointer"
-                  }`}
-                  onClick={() => {
-                    if (jurnal.jurnal_id) {
-                      onViewDetail(jurnal.jurnal_id);
-                    }
-                  }}
-                >
-                  {/* Top Bar */}
-                  <div className="flex justify-between items-start gap-2.5 mb-3.5">
-                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-base border shrink-0 ${
-                        isDanger 
-                          ? "bg-rose-100 text-rose-700 border-rose-200" 
-                          : "bg-indigo-50 text-indigo-700 border-indigo-100/50"
-                      }`}>
-                        {isDanger ? <AlertCircle className="w-5 h-5 text-rose-600" /> : <BookOpen className="w-4.5 h-4.5 text-indigo-600" />}
+                return (
+                  <div
+                    key={`jurnal_${jurnal.jurnal_id || 'uncompleted'}_jadwal_${jurnal.jadwal_id}_${jurnal.tanggal}_${idx}`}
+                    className={`rounded-2xl p-4 sm:p-5 transition-all duration-200 group flex flex-col h-full relative overflow-hidden ${
+                      isDanger
+                        ? "bg-linear-to-br from-rose-50/90 via-red-50/40 to-white border-2 border-rose-300 hover:border-rose-400 shadow-xs hover:shadow-md ring-2 ring-rose-500/10"
+                        : "bg-white border border-slate-200/90 hover:border-indigo-300 shadow-2xs hover:shadow-md cursor-pointer"
+                    }`}
+                    onClick={() => {
+                      if (jurnal.jurnal_id) {
+                        onViewDetail(jurnal.jurnal_id);
+                      }
+                    }}
+                  >
+                    {/* Top Bar */}
+                    <div className="flex justify-between items-start gap-2.5 mb-3.5">
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-base border shrink-0 ${
+                          isDanger 
+                            ? "bg-rose-100 text-rose-700 border-rose-200" 
+                            : "bg-indigo-50 text-indigo-700 border-indigo-100/50"
+                        }`}>
+                          {isDanger ? <AlertCircle className="w-5 h-5 text-rose-600" /> : <BookOpen className="w-4.5 h-4.5 text-indigo-600" />}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className={`text-sm font-bold truncate ${isDanger ? 'text-rose-950' : 'text-gray-800'}`} title={jurnal.mapel}>
+                            {jurnal.mapel}
+                          </h3>
+                          <p className={`text-xs font-semibold truncate ${isDanger ? 'text-rose-700' : 'text-indigo-600'}`}>
+                            Kelas {jurnal.kelas}
+                          </p>
+                        </div>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <h3 className={`text-sm font-bold truncate ${isDanger ? 'text-rose-950' : 'text-gray-800'}`} title={jurnal.mapel}>
-                          {jurnal.mapel}
-                        </h3>
-                        <p className={`text-xs font-semibold truncate ${isDanger ? 'text-rose-700' : 'text-indigo-600'}`}>
-                          Kelas {jurnal.kelas}
-                        </p>
-                      </div>
+
+                      {canDelete && jurnal.jurnal_id && (
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors shadow-2xs cursor-pointer shrink-0"
+                          onClick={(e) => onConfirmDelete(e, jurnal)}
+                          title="Hapus Jurnal"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Hapus</span>
+                        </button>
+                      )}
                     </div>
 
-                    {canDelete && jurnal.jurnal_id && (
-                      <button
-                        type="button"
-                        className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors shadow-2xs cursor-pointer shrink-0"
-                        onClick={(e) => onConfirmDelete(e, jurnal)}
-                        title="Hapus Jurnal"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span>Hapus</span>
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Body Info */}
-                  <div className="space-y-2 flex-1 text-xs mb-4">
-                    <div className="flex items-center gap-2">
-                      <User className={`w-4 h-4 shrink-0 ${isDanger ? 'text-rose-500' : 'text-gray-400'}`} />
-                      <span className={`line-clamp-1 font-semibold ${isDanger ? 'text-rose-900' : 'text-gray-700'}`} title={jurnal.guru}>
-                        {jurnal.guru}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <Clock className={`w-4 h-4 shrink-0 ${isDanger ? 'text-rose-500' : 'text-gray-400'}`} />
-                      <span className={`font-medium ${isDanger ? 'text-rose-800' : 'text-gray-600'}`}>
-                        {jurnal.hari ? `${jurnal.hari}, ` : ''}
-                        {jurnal.tanggal ? format(new Date(jurnal.tanggal), 'dd MMMM yyyy', { locale: idLocale }) : "-"}
-                        {jurnal.jam_label ? ` • ${jurnal.jam_label}` : ''}
-                      </span>
-                    </div>
-
-                    {/* Badge Status */}
-                    <div className="pt-2 flex items-center gap-2 flex-wrap">
-                      {jurnal.pertemuan_ke ? (
-                        <span className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded font-bold">
-                          Pert. {jurnal.pertemuan_ke}
+                    {/* Body Info */}
+                    <div className="space-y-2 flex-1 text-xs mb-4">
+                      <div className="flex items-center gap-2">
+                        <User className={`w-4 h-4 shrink-0 ${isDanger ? 'text-rose-500' : 'text-gray-400'}`} />
+                        <span className={`line-clamp-1 font-semibold ${isDanger ? 'text-rose-900' : 'text-gray-700'}`} title={jurnal.guru}>
+                          {jurnal.guru}
                         </span>
-                      ) : null}
-                      {getStatusBadge(jurnal)}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Clock className={`w-4 h-4 shrink-0 ${isDanger ? 'text-rose-500' : 'text-gray-400'}`} />
+                        <span className={`font-medium ${isDanger ? 'text-rose-800' : 'text-gray-600'}`}>
+                          {jurnal.hari ? `${jurnal.hari}, ` : ''}
+                          {jurnal.tanggal ? format(new Date(jurnal.tanggal), 'dd MMMM yyyy', { locale: idLocale }) : "-"}
+                          {jurnal.jam_label ? ` • ${jurnal.jam_label}` : ''}
+                        </span>
+                      </div>
+
+                      {/* Badge Status */}
+                      <div className="pt-2 flex items-center gap-2 flex-wrap">
+                        {jurnal.pertemuan_ke ? (
+                          <span className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded font-bold">
+                            Pert. {jurnal.pertemuan_ke}
+                          </span>
+                        ) : null}
+                        {getStatusBadge(jurnal)}
+                      </div>
+
+                      {isDanger && (
+                        <p className="text-[11px] text-rose-700 font-medium leading-relaxed bg-rose-100/60 p-2 rounded-xl border border-rose-200/60 mt-1">
+                          ⚠️ Belum mengisi absensi & jurnal mengajar.
+                        </p>
+                      )}
                     </div>
 
-                    {isDanger && (
-                      <p className="text-[11px] text-rose-700 font-medium leading-relaxed bg-rose-100/60 p-2 rounded-xl border border-rose-200/60 mt-1">
-                        ⚠️ Belum mengisi absensi & jurnal mengajar.
-                      </p>
-                    )}
+                    {/* Footer Action */}
+                    <div className={`mt-auto pt-3 border-t flex justify-end ${isDanger ? 'border-rose-200/60' : 'border-slate-100'}`}>
+                      {jurnal.jurnal_id ? (
+                        <button
+                          className="flex items-center gap-1 text-xs font-bold text-indigo-600 group-hover:text-indigo-800 transition-colors cursor-pointer"
+                        >
+                          Lihat Detail & Absensi <ChevronRight className="w-4 h-4" />
+                        </button>
+                      ) : (
+                        <span className="text-[11px] font-bold text-rose-600 flex items-center gap-1">
+                          <AlertTriangle className="w-3.5 h-3.5" /> Perlu Perhatian
+                        </span>
+                      )}
+                    </div>
                   </div>
+                );
+              })}
+            </div>
+          )}
 
-                  {/* Footer Action */}
-                  <div className={`mt-auto pt-3 border-t flex justify-end ${isDanger ? 'border-rose-200/60' : 'border-slate-100'}`}>
-                    {jurnal.jurnal_id ? (
-                      <button
-                        className="flex items-center gap-1 text-xs font-bold text-indigo-600 group-hover:text-indigo-800 transition-colors cursor-pointer"
-                      >
-                        Lihat Detail & Absensi <ChevronRight className="w-4 h-4" />
-                      </button>
-                    ) : (
-                      <span className="text-[11px] font-bold text-rose-600 flex items-center gap-1">
-                        <AlertTriangle className="w-3.5 h-3.5" /> Perlu Perhatian
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          {/* Tampilan Baris (Table) */}
+          {viewMode === 'table' && (
+            <div className="bg-white border border-slate-200/90 rounded-2xl shadow-2xs overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-slate-700">
+                  <thead className="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+                    <tr>
+                      <th className="px-4 py-3.5 text-center w-12">No</th>
+                      <th className="px-4 py-3.5 min-w-[180px]">Mata Pelajaran &amp; Kelas</th>
+                      <th className="px-4 py-3.5 min-w-[160px]">Guru Pengampu</th>
+                      <th className="px-4 py-3.5 min-w-[170px]">Hari, Tanggal &amp; Jam</th>
+                      <th className="px-4 py-3.5 text-center w-24">Pert.</th>
+                      <th className="px-4 py-3.5 min-w-[170px]">Status KBM</th>
+                      <th className="px-4 py-3.5 min-w-[140px]">Kehadiran / Catatan</th>
+                      <th className="px-4 py-3.5 text-right min-w-[130px]">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {paginatedData.map((jurnal, idx) => {
+                      const isDanger = !jurnal.is_completed || jurnal.is_danger;
+                      const itemNo = (currentPage - 1) * itemsPerPage + idx + 1;
+
+                      return (
+                        <tr
+                          key={`table_jurnal_${jurnal.jurnal_id || 'uncompleted'}_${jurnal.jadwal_id}_${jurnal.tanggal}_${idx}`}
+                          className={`hover:bg-slate-50/80 transition-colors ${
+                            isDanger ? 'bg-rose-50/40' : ''
+                          }`}
+                        >
+                          <td className="px-4 py-3 text-center font-semibold text-slate-400">
+                            {itemNo}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs border shrink-0 ${
+                                isDanger
+                                  ? "bg-rose-100 text-rose-700 border-rose-200"
+                                  : "bg-indigo-50 text-indigo-700 border-indigo-100"
+                              }`}>
+                                {isDanger ? <AlertCircle className="w-3.5 h-3.5" /> : <BookOpen className="w-3.5 h-3.5" />}
+                              </div>
+                              <div className="min-w-0">
+                                <span className={`font-bold block truncate ${isDanger ? 'text-rose-950' : 'text-slate-900'}`} title={jurnal.mapel}>
+                                  {jurnal.mapel}
+                                </span>
+                                <span className="text-[11px] font-semibold text-indigo-600 block">
+                                  Kelas {jurnal.kelas}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-1.5">
+                              <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              <span className="font-semibold text-slate-800 truncate" title={jurnal.guru}>
+                                {jurnal.guru}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="space-y-0.5">
+                              <span className="font-semibold text-slate-800 block">
+                                {jurnal.hari ? `${jurnal.hari}, ` : ''}
+                                {jurnal.tanggal ? format(new Date(jurnal.tanggal), 'dd MMM yyyy', { locale: idLocale }) : "-"}
+                              </span>
+                              {jurnal.jam_label && (
+                                <span className="text-[11px] text-slate-500 font-medium flex items-center gap-1">
+                                  <Clock className="w-3 h-3 text-slate-400" /> {jurnal.jam_label}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            {jurnal.pertemuan_ke ? (
+                              <span className="inline-block text-[11px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-md font-bold">
+                                Ke-{jurnal.pertemuan_ke}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 font-medium">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            {getStatusBadge(jurnal)}
+                          </td>
+                          <td className="px-4 py-3">
+                            {jurnal.total_siswa ? (
+                              <span className="text-xs font-semibold text-slate-700">
+                                Hadir: <b className="text-emerald-700">{jurnal.total_hadir ?? 0}</b> / {jurnal.total_siswa}
+                              </span>
+                            ) : jurnal.materi ? (
+                              <span className="text-[11px] text-slate-600 font-medium line-clamp-1" title={jurnal.materi}>
+                                {jurnal.materi}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 text-xs italic">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              {jurnal.jurnal_id ? (
+                                <button
+                                  type="button"
+                                  onClick={() => onViewDetail(jurnal.jurnal_id!)}
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-colors cursor-pointer shadow-2xs"
+                                  title="Lihat Detail & Absensi"
+                                >
+                                  <span>Detail</span>
+                                  <ChevronRight className="w-3.5 h-3.5" />
+                                </button>
+                              ) : (
+                                <span className="text-[11px] font-semibold text-rose-600 px-2 py-1 bg-rose-50 border border-rose-200 rounded-lg">
+                                  Belum Diisi
+                                </span>
+                              )}
+
+                              {canDelete && jurnal.jurnal_id && (
+                                <button
+                                  type="button"
+                                  className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-200 cursor-pointer"
+                                  onClick={(e) => onConfirmDelete(e, jurnal)}
+                                  title="Hapus Jurnal"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {totalPages > 1 && (
             <div className="flex flex-col sm:flex-row justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 shadow-xs gap-4 mt-6">

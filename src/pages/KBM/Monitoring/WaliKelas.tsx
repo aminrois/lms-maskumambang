@@ -20,6 +20,9 @@ export default function MonitoringWaliKelas() {
     tanggalAkhir,
     setTanggalAkhir,
     isWaliKelas,
+    waliKelasList,
+    waliKelasKelasId,
+    handleSelectKelas,
     activeClassName,
     activeTeacher,
     filteredRows,
@@ -46,12 +49,18 @@ export default function MonitoringWaliKelas() {
       <WaliKelasHeader
         activeClassName={activeClassName}
         activeTeacher={activeTeacher}
+        waliKelasList={waliKelasList}
+        waliKelasKelasId={waliKelasKelasId}
+        onSelectKelas={handleSelectKelas}
       />
 
       <WaliKelasResultView
         activeClassName={activeClassName}
         activeTeacher={activeTeacher}
         selectedLembaga={selectedLembaga}
+        waliKelasList={waliKelasList}
+        waliKelasKelasId={waliKelasKelasId}
+        onSelectKelas={handleSelectKelas}
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
         statusFilter={statusFilter}
