@@ -1,6 +1,6 @@
-import { 
-  Users, Clock, Download, RefreshCw, Search, School, BarChart3, 
-  Award, Eye
+import {
+  Users, Clock, Download, RefreshCw, Search, School, BarChart3,
+  Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -71,7 +71,7 @@ export default function RekapJamGuru() {
       </div>
 
       {/* KPI Cards / Ringkasan Statistik */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="bg-gradient-to-br from-blue-50/70 to-white border-blue-100/80 rounded-3xl shadow-xs">
           <CardContent className="p-5 flex items-center justify-between">
             <div className="space-y-1">
@@ -111,23 +111,6 @@ export default function RekapJamGuru() {
             </div>
             <div className="p-3.5 bg-purple-600 text-white rounded-2xl shadow-sm">
               <BarChart3 className="w-6 h-6" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-amber-50/70 to-white border-amber-100/80 rounded-3xl shadow-xs">
-          <CardContent className="p-5 flex items-center justify-between">
-            <div className="space-y-1">
-              <p className="text-xs font-semibold text-amber-800 uppercase tracking-wider">Beban Tertinggi</p>
-              <h3 className="text-lg font-bold text-slate-900 truncate max-w-[170px]" title={summaryStats.maxGuru?.nama_guru}>
-                {summaryStats.maxGuru ? summaryStats.maxGuru.nama_guru : "—"}
-              </h3>
-              <p className="text-[11px] text-amber-800 font-semibold">
-                {summaryStats.maxGuru ? `${summaryStats.maxGuru.total_jp} Jam Pelajaran` : "0 JP"}
-              </p>
-            </div>
-            <div className="p-3.5 bg-amber-500 text-white rounded-2xl shadow-sm">
-              <Award className="w-6 h-6" />
             </div>
           </CardContent>
         </Card>
