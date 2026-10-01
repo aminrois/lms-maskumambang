@@ -16,30 +16,60 @@ export function renderStatusBadge(status: string) {
   switch (status) {
     case "Sesuai":
       return (
-        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-1 rounded-md">
-          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Sesuai
+        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-md whitespace-nowrap">
+          <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Sesuai
         </span>
       );
     case "Tertinggal":
     case "Terlambat":
       return (
-        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-700 bg-rose-50 border border-rose-100 px-2 py-1 rounded-md">
-          <TrendingDown className="w-3.5 h-3.5 text-rose-600" /> {status}
+        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-700 bg-rose-50 border border-rose-200/80 px-2 py-0.5 rounded-md whitespace-nowrap">
+          <TrendingDown className="w-3 h-3 text-rose-600" /> {status}
         </span>
       );
     case "Terlalu Cepat":
       return (
-        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-100 px-2 py-1 rounded-md">
-          <TrendingUp className="w-3.5 h-3.5 text-amber-600" /> Terlalu Cepat
+        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-md whitespace-nowrap">
+          <TrendingUp className="w-3 h-3 text-amber-600" /> Terlalu Cepat
         </span>
       );
     default:
       return (
-        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-1 rounded-md">
-          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> {status || "Sesuai"}
+        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-md whitespace-nowrap">
+          <CheckCircle2 className="w-3 h-3 text-emerald-600" /> {status || "Sesuai"}
         </span>
       );
   }
+}
+
+export function renderStatusKedisiplinanBadge(status?: string | null) {
+  const s = (status || "").trim();
+  if (s === "Tepat Waktu") {
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-md whitespace-nowrap">
+        <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Tepat Waktu
+      </span>
+    );
+  }
+  if (s === "Terlambat") {
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-700 bg-rose-50 border border-rose-200/80 px-2 py-0.5 rounded-md whitespace-nowrap">
+        <TrendingDown className="w-3 h-3 text-rose-600" /> Terlambat
+      </span>
+    );
+  }
+  if (s === "Belum Absen") {
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-md whitespace-nowrap">
+        <AlertTriangle className="w-3 h-3 text-amber-600" /> Belum Absen
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md whitespace-nowrap">
+      {s || "—"}
+    </span>
+  );
 }
 
 interface UniversalResultViewProps {
@@ -338,31 +368,73 @@ export function UniversalResultView({
             {/* Desktop Table View */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm text-left text-slate-600">
-                <thead className="bg-slate-50 border-b border-slate-100 text-slate-700 text-xs uppercase font-bold">
+                <thead className="bg-slate-50 border-b border-slate-100 text-slate-700 text-xs uppercase font-bold tracking-wider">
                   <tr>
-                    <th className="px-5 py-4">Guru / Pendidik</th>
-                    <th className="px-5 py-4">Mata Pelajaran</th>
-                    <th className="px-5 py-4">Kelas</th>
-                    <th className="px-5 py-4">Hari</th>
-                    <th className="px-5 py-4">Jam</th>
-                    <th className="px-5 py-4 text-center">Jurnal Realisasi</th>
-                    <th className="px-5 py-4 text-center">RPP Target</th>
-                    <th className="px-5 py-4 text-center">Status</th>
+                    <th className="px-4 py-3.5 text-center w-12">No</th>
+                    <th className="px-4 py-3.5">Guru / Pendidik</th>
+                    <th className="px-4 py-3.5">Mata Pelajaran & Kelas</th>
+                    <th className="px-4 py-3.5">Jadwal (Hari / Jam)</th>
+                    <th className="px-4 py-3.5">Tanggal Rencana RPP</th>
+                    <th className="px-4 py-3.5">Tanggal Realisasi Absensi</th>
+                    <th className="px-4 py-3.5 text-center">Status KBM</th>
+                    <th className="px-4 py-3.5 text-center">Waktu Input Absensi</th>
+                    <th className="px-4 py-3.5 text-center">Status Kedisiplinan</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
                   {paginatedRows.map((row, idx) => {
+                    const rowNumber = ((currentPage - 1) * 10) + idx + 1;
+                    const rawTglRencana = getTglRencana(row);
+                    const formattedTglRencana = rawTglRencana ? formatDateIndo(rawTglRencana) : "—";
+                    const formattedTglRealisasi = row.tanggal ? formatDateIndo(row.tanggal) : "—";
+                    const waktuInput = row.waktu_input_absensi 
+                      ? String(row.waktu_input_absensi).substring(0, 5) 
+                      : null;
+
                     return (
-                      <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
-                        <td className="px-5 py-4 font-semibold text-slate-900">{row.nama_guru}</td>
-                        <td className="px-5 py-4">{row.nama_mapel}</td>
-                        <td className="px-5 py-4 font-medium text-slate-800">{row.nama_kelas}</td>
-                        <td className="px-5 py-4 font-semibold text-slate-700">{row.hari || "—"}</td>
-                        <td className="px-5 py-4 font-mono text-xs font-semibold text-blue-700">{row.jam || "—"}</td>
-                        <td className="px-5 py-4 text-center font-bold text-slate-800">Pertemuan ke-{row.pertemuan_ke}</td>
-                        <td className="px-5 py-4 text-center font-bold text-slate-500">Pertemuan ke-{row.lp_pertemuan_ke}</td>
-                        <td className="px-5 py-4 text-center">
+                      <tr key={row.id ?? idx} className="hover:bg-blue-50/30 transition-colors">
+                        <td className="px-4 py-3.5 text-center font-medium text-slate-400 text-xs">
+                          {rowNumber}
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <p className="font-bold text-slate-900 text-sm">{row.nama_guru}</p>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <p className="font-semibold text-slate-800 text-xs">{row.nama_mapel}</p>
+                          <span className="inline-block mt-0.5 text-[11px] font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
+                            {row.nama_kelas}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <p className="text-xs font-semibold text-slate-700">{row.hari || "—"}</p>
+                          <p className="text-[11px] font-mono text-slate-500">{row.jam || "—"}</p>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <p className="text-xs font-semibold text-slate-800">{formattedTglRencana}</p>
+                          <span className="text-[11px] text-slate-500 font-medium">
+                            Target Pert. ke-{row.lp_pertemuan_ke || 1}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <p className="text-xs font-semibold text-slate-800">{formattedTglRealisasi}</p>
+                          <span className="text-[11px] text-blue-600 font-semibold">
+                            Realisasi Pert. ke-{row.pertemuan_ke || 1}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5 text-center">
                           {renderStatusBadge(row.status)}
+                        </td>
+                        <td className="px-4 py-3.5 text-center">
+                          {waktuInput ? (
+                            <span className="inline-flex items-center font-mono font-semibold text-xs text-slate-800 bg-slate-100 px-2 py-1 rounded-md">
+                              {waktuInput} WIB
+                            </span>
+                          ) : (
+                            <span className="text-xs text-slate-400 italic">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3.5 text-center">
+                          {renderStatusKedisiplinanBadge(row.status_kedisiplinan)}
                         </td>
                       </tr>
                     );
@@ -373,23 +445,50 @@ export function UniversalResultView({
 
             {/* Mobile Card View */}
             <div className="block md:hidden divide-y divide-slate-100 p-4 space-y-3">
-              {paginatedRows.map((row, idx) => (
-                <div key={idx} className="pt-3 first:pt-0 space-y-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h4 className="font-bold text-slate-900 text-sm">{row.nama_guru}</h4>
-                      <p className="text-xs text-blue-600 font-semibold">{row.nama_mapel} | Kelas {row.nama_kelas}</p>
+              {paginatedRows.map((row, idx) => {
+                const rawTglRencana = getTglRencana(row);
+                const formattedTglRencana = rawTglRencana ? formatDateIndo(rawTglRencana) : "—";
+                const formattedTglRealisasi = row.tanggal ? formatDateIndo(row.tanggal) : "—";
+                const waktuInput = row.waktu_input_absensi 
+                  ? String(row.waktu_input_absensi).substring(0, 5) 
+                  : null;
+
+                return (
+                  <div key={row.id ?? idx} className="pt-3 first:pt-0 space-y-2.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h4 className="font-bold text-slate-900 text-sm">{row.nama_guru}</h4>
+                        <p className="text-xs text-blue-600 font-semibold">{row.nama_mapel} • {row.nama_kelas}</p>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        {renderStatusBadge(row.status)}
+                        {renderStatusKedisiplinanBadge(row.status_kedisiplinan)}
+                      </div>
                     </div>
-                    {renderStatusBadge(row.status)}
+
+                    <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                      <div>
+                        <span className="text-slate-400 block text-[10px] uppercase font-bold">Jadwal</span>
+                        <strong className="text-slate-800">{row.hari || "—"}</strong> ({row.jam || "—"})
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[10px] uppercase font-bold">Waktu Input</span>
+                        <strong className="font-mono text-slate-800">{waktuInput ? `${waktuInput} WIB` : "Belum Absen"}</strong>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[10px] uppercase font-bold">Rencana RPP</span>
+                        <p className="font-semibold text-slate-800 text-[11px]">{formattedTglRencana}</p>
+                        <span className="text-[10px] text-slate-500">Target Pert. ke-{row.lp_pertemuan_ke || 1}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[10px] uppercase font-bold">Realisasi Absensi</span>
+                        <p className="font-semibold text-slate-800 text-[11px]">{formattedTglRealisasi}</p>
+                        <span className="text-[10px] text-blue-600 font-bold">Pert. ke-{row.pertemuan_ke || 1}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 bg-slate-50 p-2.5 rounded-lg">
-                    <div>Hari: <strong className="text-slate-800">{row.hari || "—"}</strong></div>
-                    <div>Jam: <strong className="text-blue-700 font-mono">{row.jam || "—"}</strong></div>
-                    <div>Jurnal: <strong>Pert. ke-{row.pertemuan_ke}</strong></div>
-                    <div>RPP Target: <strong>Pert. ke-{row.lp_pertemuan_ke}</strong></div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {totalPages > 1 && (

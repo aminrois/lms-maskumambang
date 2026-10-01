@@ -23,6 +23,8 @@ export interface MonitoringKBMResponse {
   materi?: string;
   total_hadir?: number;
   total_siswa?: number;
+  waktu_input_absensi?: string | null;
+  status_kedisiplinan?: string | null;
 }
 
 export default function MonitoringUniversal() {

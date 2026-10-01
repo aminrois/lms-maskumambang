@@ -58,16 +58,17 @@ export function enrichMonitoringRow(item: any, jadwalsList: any[] = []): Monitor
   }
   
   // Match with jadwal_pelajaran if needed
+  let matchedJadwal: any = null;
   if (jadwalsList && jadwalsList.length > 0) {
-    const matched = jadwalsList.find((j: any) => 
+    matchedJadwal = jadwalsList.find((j: any) => 
       (j.kelas?.nama_kelas === nama_kelas || j.kelas_id === item.kelas_id) &&
       (j.mapel?.nama_mapel === nama_mapel || j.mapel_id === item.mapel_id)
     );
-    if (matched) {
-      if (!hari && matched.hari) hari = matched.hari;
-      if (!jam && matched.jam_mulai?.jam_mulai && matched.jam_selesai?.jam_selesai) {
-        const jm = matched.jam_mulai.jam_mulai.substring(0, 5);
-        const js = matched.jam_selesai.jam_selesai.substring(0, 5);
+    if (matchedJadwal) {
+      if (!hari && matchedJadwal.hari) hari = matchedJadwal.hari;
+      if (!jam && matchedJadwal.jam_mulai?.jam_mulai && matchedJadwal.jam_selesai?.jam_selesai) {
+        const jm = matchedJadwal.jam_mulai.jam_mulai.substring(0, 5);
+        const js = matchedJadwal.jam_selesai.jam_selesai.substring(0, 5);
         jam = `${jm} - ${js}`;
       }
     }
@@ -78,6 +79,38 @@ export function enrichMonitoringRow(item: any, jadwalsList: any[] = []): Monitor
     jam = pertemuan_ke ? `Pertemuan ke-${pertemuan_ke}` : "—";
   }
 
+  // 3. Determine Waktu Input Absensi
+  let waktuInput = item.waktu_input_absensi;
+  if (!waktuInput && item.absensi_pelajaran && Array.isArray(item.absensi_pelajaran) && item.absensi_pelajaran.length > 0) {
+    const waktuList = item.absensi_pelajaran
+      .map((a: any) => a.waktu_kehadiran)
+      .filter((w: any) => !!w)
+      .sort();
+    if (waktuList.length > 0) waktuInput = waktuList[0];
+  }
+
+  // 4. Determine Status Kedisiplinan
+  let statusKedisiplinan = item.status_kedisiplinan;
+  if (!statusKedisiplinan || statusKedisiplinan === '-' || statusKedisiplinan === '—') {
+    if (!waktuInput) {
+      statusKedisiplinan = 'Belum Absen';
+    } else {
+      const jamSelesaiRaw = item.jadwal?.jam_selesai?.jam_selesai || matchedJadwal?.jam_selesai?.jam_selesai;
+      if (jamSelesaiRaw) {
+        const toMinutes = (t: string) => {
+          const parts = t.substring(0, 5).split(':').map(Number);
+          return (parts[0] || 0) * 60 + (parts[1] || 0);
+        };
+        const inputMenit = toMinutes(String(waktuInput));
+        const selesaiMenit = toMinutes(String(jamSelesaiRaw));
+        const TOLERANSI_MENIT = 30;
+        statusKedisiplinan = inputMenit <= selesaiMenit + TOLERANSI_MENIT ? 'Tepat Waktu' : 'Terlambat';
+      } else {
+        statusKedisiplinan = 'Tepat Waktu';
+      }
+    }
+  }
+
   return {
     ...item,
     id: item.id || item.jurnal_id,
@@ -86,10 +119,13 @@ export function enrichMonitoringRow(item: any, jadwalsList: any[] = []): Monitor
     nama_kelas,
     pertemuan_ke,
     lp_pertemuan_ke,
+    tanggal: rawTglAbsensi || "",
     tanggal_rencana: rawTglRencana || item.tanggal_rencana || item.tanggal || "",
     status: computedStatus || "Sesuai",
     hari,
     jam,
+    waktu_input_absensi: waktuInput || null,
+    status_kedisiplinan: statusKedisiplinan || "—",
   } as MonitoringKBMResponse;
 }
 
