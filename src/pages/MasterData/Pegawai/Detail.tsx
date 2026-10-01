@@ -10,11 +10,17 @@ import {
   Check,
   Building2,
   Users,
+  Pencil,
 } from "lucide-react";
 import { restClient } from "../../../lib/api/axios";
 import { getRoles, getUserById, updateUserAuth, createUserAuth } from "../../../lib/api/services/userService";
 import { updatePegawai } from "../../../lib/api/services/masterService";
 import { useAuthStore } from "../../../store/useAuthStore";
+import { usePermissions } from "../../../hooks/usePermissions";
+import type { PEGAWAI_CREATE } from "../../../types/database";
+import type { PegawaiUI } from "./hooks/usePegawaiData";
+import AssignRoleModal from "./components/AssignRoleModal";
+import PegawaiFormModal from "./components/PegawaiFormModal";
 import { toast } from "sonner";
 
 export default function MasterDataPegawaiDetail() {
@@ -24,6 +30,35 @@ export default function MasterDataPegawaiDetail() {
   const userRole = useAuthStore((state) => state.role);
   const [copiedUserId, setCopiedUserId] = useState(false);
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
+
+  // Modal States
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+
+  const { canUpdate } = usePermissions('pegawai');
+  const { canRead: canReadRole } = usePermissions('user_role');
+
+  const [formData, setFormData] = useState<PEGAWAI_CREATE & { lembaga_ids: number[] }>({
+    nig: "",
+    nip: "",
+    nik: "",
+    nama: "",
+    jenis_kelamin: "L",
+    tempat_lahir: "",
+    tanggal_lahir: "",
+    alamat: "",
+    no_hp: "",
+    status: "Aktif",
+    jabatan: "Guru",
+    tugas_tambahan: "",
+    jumlah_anak_laki: undefined,
+    jumlah_anak_perempuan: undefined,
+    nama_ayah: "",
+    nama_ibu: "",
+    golongan_darah: "",
+    user_id: "",
+    lembaga_ids: [],
+  });
 
   // Fetch Pegawai Detail with relations
   const { data: pegawai, isLoading } = useQuery({
@@ -76,6 +111,67 @@ export default function MasterDataPegawaiDetail() {
     onSuccess: () => toast.success("Password berhasil di-reset ke default (password123)"),
     onError: () => toast.error("Gagal me-reset password."),
   });
+
+  // Edit Pegawai Mutation
+  const updatePegawaiMutation = useMutation({
+    mutationFn: async (data: PEGAWAI_CREATE & { lembaga_ids: number[] }) => {
+      const { lembaga_ids, ...payload } = data;
+      await updatePegawai(Number(pegawai_id), payload);
+      if (lembaga_ids !== undefined) {
+        await restClient.delete(`/pegawai_lembaga?pegawai_id=eq.${pegawai_id}`);
+        if (lembaga_ids.length > 0) {
+          const inserts = lembaga_ids.map((lid: number) => ({
+            pegawai_id: Number(pegawai_id),
+            lembaga_id: lid,
+          }));
+          await restClient.post('/pegawai_lembaga', inserts);
+        }
+      }
+    },
+    onSuccess: () => {
+      toast.success("Data pegawai berhasil diperbarui!");
+      queryClient.invalidateQueries({ queryKey: ["pegawai-detail", pegawai_id] });
+      queryClient.invalidateQueries({ queryKey: ["master-data", "pegawai-all"] });
+      setIsEditModalOpen(false);
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || "Gagal menyimpan perubahan data pegawai.");
+    },
+  });
+
+  const handleOpenEdit = () => {
+    if (!pegawai) return;
+    const lembagaIds = (pegawai.pegawai_lembaga || [])
+      .map((pl: any) => pl.lembaga?.lembaga_id)
+      .filter(Boolean);
+    setFormData({
+      nig: pegawai.nig || "",
+      nip: pegawai.nip || "",
+      nik: pegawai.nik || "",
+      nama: pegawai.nama || "",
+      jenis_kelamin: pegawai.jenis_kelamin || "L",
+      tempat_lahir: pegawai.tempat_lahir || "",
+      tanggal_lahir: pegawai.tanggal_lahir || "",
+      alamat: pegawai.alamat || "",
+      no_hp: pegawai.no_hp || "",
+      status: pegawai.status || "Aktif",
+      jabatan: pegawai.jabatan || "Guru",
+      tugas_tambahan: pegawai.tugas_tambahan || "",
+      user_id: pegawai.user_id || "",
+      nama_ayah: pegawai.nama_ayah || "",
+      nama_ibu: pegawai.nama_ibu || "",
+      jumlah_anak_laki: pegawai.jumlah_anak_laki ?? undefined,
+      jumlah_anak_perempuan: pegawai.jumlah_anak_perempuan ?? undefined,
+      golongan_darah: pegawai.golongan_darah || "",
+      lembaga_ids: lembagaIds,
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    updatePegawaiMutation.mutate(formData);
+  };
 
   // Create Account Mutation
   const createAccountMutation = useMutation({
@@ -261,6 +357,20 @@ export default function MasterDataPegawaiDetail() {
     );
   }
 
+  const selectedPegawaiUI: PegawaiUI | null = pegawai
+    ? {
+        id: pegawai.pegawai_id,
+        nama: pegawai.nama || "—",
+        nig: pegawai.nig || "—",
+        nip: pegawai.nip || "—",
+        jabatan: pegawai.jabatan || "—",
+        jenisKelamin: pegawai.jenis_kelamin === "L" ? "Laki-laki" : pegawai.jenis_kelamin === "P" ? "Perempuan" : "—",
+        status: pegawai.status || "Aktif",
+        lembagaList: lembagaListText,
+        raw: pegawai,
+      }
+    : null;
+
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto">
       {/* ── HEADER ─────────────────────────────────────────────────────────── */}
@@ -313,7 +423,36 @@ export default function MasterDataPegawaiDetail() {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-center sm:justify-end gap-2 flex-wrap">
+        <div className="flex items-center justify-center sm:justify-end gap-2.5 flex-wrap">
+          {/* Atur Role Pengguna */}
+          {canReadRole && (
+            <button
+              onClick={() => {
+                if (!pegawai.user_id) {
+                  toast.info("Pegawai ini belum memiliki akun login. Silakan buat akun terlebih dahulu di bagian D (Informasi Akun).");
+                  return;
+                }
+                setIsRoleModalOpen(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
+            >
+              <Shield className="w-4 h-4" />
+              Atur Role Pengguna
+            </button>
+          )}
+
+          {/* Edit Data Pegawai */}
+          {canUpdate && (
+            <button
+              onClick={handleOpenEdit}
+              className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
+            >
+              <Pencil className="w-4 h-4" />
+              Edit Pegawai
+            </button>
+          )}
+
+          {/* Download PDF */}
           <button
             onClick={handleDownloadPDF}
             disabled={isDownloadingPDF}
@@ -452,9 +591,21 @@ export default function MasterDataPegawaiDetail() {
 
                 {/* Role / Hak Akses List */}
                 <div className="pt-3 border-t border-slate-200">
-                  <span className="text-[10px] font-bold text-slate-500 block mb-2 uppercase tracking-wide flex items-center gap-1.5">
-                    <Shield className="w-3.5 h-3.5 text-blue-600" /> Hak Akses / Roles Terdaftar:
-                  </span>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1.5">
+                      <Shield className="w-3.5 h-3.5 text-blue-600" /> Hak Akses / Roles Terdaftar:
+                    </span>
+                    {canReadRole && pegawai.user_id && (
+                      <button
+                        type="button"
+                        onClick={() => setIsRoleModalOpen(true)}
+                        className="flex items-center gap-1.5 px-3 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                      >
+                        <Shield className="w-3.5 h-3.5" />
+                        Atur Role Pengguna
+                      </button>
+                    )}
+                  </div>
                   {userRolesData.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
                       {userRolesData.map((ur: any, idx: number) => (
@@ -513,6 +664,33 @@ export default function MasterDataPegawaiDetail() {
           </div>
         </div>
       </div>
+
+      {/* ── MODALS ─────────────────────────────────────────────────────────── */}
+      <AssignRoleModal
+        isOpen={isRoleModalOpen}
+        onClose={() => {
+          setIsRoleModalOpen(false);
+          queryClient.invalidateQueries({ queryKey: ["user-roles-detail", pegawai?.user_id] });
+          queryClient.invalidateQueries({ queryKey: ["pegawai-detail", pegawai_id] });
+        }}
+        userId={pegawai?.user_id || null}
+        pegawaiId={pegawai?.pegawai_id ? Number(pegawai.pegawai_id) : null}
+        pegawaiName={pegawai?.nama || ""}
+      />
+
+      <PegawaiFormModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        selectedPegawai={selectedPegawaiUI}
+        formData={formData}
+        setFormData={setFormData}
+        isNigDuplikat={false}
+        isNamaDuplikat={false}
+        hasDuplicateError={false}
+        isSaving={updatePegawaiMutation.isPending}
+        isPending={updatePegawaiMutation.isPending}
+        onSubmit={handleSaveEdit}
+      />
     </div>
   );
 }
