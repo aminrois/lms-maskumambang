@@ -54,6 +54,7 @@ const FaceRecognitionIndex  = React.lazy(() => import("./pages/KBM/FaceRecogniti
 const MonitoringUniversal   = React.lazy(() => import("./pages/KBM/Monitoring/Universal"));
 const MonitoringWaliKelas   = React.lazy(() => import("./pages/KBM/Monitoring/WaliKelas"));
 const ActivityPlanIndex     = React.lazy(() => import("./pages/KBM/ActivityPlan/Index"));
+const RekapJamGuru          = React.lazy(() => import("./pages/KBM/RekapJamGuru/Index"));
 
 // Tahfidz & Hafalan
 const TahfidzPenugasan      = React.lazy(() => import("./pages/Tahfidz/Penugasan/Index"));
@@ -531,6 +532,25 @@ const App: React.FC = () => {
                   <Route
                     path="monitoring/wali-kelas"
                     element={<MonitoringWaliKelas />}
+                  />
+                </Route>
+
+                {/* Rekap Beban Jam Mengajar Guru (Direktur & Super Admin) */}
+                <Route
+                  element={
+                    <ProtectedRoute
+                      allowedRoles={[
+                        "Direktur",
+                        "Super Admin",
+                        "Kepala Sekolah",
+                        "WaKa Kurikulum",
+                      ]}
+                    />
+                  }
+                >
+                  <Route
+                    path="rekap-jam-guru"
+                    element={<RekapJamGuru />}
                   />
                 </Route>
 

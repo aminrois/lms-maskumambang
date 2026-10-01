@@ -60,6 +60,7 @@ export const allMenuGroups: MenuGroup[] = [
       { name: "Rekap Kehadiran", icon: FileText, path: "/kbm/absensi/rekap-harian", allowedRoles: ['Direktur', 'Wali Kelas'], color: "orange" },
       { name: "Reset Absensi", icon: RotateCcw, path: "/kbm/absensi/reset", allowedRoles: ['Direktur', 'Super Admin'], color: "rose" },
       { name: "Monitoring", icon: BarChart, path: "/kbm/monitoring/universal", allowedRoles: ['Direktur', 'Kepala Sekolah', 'WaKa Kurikulum'], color: "indigo" },
+      { name: "Rekap Jam Guru", icon: Clock, path: "/kbm/rekap-jam-guru", allowedRoles: ['Direktur', 'Super Admin'], color: "emerald" },
       { name: "Pantau Wali", icon: Eye, path: "/kbm/monitoring/wali-kelas", allowedRoles: ['Wali Kelas'], color: "teal" },
     ]
   },
