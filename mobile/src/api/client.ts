@@ -8,6 +8,8 @@ export const apiClient = axios.create({
   timeout: 15000,
   headers: {
     "Content-Type": "application/json",
+    "X-Client-Platform": "mobile",
+    "X-Client-App": "masdico-mobile",
   },
 });
 

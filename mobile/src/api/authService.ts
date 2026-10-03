@@ -43,6 +43,8 @@ export const authService = {
       username: identifier,
       email: identifier,
       password: password,
+      captchaToken: "mobile",
+      isMobile: true,
     });
     if (!response.data.success || !response.data.data) {
       throw new Error((response.data as any).message || 'Login gagal');

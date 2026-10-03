@@ -40,20 +40,55 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
     const cleanIdentifier = String(identifier || '').trim();
     const cleanPassword = String(password || '').trim();
 
-    // Verifikasi Google reCAPTCHA (Bypass otomatis di localhost / development)
+    // Deteksi apakah request berasal dari Mobile App (React Native / Expo) atau testing lokal / IP private
+    const clientPlatform = (req.headers['x-client-platform'] as string)?.toLowerCase();
+    const clientApp = (req.headers['x-client-app'] as string)?.toLowerCase();
+    const userAgent = (req.headers['user-agent'] as string)?.toLowerCase() || '';
+
+    const isMobileClient =
+      clientPlatform === 'mobile' ||
+      clientApp === 'masdico-mobile' ||
+      req.body.isMobile === true ||
+      req.body.captchaToken === 'mobile' ||
+      req.body.captchaToken === 'disabled' ||
+      userAgent.includes('okhttp') ||
+      userAgent.includes('cfnetwork') ||
+      userAgent.includes('expo') ||
+      userAgent.includes('reactnative') ||
+      userAgent.includes('mobile-app');
+
+    const isPrivateOrLocalIp = (h: string) => {
+      if (!h) return false;
+      const cleanHost = h.split(':')[0].toLowerCase();
+      return (
+        cleanHost === 'localhost' ||
+        cleanHost === '127.0.0.1' ||
+        cleanHost.startsWith('192.168.') ||
+        cleanHost.startsWith('10.') ||
+        /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(cleanHost) ||
+        cleanHost.endsWith('.local') ||
+        cleanHost.endsWith('.lan') ||
+        cleanHost.includes('ngrok') ||
+        cleanHost.includes('loca.lt') ||
+        cleanHost.includes('trycloudflare')
+      );
+    };
+
+    const host = req.headers.host || '';
+    const hostname = req.hostname || '';
+    const origin = req.headers.origin || '';
+
     const isLocalhostRequest =
-      req.hostname === 'localhost' ||
-      req.hostname === '127.0.0.1' ||
-      req.headers.host?.includes('localhost') ||
-      req.headers.host?.includes('127.0.0.1') ||
-      req.headers.origin?.includes('localhost') ||
-      req.headers.origin?.includes('127.0.0.1') ||
+      isPrivateOrLocalIp(hostname) ||
+      isPrivateOrLocalIp(host) ||
+      (origin && isPrivateOrLocalIp(origin.replace(/^https?:\/\//, ''))) ||
       process.env.NODE_ENV === 'development';
 
     const recaptchaSecret = process.env.RECAPTCHA_SECRET_KEY || '6LesLNgtAAAAACm0ucBneXXkZ8ZGMxDprTztKrkP';
 
-    if (recaptchaSecret && !isLocalhostRequest) {
-      if (!captchaToken || captchaToken === 'disabled') {
+    // Verifikasi Google reCAPTCHA (hanya diaktifkan pada client Web browser di lingkungan production publik)
+    if (recaptchaSecret && !isLocalhostRequest && !isMobileClient) {
+      if (!captchaToken || captchaToken === 'disabled' || captchaToken === 'mobile') {
         res.status(400).json({ success: false, message: 'Harap selesaikan verifikasi Google reCAPTCHA.' });
         return;
       }
