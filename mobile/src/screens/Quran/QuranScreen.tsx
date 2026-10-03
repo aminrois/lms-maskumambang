@@ -8,16 +8,9 @@ import {
   SafeAreaView,
   StatusBar,
 } from "react-native";
-import { WebView, WebViewNavigation } from "react-native-webview";
+import { WebView } from "react-native-webview";
 import { useNavigation } from "@react-navigation/native";
-import {
-  ArrowLeft,
-  RotateCw,
-  BookOpen,
-  ChevronLeft,
-  ChevronRight,
-  Home,
-} from "lucide-react-native";
+import { ArrowLeft, BookOpen, RotateCw } from "lucide-react-native";
 
 const MUSHAF_URL = "https://mushaf.maskumambang.net";
 
@@ -26,8 +19,6 @@ export const QuranScreen = () => {
   const webViewRef = useRef<WebView>(null);
 
   const [loading, setLoading] = useState(true);
-  const [canGoBack, setCanGoBack] = useState(false);
-  const [canGoForward, setCanGoForward] = useState(false);
   const [hasError, setHasError] = useState(false);
 
   const handleReload = () => {
@@ -39,58 +30,27 @@ export const QuranScreen = () => {
     navigation.goBack();
   };
 
-  const handleHome = () => {
-    setHasError(false);
-    webViewRef.current?.injectJavaScript(`window.location.href = '${MUSHAF_URL}'; true;`);
-  };
-
-  const handleNavigationStateChange = (navState: WebViewNavigation): void => {
-    setCanGoBack(Boolean(navState.canGoBack));
-    setCanGoForward(Boolean(navState.canGoForward));
-  };
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor="#09204A" />
 
-      {/* Top Navbar */}
+      {/* Top Navbar: Hanya Tombol Back dan Judul */}
       <View style={styles.headerBar}>
-        <View style={styles.headerLeft}>
-          <TouchableOpacity
-            style={styles.navIconBtn}
-            onPress={handleGoBack}
-            activeOpacity={0.7}
-          >
-            <ArrowLeft size={20} color="#FFFFFF" />
-          </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.navIconBtn}
+          onPress={handleGoBack}
+          activeOpacity={0.7}
+          accessibilityLabel="Kembali ke Dashboard"
+        >
+          <ArrowLeft size={20} color="#FFFFFF" />
+        </TouchableOpacity>
 
-          <View style={styles.titleWrapper}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <BookOpen size={16} color="#34D399" />
-              <Text style={styles.headerTitle}>Al-Qur'an Digital</Text>
-            </View>
-            <Text style={styles.headerSubtitle}>Mushaf Pesantren Maskumambang</Text>
+        <View style={styles.titleWrapper}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <BookOpen size={16} color="#34D399" />
+            <Text style={styles.headerTitle}>Al-Qur'an Digital</Text>
           </View>
-        </View>
-
-        <View style={styles.headerRight}>
-          <TouchableOpacity
-            style={styles.navIconBtn}
-            onPress={handleHome}
-            activeOpacity={0.7}
-            accessibilityLabel="Beranda Mushaf"
-          >
-            <Home size={18} color="#FFFFFF" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.navIconBtn}
-            onPress={handleReload}
-            activeOpacity={0.7}
-            accessibilityLabel="Muat Ulang"
-          >
-            <RotateCw size={18} color="#FFFFFF" />
-          </TouchableOpacity>
+          <Text style={styles.headerSubtitle}>Mushaf Pesantren Maskumambang</Text>
         </View>
       </View>
 
@@ -102,7 +62,7 @@ export const QuranScreen = () => {
         </View>
       )}
 
-      {/* Main WebView Container */}
+      {/* Main WebView: Layar Penuh Maksimal */}
       <View style={styles.webviewContainer}>
         {hasError ? (
           <View style={styles.errorContainer}>
@@ -131,7 +91,6 @@ export const QuranScreen = () => {
               setLoading(false);
               setHasError(true);
             }}
-            onNavigationStateChange={handleNavigationStateChange}
             javaScriptEnabled={true}
             domStorageEnabled={true}
             startInLoadingState={true}
@@ -140,37 +99,6 @@ export const QuranScreen = () => {
             mediaPlaybackRequiresUserAction={false}
           />
         )}
-      </View>
-
-      {/* Bottom Sub-Navigation Bar */}
-      <View style={styles.bottomBar}>
-        <TouchableOpacity
-          style={[styles.bottomBarBtn, !canGoBack && styles.bottomBarBtnDisabled]}
-          onPress={() => webViewRef.current?.goBack()}
-          disabled={!canGoBack}
-          activeOpacity={0.7}
-        >
-          <ChevronLeft size={20} color={canGoBack ? "#1E293B" : "#CBD5E1"} />
-          <Text style={[styles.bottomBarText, !canGoBack && styles.bottomBarTextDisabled]}>
-            Sebelumnya
-          </Text>
-        </TouchableOpacity>
-
-        <View style={styles.domainBadge}>
-          <Text style={styles.domainBadgeText}>mushaf.maskumambang.net</Text>
-        </View>
-
-        <TouchableOpacity
-          style={[styles.bottomBarBtn, !canGoForward && styles.bottomBarBtnDisabled]}
-          onPress={() => webViewRef.current?.goForward()}
-          disabled={!canGoForward}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.bottomBarText, !canGoForward && styles.bottomBarTextDisabled]}>
-            Berikutnya
-          </Text>
-          <ChevronRight size={20} color={canGoForward ? "#1E293B" : "#CBD5E1"} />
-        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -185,16 +113,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#09204A",
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: "rgba(255, 255, 255, 0.1)",
-  },
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
   },
   navIconBtn: {
     width: 36,
@@ -203,7 +125,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.12)",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 10,
+    marginRight: 12,
   },
   titleWrapper: {
     flex: 1,
@@ -219,18 +141,13 @@ const styles = StyleSheet.create({
     color: "#93C5FD",
     marginTop: 1,
   },
-  headerRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
   loadingBarContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
     backgroundColor: "#064E3B",
-    paddingVertical: 5,
+    paddingVertical: 4,
   },
   loadingText: {
     fontSize: 11,
@@ -281,45 +198,5 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 13,
     fontWeight: "700",
-  },
-  bottomBar: {
-    backgroundColor: "#F8FAFC",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderTopWidth: 1,
-    borderTopColor: "#E2E8F0",
-  },
-  bottomBarBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-  },
-  bottomBarBtnDisabled: {
-    opacity: 0.5,
-  },
-  bottomBarText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#1E293B",
-  },
-  bottomBarTextDisabled: {
-    color: "#CBD5E1",
-  },
-  domainBadge: {
-    backgroundColor: "#EEF2F6",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  domainBadgeText: {
-    fontSize: 10.5,
-    fontWeight: "600",
-    color: "#64748B",
   },
 });
