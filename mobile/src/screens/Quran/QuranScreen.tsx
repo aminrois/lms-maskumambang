@@ -36,11 +36,7 @@ export const QuranScreen = () => {
   };
 
   const handleGoBack = () => {
-    if (canGoBack && webViewRef.current) {
-      webViewRef.current.goBack();
-    } else {
-      navigation.goBack();
-    }
+    navigation.goBack();
   };
 
   const handleHome = () => {

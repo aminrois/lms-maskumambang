@@ -161,6 +161,8 @@ export const AppNavigator = () => {
               component={QuranScreen}
               options={{
                 animation: "slide_from_right",
+                gestureEnabled: false,
+                fullScreenGestureEnabled: false,
               }}
             />
           </>
