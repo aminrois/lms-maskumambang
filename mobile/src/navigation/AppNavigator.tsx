@@ -17,6 +17,7 @@ import { WaliDetailSantriScreen } from "../screens/Wali/WaliDetailSantriScreen";
 import { GuidanceHomeScreen } from "../screens/Guidance/GuidanceHomeScreen";
 import { GuidanceDetailScreen } from "../screens/Guidance/GuidanceDetailScreen";
 import { GuidanceCatatSesiScreen } from "../screens/Guidance/GuidanceCatatSesiScreen";
+import { QuranScreen } from "../screens/Quran/QuranScreen";
 import { MainTabNavigator } from "./MainTabNavigator";
 import { useAuthStore } from "../store/useAuthStore";
 import { Colors } from "../constants/colors";
@@ -151,6 +152,13 @@ export const AppNavigator = () => {
             <Stack.Screen
               name="WaliDetailSantri"
               component={WaliDetailSantriScreen}
+              options={{
+                animation: "slide_from_right",
+              }}
+            />
+            <Stack.Screen
+              name="Quran"
+              component={QuranScreen}
               options={{
                 animation: "slide_from_right",
               }}

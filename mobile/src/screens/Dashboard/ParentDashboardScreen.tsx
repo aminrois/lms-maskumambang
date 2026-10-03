@@ -584,16 +584,16 @@ export const ParentDashboardScreen = () => {
               <Text style={styles.gridCardTitle}>Berita</Text>
             </TouchableOpacity>
 
-            {/* 12. Kalender Akademik & Agenda */}
+            {/* 12. Al-Qur'an Digital (mushaf.maskumambang.net) */}
             <TouchableOpacity
               style={styles.gridCard}
-              onPress={() => setShowKalenderModal(true)}
+              onPress={() => navigation.navigate("Quran")}
               activeOpacity={0.8}
             >
-              <View style={[styles.gridIconCircle, { backgroundColor: "#d97706" }]}>
-                <Calendar size={24} color="#FFFFFF" />
+              <View style={[styles.gridIconCircle, { backgroundColor: "#047857" }]}>
+                <BookOpen size={24} color="#FFFFFF" />
               </View>
-              <Text style={styles.gridCardTitle}>Kalender</Text>
+              <Text style={styles.gridCardTitle}>Al-Qur'an</Text>
             </TouchableOpacity>
           </View>
         </View>
