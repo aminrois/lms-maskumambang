@@ -199,7 +199,7 @@ export function useLessonPlanForm() {
         const jadwalRes = await restClient.get('/jadwal_pelajaran', {
           params: {
             pegawai_id: `eq.${formData.pegawai_id}`,
-            select: 'jadwal_id,mapel_id,mapel(mapel_id,nama_mapel,lembaga_id)'
+            select: 'jadwal_id,mapel_id,mapel:mata_pelajaran(mapel_id,nama_mapel,lembaga_id)'
           }
         });
 
@@ -213,7 +213,7 @@ export function useLessonPlanForm() {
             // Join gagal — fetch manual mapel ini
             if (!mapelMap.has(j.mapel_id)) {
               try {
-                const mRes = await restClient.get(`/mapel?mapel_id=eq.${j.mapel_id}&select=mapel_id,nama_mapel,lembaga_id&limit=1`);
+                const mRes = await restClient.get(`/mata_pelajaran?mapel_id=eq.${j.mapel_id}&select=mapel_id,nama_mapel,lembaga_id&limit=1`);
                 if (mRes.data && mRes.data[0]) {
                   mapelMap.set(j.mapel_id, mRes.data[0]);
                 }
@@ -239,7 +239,7 @@ export function useLessonPlanForm() {
         setFormData(prev => {
           if (prev.mapel_id && !mapelRows.some(m => String(m.mapel_id) === prev.mapel_id)) {
             // Mapel yang ada di RPP tidak ditemukan di jadwal — fetch & tambahkan ke list
-            restClient.get(`/mapel?mapel_id=eq.${prev.mapel_id}&select=mapel_id,nama_mapel,lembaga_id&limit=1`)
+            restClient.get(`/mata_pelajaran?mapel_id=eq.${prev.mapel_id}&select=mapel_id,nama_mapel,lembaga_id&limit=1`)
               .then((mRes: any) => {
                 if (mRes.data && mRes.data[0]) {
                   setMapels(prev2 => {
@@ -519,13 +519,32 @@ export function useLessonPlanForm() {
     // pertemuan_ke otomatis berdasarkan urutan, tidak perlu validasi duplikasi
 
     try {
-      const existing = await getLessonPlans({
-        pegawai_id: `eq.${formData.pegawai_id}`
-      });
-      const isDuplicate = existing.some((lp: any) => (!id || lp.lesson_plan_id !== Number(id)) && String((lp as any).mapel_id || (lp as any).jadwal_id) === String(formData.mapel_id));
-      if (isDuplicate) {
-        toast.error("Gagal menyimpan: RPP untuk Guru pengampu dan Mata Pelajaran ini sudah terdaftar di sistem. Tidak diperbolehkan membuat lebih dari satu RPP untuk pengampu & mapel yang sama.");
-        return;
+      const { restClient } = await import('@/lib/api/axios');
+      // Resolve jadwal_id untuk mapel yang dipilih agar validasi duplikasi akurat
+      let targetJadwalId: number | null = null;
+      if (formData.mapel_id) {
+        const jadwalRes = await restClient.get('/jadwal_pelajaran', {
+          params: {
+            pegawai_id: `eq.${formData.pegawai_id}`,
+            mapel_id: `eq.${formData.mapel_id}`,
+            limit: 1,
+          }
+        });
+        if (jadwalRes.data && jadwalRes.data.length > 0) {
+          targetJadwalId = jadwalRes.data[0].jadwal_id;
+        }
+      }
+
+      if (targetJadwalId) {
+        const existing = await getLessonPlans({
+          pegawai_id: `eq.${formData.pegawai_id}`,
+          jadwal_id: `eq.${targetJadwalId}`,
+        });
+        const isDuplicate = existing.some((lp: any) => !id || lp.lesson_plan_id !== Number(id));
+        if (isDuplicate) {
+          toast.error("Gagal menyimpan: RPP untuk Guru pengampu dan Mata Pelajaran ini sudah terdaftar di sistem. Tidak diperbolehkan membuat lebih dari satu RPP untuk pengampu & mapel yang sama.");
+          return;
+        }
       }
     } catch (err) {
       console.error("Gagal memvalidasi duplikasi RPP:", err);
