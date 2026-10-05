@@ -7,6 +7,7 @@ import { LessonPlanDeleteModal } from "./components/list/LessonPlanDeleteModal";
 import { LessonPlanReviewModals } from "./components/list/LessonPlanReviewModals";
 import { LessonPlanPertemuanEditPage } from "./components/list/LessonPlanPertemuanEditPage";
 import { LessonPlanTemplateConfigPage } from "./components/template/LessonPlanTemplateConfigPage";
+import { LessonPlanMissingRppAlert } from "./components/list/LessonPlanMissingRppAlert";
 import { Card, CardContent } from "@/components/ui/card";
 import { Info, ChevronDown, ChevronUp, UploadCloud, BookOpen, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -94,6 +95,7 @@ export default function LessonPlanGuru() {
     totalPages,
     paginatedLessonPlans,
     PAGE_SIZE_OPTIONS,
+    missingRppItems,
   } = useLessonPlanList();
 
   const [isInfoOpen, setIsInfoOpen] = useState(false);
@@ -159,6 +161,9 @@ export default function LessonPlanGuru() {
         eligibleApproveCount={eligiblePlansToApprove.length}
         isApprovingAll={isApprovingAll}
       />
+
+      {/* BANNER: Mapel dari jadwal yang belum punya RPP */}
+      <LessonPlanMissingRppAlert items={missingRppItems} />
 
       {/* BANNER INFORMASI PANDUAN LESSON PLAN */}
       <Card className="rounded-2xl border border-indigo-100 bg-linear-to-r from-indigo-50/90 via-blue-50/50 to-slate-50 shadow-xs overflow-hidden">

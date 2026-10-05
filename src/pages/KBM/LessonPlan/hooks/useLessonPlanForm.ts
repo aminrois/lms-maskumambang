@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, type FormEvent } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { useNavigationStore } from "@/store/useNavigationStore";
@@ -31,6 +31,10 @@ export type DetailForm = {
 export function useLessonPlanForm() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  // URL params untuk pre-fill form dari tombol "Buat RPP" di halaman list
+  const prefillMapelId = searchParams.get('mapel_id') || '';
+  const prefillJadwalId = searchParams.get('jadwal_id') || '';
   const role = useAuthStore(state => state.role);
   const userPegawaiId = useAuthStore(state => state.user?.pegawai_id);
   const lembagaId = useAuthStore(state => state.lembaga_id);
@@ -173,6 +177,8 @@ export function useLessonPlanForm() {
             setFormData((previous) => ({
               ...previous,
               pegawai_id: defaultPegawaiId,
+              // Pre-fill mapel_id dari URL param jika ada (dari tombol "Buat RPP")
+              ...(prefillMapelId ? { mapel_id: prefillMapelId } : {}),
             }));
           }
         }
