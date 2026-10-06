@@ -13,7 +13,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.maskumambang.lms",
+      "bundleIdentifier": "com.maskumambang.simas",
       "infoPlist": {
         "NSFaceIDUsageDescription": "Aplikasi memerlukan izin Face ID untuk memudahkan login cepat dan aman."
       }
@@ -23,7 +23,7 @@
         "backgroundColor": "#4318FF",
         "foregroundImage": "./assets/android-icon-foreground.png"
       },
-      "package": "com.maskumambang.lms",
+      "package": "com.maskumambang.simas",
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "USE_BIOMETRIC",

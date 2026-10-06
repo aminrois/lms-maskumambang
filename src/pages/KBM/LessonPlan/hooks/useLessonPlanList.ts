@@ -32,13 +32,7 @@ export type LessonPlanSummary = LESSON_PLAN & {
   status_ringkas: "Menunggu Verifikasi" | "Menunggu Verifikasi Kepsek" | "Menunggu Verifikasi Direktur" | "Disetujui" | "Revisi Kepsek" | "Revisi Direktur";
 };
 
-/** Mapel dari jadwal guru yang belum memiliki RPP */
-export type MissingRppItem = {
-  mapel_id: number;
-  nama_mapel: string;
-  jadwal_id: number;
-  nama_kelas: string;
-};
+
 
 export const resolveDetailStatus = (
   detail?: Partial<LESSON_PLAN_DETAIL> | null
@@ -939,45 +933,7 @@ export function useLessonPlanList() {
   });
 
 
-  /**
-   * Deteksi mapel dari jadwal guru yang BELUM memiliki RPP.
-   * Hanya berlaku untuk role Guru/Wali Kelas yang login.
-   */
-  const missingRppItems = useMemo((): MissingRppItem[] => {
-    if (role !== 'Guru' && role !== 'Wali Kelas') return [];
-    if (!pegawai_id) return [];
-    if (!jadwalPelajarans.length) return [];
 
-    const myJadwals = (jadwalPelajarans as any[]).filter((j: any) => j.pegawai_id === pegawai_id);
-
-    const mapelMap = new Map<number, MissingRppItem>();
-    for (const j of myJadwals) {
-      const mapelId = j.mapel_id || j.mapel?.mapel_id;
-      if (!mapelId || mapelMap.has(mapelId)) continue;
-      const namaMapel = j.mapel?.nama_mapel || '';
-      const namaKelas = j.kelas?.nama_kelas || '';
-      if (!namaMapel) continue;
-      mapelMap.set(mapelId, {
-        mapel_id: mapelId,
-        nama_mapel: namaMapel,
-        jadwal_id: j.jadwal_id,
-        nama_kelas: namaKelas,
-      });
-    }
-
-    const existingJadwalIds = new Set(lessonPlans.map((lp) => (lp as any).jadwal_id).filter(Boolean));
-    const existingMapelFromJudul = new Set(
-      lessonPlans
-        .map((lp) => (lp.judul_rpp || '').split(/\s+[-–]\s+/)[0]?.trim().toLowerCase())
-        .filter(Boolean)
-    );
-
-    return Array.from(mapelMap.values()).filter((item) => {
-      if (existingJadwalIds.has(item.jadwal_id)) return false;
-      if (existingMapelFromJudul.has(item.nama_mapel.toLowerCase())) return false;
-      return true;
-    });
-  }, [role, pegawai_id, jadwalPelajarans, lessonPlans]);
 
   const getJadwalInfoForPlan = (plan?: LessonPlanSummary) => {
     if (!plan?.jadwal_id) return null;
@@ -1215,7 +1171,6 @@ export function useLessonPlanList() {
     getLembagaNamaForPlan,
     getJadwalInfoForPlan,
     jadwalPelajarans,
-    missingRppItems,
     // Pagination
     currentPage,
     setCurrentPage,
