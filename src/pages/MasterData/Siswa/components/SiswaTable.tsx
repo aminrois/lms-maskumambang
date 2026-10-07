@@ -166,25 +166,40 @@ export default function SiswaTable({
                     />
                   </th>
                 )}
-                {headers.map((header, index) => (
-                  <th
-                    key={index}
-                    style={{ width: colWidths[index] }}
-                    className={`px-6 py-4 whitespace-nowrap truncate ${header.alignment} ${index === 1 ? `sticky ${isBulkMode ? 'left-12' : 'left-0'} z-20 bg-gray-50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]` : header.label === 'Aksi' ? 'sticky right-0 z-25 bg-gray-50 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)]' : 'relative'}`}
-                    title={header.label}
-                  >
-                    {header.label}
-                    {index < headers.length && (
-                      <div
-                        onMouseDown={(e) => startResize(index, e)}
-                        className="absolute right-0 top-0 h-full w-2 cursor-col-resize select-none hover:bg-blue-300/40 active:bg-blue-500/60 border-r border-gray-300/30 group/resize flex items-center justify-center z-5"
-                        title="Tarik untuk mengubah ukuran kolom"
-                      >
-                        <div className="w-px h-3 bg-gray-300 opacity-0 group-hover/resize:opacity-100 transition-opacity" />
-                      </div>
-                    )}
-                  </th>
-                ))}
+                {headers.map((header, index) => {
+                  const isStickyNo = index === 0;
+                  const isStickyNama = index === 1;
+                  const isStickyAksi = header.label === 'Aksi';
+
+                  let stickyCls = 'relative';
+                  if (isStickyNo) {
+                    stickyCls = `sticky ${isBulkMode ? 'left-12' : 'left-0'} z-20 bg-gray-50`;
+                  } else if (isStickyNama) {
+                    stickyCls = `sticky ${isBulkMode ? 'left-[98px]' : 'left-[50px]'} z-20 bg-gray-50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]`;
+                  } else if (isStickyAksi) {
+                    stickyCls = 'sticky right-0 z-25 bg-gray-50 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)]';
+                  }
+
+                  return (
+                    <th
+                      key={index}
+                      style={{ width: colWidths[index] }}
+                      className={`px-6 py-4 whitespace-nowrap truncate ${header.alignment} ${stickyCls}`}
+                      title={header.label}
+                    >
+                      {header.label}
+                      {index < headers.length && (
+                        <div
+                          onMouseDown={(e) => startResize(index, e)}
+                          className="absolute right-0 top-0 h-full w-2 cursor-col-resize select-none hover:bg-blue-300/40 active:bg-blue-500/60 border-r border-gray-300/30 group/resize flex items-center justify-center z-5"
+                          title="Tarik untuk mengubah ukuran kolom"
+                        >
+                          <div className="w-px h-3 bg-gray-300 opacity-0 group-hover/resize:opacity-100 transition-opacity" />
+                        </div>
+                      )}
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
@@ -218,7 +233,7 @@ export default function SiswaTable({
                   return (
                     <tr key={siswa.id} className={`group/row transition-colors ${rowBg}`}>
                       {isBulkMode && (
-                        <td className={`w-12 px-4 py-4 text-center sticky left-0 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] ${stickyBg}`}>
+                        <td className={`w-12 px-4 py-4 text-center sticky left-0 z-10 ${stickyBg}`}>
                           <input
                             type="checkbox"
                             checked={isSelected}
@@ -227,8 +242,12 @@ export default function SiswaTable({
                           />
                         </td>
                       )}
-                      <td className="px-6 py-4 text-gray-500 truncate">{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                      <td className={`px-6 py-4 font-bold text-gray-800 truncate max-w-100 sticky ${isBulkMode ? 'left-12' : 'left-0'} z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] ${stickyBg}`} title={siswa.nama}>{siswa.nama}</td>
+                      <td className={`px-6 py-4 text-gray-500 truncate sticky ${isBulkMode ? 'left-12' : 'left-0'} z-10 ${stickyBg}`}>
+                        {(currentPage - 1) * itemsPerPage + index + 1}
+                      </td>
+                      <td className={`px-6 py-4 font-bold text-gray-800 truncate max-w-100 sticky ${isBulkMode ? 'left-[98px]' : 'left-[50px]'} z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] ${stickyBg}`} title={siswa.nama}>
+                        {siswa.nama}
+                      </td>
                       <td className="px-6 py-4 text-gray-700 truncate" title={siswa.raw.panggilan || ""}>{siswa.raw.panggilan || "—"}</td>
                       <td className="px-6 py-4 text-gray-700 truncate" title={siswa.nis}>{siswa.nis}</td>
                       <td className="px-6 py-4 text-gray-700 truncate" title={siswa.nisn}>{siswa.nisn}</td>

@@ -224,8 +224,8 @@ export default function TagihanSiswaIndex() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase text-[11px] font-bold tracking-wider">
-                <th className="p-4">Santri</th>
+              <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase text-[11px] font-bold tracking-wider select-none">
+                <th className="p-4 sticky left-0 bg-slate-50 z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]">Santri</th>
                 <th className="p-4">Pos & Nama Tagihan</th>
                 <th className="p-4 text-right">Total Tagihan</th>
                 <th className="p-4 text-right">Terbayar</th>
@@ -253,8 +253,8 @@ export default function TagihanSiswaIndex() {
                   const isSebagian = t.status === "Sebagian";
 
                   return (
-                    <tr key={t.tagihan_id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="p-4">
+                    <tr key={t.tagihan_id} className="group hover:bg-slate-50/80 transition-colors">
+                      <td className="p-4 sticky left-0 bg-white group-hover:bg-slate-50 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]">
                         <div className="font-bold text-slate-800">{t.siswa?.nama || "-"}</div>
                         <div className="text-[11px] text-slate-500">
                           NIS: {t.siswa?.nis} • {t.siswa?.kelas?.nama_kelas || "-"}

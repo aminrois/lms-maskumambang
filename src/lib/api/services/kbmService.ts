@@ -293,7 +293,10 @@ export const verifyActivityPlan = async (
   const rpcPayload = {
     p_activity_id: payload.activity_id,
     p_action: payload.action,
-    p_catatan_revisi: payload.catatan_revisi
+    p_catatan_revisi: payload.catatan_revisi,
+    activity_id: payload.activity_id,
+    action: payload.action,
+    catatan_revisi: payload.catatan_revisi,
   };
   await restClient.post("/rpc/verify_activity_plan", rpcPayload);
 };

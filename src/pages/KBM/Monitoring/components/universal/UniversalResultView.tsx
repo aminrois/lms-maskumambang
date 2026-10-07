@@ -368,10 +368,10 @@ export function UniversalResultView({
             {/* Desktop Table View */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm text-left text-slate-600">
-                <thead className="bg-slate-50 border-b border-slate-100 text-slate-700 text-xs uppercase font-bold tracking-wider">
+                <thead className="bg-slate-50 border-b border-slate-100 text-slate-700 text-xs uppercase font-bold tracking-wider select-none">
                   <tr>
-                    <th className="px-4 py-3.5 text-center w-12">No</th>
-                    <th className="px-4 py-3.5">Guru / Pendidik</th>
+                    <th className="px-4 py-3.5 text-center w-12 sticky left-0 bg-slate-50 z-20">No</th>
+                    <th className="px-4 py-3.5 sticky left-12 bg-slate-50 z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]">Guru / Pendidik</th>
                     <th className="px-4 py-3.5">Mata Pelajaran & Kelas</th>
                     <th className="px-4 py-3.5">Jadwal (Hari / Jam)</th>
                     <th className="px-4 py-3.5">Tanggal Rencana RPP</th>
@@ -392,11 +392,11 @@ export function UniversalResultView({
                       : null;
 
                     return (
-                      <tr key={row.id ?? idx} className="hover:bg-blue-50/30 transition-colors">
-                        <td className="px-4 py-3.5 text-center font-medium text-slate-400 text-xs">
+                      <tr key={row.id ?? idx} className="group hover:bg-blue-50/30 transition-colors">
+                        <td className="px-4 py-3.5 text-center font-medium text-slate-400 text-xs sticky left-0 bg-white group-hover:bg-slate-50 z-10">
                           {rowNumber}
                         </td>
-                        <td className="px-4 py-3.5">
+                        <td className="px-4 py-3.5 sticky left-12 bg-white group-hover:bg-slate-50 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]">
                           <p className="font-bold text-slate-900 text-sm">{row.nama_guru}</p>
                         </td>
                         <td className="px-4 py-3.5">

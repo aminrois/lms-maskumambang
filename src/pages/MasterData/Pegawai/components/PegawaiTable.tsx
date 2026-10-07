@@ -125,7 +125,7 @@ export default function PegawaiTable({
                 <th
                   rowSpan={2}
                   style={{ width: colWidths[0] }}
-                  className="relative px-4 py-3 whitespace-nowrap truncate text-center border-r border-b border-gray-200"
+                  className={`px-4 py-3 whitespace-nowrap truncate text-center border-r border-b border-gray-200 sticky ${isBulkMode ? 'left-12' : 'left-0'} z-20 bg-gray-50`}
                   title="No"
                 >
                   No
@@ -139,7 +139,7 @@ export default function PegawaiTable({
                 <th
                   rowSpan={2}
                   style={{ width: colWidths[1] }}
-                  className={`px-4 py-3 whitespace-nowrap truncate text-left border-r border-b border-gray-200 sticky ${isBulkMode ? 'left-12' : 'left-0'} z-20 bg-gray-50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]`}
+                  className={`px-4 py-3 whitespace-nowrap truncate text-left border-r border-b border-gray-200 sticky ${isBulkMode ? 'left-[98px]' : 'left-[50px]'} z-20 bg-gray-50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]`}
                   title="Nama Pegawai"
                 >
                   Nama Pegawai
@@ -468,8 +468,12 @@ export default function PegawaiTable({
                         />
                       </td>
                     )}
-                    <td className="px-4 py-3 text-center text-gray-500 truncate">{startIndex + index + 1}</td>
-                    <td className={`px-4 py-3 font-semibold text-gray-900 truncate max-w-100 sticky ${isBulkMode ? 'left-12' : 'left-0'} z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] ${stickyBg}`} title={pegawai.nama}>{pegawai.nama}</td>
+                    <td className={`px-4 py-3 text-center text-gray-500 truncate sticky ${isBulkMode ? 'left-12' : 'left-0'} z-10 ${stickyBg}`}>
+                      {startIndex + index + 1}
+                    </td>
+                    <td className={`px-4 py-3 font-semibold text-gray-900 truncate max-w-100 sticky ${isBulkMode ? 'left-[98px]' : 'left-[50px]'} z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] ${stickyBg}`} title={pegawai.nama}>
+                      {pegawai.nama}
+                    </td>
                   <td className="px-4 py-3 text-gray-900 truncate" title={pegawai.nig || ""}>{pegawai.nig || "—"}</td>
                   <td className="px-4 py-3 text-gray-900 truncate" title={pegawai.nip || ""}>{pegawai.nip || "—"}</td>
                   <td className="px-4 py-3 text-gray-900 truncate" title={pegawai.raw.nik || ""}>{pegawai.raw.nik || "—"}</td>

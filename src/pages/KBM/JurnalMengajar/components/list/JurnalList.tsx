@@ -209,34 +209,33 @@ export function JurnalList({
             <div className="bg-white border border-slate-200/90 rounded-2xl shadow-2xs overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs text-slate-700">
-                  <thead className="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+                  <thead className="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold text-slate-600 uppercase tracking-wider select-none">
                     <tr>
-                      <th className="px-4 py-3.5 text-center w-12">No</th>
-                      <th className="px-4 py-3.5 min-w-[180px]">Mata Pelajaran &amp; Kelas</th>
+                      <th className="px-4 py-3.5 text-center w-12 sticky left-0 bg-slate-50 z-20">No</th>
+                      <th className="px-4 py-3.5 min-w-[180px] sticky left-12 bg-slate-50 z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]">Mata Pelajaran &amp; Kelas</th>
                       <th className="px-4 py-3.5 min-w-[160px]">Guru Pengampu</th>
                       <th className="px-4 py-3.5 min-w-[170px]">Hari, Tanggal &amp; Jam</th>
                       <th className="px-4 py-3.5 text-center w-24">Pert.</th>
                       <th className="px-4 py-3.5 min-w-[170px]">Status KBM</th>
                       <th className="px-4 py-3.5 min-w-[140px]">Kehadiran / Catatan</th>
-                      <th className="px-4 py-3.5 text-right min-w-[130px]">Aksi</th>
+                      <th className="px-4 py-3.5 text-right min-w-[130px] sticky right-0 bg-slate-50 z-20 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.08)]">Aksi</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {paginatedData.map((jurnal, idx) => {
                       const isDanger = !jurnal.is_completed || jurnal.is_danger;
                       const itemNo = (currentPage - 1) * itemsPerPage + idx + 1;
+                      const rowBg = isDanger ? 'bg-rose-50/40' : 'bg-white';
 
                       return (
                         <tr
                           key={`table_jurnal_${jurnal.jurnal_id || 'uncompleted'}_${jurnal.jadwal_id}_${jurnal.tanggal}_${idx}`}
-                          className={`hover:bg-slate-50/80 transition-colors ${
-                            isDanger ? 'bg-rose-50/40' : ''
-                          }`}
+                          className={`group hover:bg-slate-50/80 transition-colors ${rowBg}`}
                         >
-                          <td className="px-4 py-3 text-center font-semibold text-slate-400">
+                          <td className={`px-4 py-3 text-center font-semibold text-slate-400 sticky left-0 ${rowBg} group-hover:bg-slate-50 z-10`}>
                             {itemNo}
                           </td>
-                          <td className="px-4 py-3">
+                          <td className={`px-4 py-3 sticky left-12 ${rowBg} group-hover:bg-slate-50 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]`}>
                             <div className="flex items-center gap-2">
                               <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs border shrink-0 ${
                                 isDanger
@@ -301,7 +300,7 @@ export function JurnalList({
                               <span className="text-slate-400 text-xs italic">—</span>
                             )}
                           </td>
-                          <td className="px-4 py-3 text-right">
+                          <td className={`px-4 py-3 text-right sticky right-0 ${rowBg} group-hover:bg-slate-50 z-10 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.08)]`}>
                             <div className="flex items-center justify-end gap-1.5">
                               {jurnal.jurnal_id ? (
                                 <button

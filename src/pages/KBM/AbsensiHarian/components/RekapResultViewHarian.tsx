@@ -178,9 +178,9 @@ export function RekapResultViewHarian({
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                            <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-100">
+                            <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-100 select-none">
                                 <tr>
-                                    <th className="px-6 py-4 font-semibold">Siswa</th>
+                                    <th className="px-6 py-4 font-semibold sticky left-0 bg-gray-50 z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]">Siswa</th>
                                     <th className="px-6 py-4 font-semibold text-center">Hadir</th>
                                     <th className="px-6 py-4 font-semibold text-center">Sakit</th>
                                     <th className="px-6 py-4 font-semibold text-center">Izin</th>
@@ -195,8 +195,8 @@ export function RekapResultViewHarian({
                                     const perc = total > 0 ? ((Number(row.total_hadir) || 0) / total) * 100 : 0;
 
                                     return (
-                                        <tr key={row.siswa_id || idx} className="hover:bg-blue-50/50 transition-colors">
-                                            <td className="px-6 py-4">
+                                        <tr key={row.siswa_id || idx} className="group hover:bg-blue-50/50 transition-colors">
+                                            <td className="px-6 py-4 sticky left-0 bg-white group-hover:bg-slate-50 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]">
                                                 <div className="font-semibold text-gray-900">{row.nama || 'Siswa'}</div>
                                                 <div className="text-xs text-gray-500 mt-0.5">NIS: {row.nis || '-'}</div>
                                             </td>

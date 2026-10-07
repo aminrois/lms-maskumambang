@@ -255,24 +255,24 @@ const RiwayatSetoranTahfidz: React.FC = () => {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50/80 text-slate-500 font-bold border-b border-slate-200/80 uppercase text-[10px] tracking-wider">
+              <thead className="bg-slate-50/80 text-slate-500 font-bold border-b border-slate-200/80 uppercase text-[10px] tracking-wider select-none">
                 <tr>
-                  <th className="py-3.5 px-4">Tanggal & Waktu</th>
-                  <th className="py-3.5 px-4">Santri & Kelas</th>
+                  <th className="py-3.5 px-4 sticky left-0 bg-slate-50 z-20">Tanggal & Waktu</th>
+                  <th className="py-3.5 px-4 sticky left-[125px] bg-slate-50 z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]">Santri & Kelas</th>
                   <th className="py-3.5 px-4">Kategori & Capaian</th>
                   <th className="py-3.5 px-4">Jenis Setoran</th>
                   <th className="py-3.5 px-4">Kelancaran</th>
                   <th className="py-3.5 px-4">Guru Penilai</th>
                   <th className="py-3.5 px-4">Catatan</th>
-                  <th className="py-3.5 px-4 text-center">Aksi</th>
+                  <th className="py-3.5 px-4 text-center sticky right-0 bg-slate-50 z-20 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.08)]">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredList.map((item) => {
                   return (
-                    <tr key={item.setoran_id} className="hover:bg-slate-50/60 transition-colors">
+                    <tr key={item.setoran_id} className="group hover:bg-slate-50/60 transition-colors">
                       {/* Tanggal */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
+                      <td className="py-3.5 px-4 whitespace-nowrap sticky left-0 bg-white group-hover:bg-slate-50 z-10">
                         <span className="font-bold text-slate-900 block">{item.tanggal}</span>
                         <span className="text-[10px] text-slate-400 font-mono">
                           {item.durasi_menit ? `${item.durasi_menit} Menit` : "-"}
@@ -280,7 +280,7 @@ const RiwayatSetoranTahfidz: React.FC = () => {
                       </td>
 
                       {/* Santri */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-4 sticky left-[125px] bg-white group-hover:bg-slate-50 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]">
                         <span className="font-bold text-slate-900 block">{item.siswa?.nama}</span>
                         <span className="text-[10px] text-slate-400 font-mono">
                           {item.siswa?.kelas?.nama_kelas || "-"} • NISN: {item.siswa?.nisn || "-"}
@@ -360,7 +360,7 @@ const RiwayatSetoranTahfidz: React.FC = () => {
                       </td>
 
                       {/* Aksi */}
-                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                      <td className="py-3.5 px-4 text-center whitespace-nowrap sticky right-0 bg-white group-hover:bg-slate-50 z-10 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.08)]">
                         <button
                           onClick={() => {
                             if (confirm(`Hapus catatan setoran santri ${item.siswa?.nama}?`)) {

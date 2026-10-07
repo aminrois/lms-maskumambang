@@ -901,15 +901,15 @@ const PenugasanTahfidz: React.FC = () => {
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200">
-                      <th className="text-left px-4 py-3 font-bold text-slate-600 whitespace-nowrap">Nama Guru</th>
+                    <tr className="bg-slate-50 border-b border-slate-200 select-none">
+                      <th className="text-left px-4 py-3 font-bold text-slate-600 whitespace-nowrap sticky left-0 bg-slate-50 z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]">Nama Guru</th>
                       <th className="text-left px-4 py-3 font-bold text-slate-600 whitespace-nowrap">NIG</th>
                       <th className="text-left px-4 py-3 font-bold text-slate-600 whitespace-nowrap">Jabatan</th>
                       <th className="text-left px-4 py-3 font-bold text-slate-600 whitespace-nowrap">Lembaga</th>
                       <th className="text-left px-4 py-3 font-bold text-slate-600 whitespace-nowrap">Kelas Diampu</th>
                       <th className="text-left px-4 py-3 font-bold text-slate-600 whitespace-nowrap">Akun</th>
                       <th className="text-left px-4 py-3 font-bold text-slate-600 whitespace-nowrap">Status</th>
-                      <th className="text-right px-4 py-3 font-bold text-slate-600 whitespace-nowrap">Aksi</th>
+                      <th className="text-right px-4 py-3 font-bold text-slate-600 whitespace-nowrap sticky right-0 bg-slate-50 z-20 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.08)]">Aksi</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -924,7 +924,7 @@ const PenugasanTahfidz: React.FC = () => {
 
                       return (
                         <tr key={guru.pegawai_id} className="hover:bg-slate-50/70 transition-colors group">
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-3 sticky left-0 bg-white group-hover:bg-slate-50 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]">
                             <div className="flex items-center gap-2.5">
                               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white text-xs font-black shrink-0">
                                 {guru.nama.charAt(0)}
@@ -980,7 +980,7 @@ const PenugasanTahfidz: React.FC = () => {
                               {guru.status || "Aktif"}
                             </span>
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-3 sticky right-0 bg-white group-hover:bg-slate-50 z-10 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.08)]">
                             <div className="flex items-center justify-end gap-1">
                               <button
                                 onClick={() => setGuruModal({ open: true, mode: "edit", item: guru })}

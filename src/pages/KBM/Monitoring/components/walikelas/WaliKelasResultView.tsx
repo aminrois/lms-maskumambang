@@ -263,10 +263,10 @@ export function WaliKelasResultView({
         {/* Desktop Table View */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm text-left text-slate-600">
-            <thead className="bg-slate-50 border-b border-slate-100 text-slate-700 text-xs uppercase font-bold">
+            <thead className="bg-slate-50 border-b border-slate-100 text-slate-700 text-xs uppercase font-bold select-none">
               <tr>
-                <th className="px-5 py-4">Mata Pelajaran</th>
-                <th className="px-5 py-4">Guru</th>
+                <th className="px-5 py-4 sticky left-0 bg-slate-50 z-20">Mata Pelajaran</th>
+                <th className="px-5 py-4 sticky left-[200px] bg-slate-50 z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]">Guru</th>
                 <th className="px-5 py-4">Hari</th>
                 <th className="px-5 py-4">Jam</th>
                 <th className="px-5 py-4 text-center">Pertemuan Real / RPP</th>
@@ -294,15 +294,17 @@ export function WaliKelasResultView({
                 </tr>
               ) : (
                 paginatedRows.map((row, index) => (
-                  <tr key={row.id ?? `${row.nama_mapel}-${index}`} className="hover:bg-blue-50/20 transition-colors">
-                    <td className="px-5 py-4 font-semibold text-slate-900 flex items-center gap-2">
-                      <div className="p-2 bg-blue-50 text-blue-600 rounded-lg shrink-0">
-                        <BookOpen size={16} />
+                  <tr key={row.id ?? `${row.nama_mapel}-${index}`} className="group hover:bg-blue-50/20 transition-colors">
+                    <td className="px-5 py-4 font-semibold text-slate-900 sticky left-0 bg-white group-hover:bg-slate-50 z-10">
+                      <div className="flex items-center gap-2">
+                        <div className="p-2 bg-blue-50 text-blue-600 rounded-lg shrink-0">
+                          <BookOpen size={16} />
+                        </div>
+                        <span className="font-bold text-slate-800">{row.nama_mapel}</span>
                       </div>
-                      <span className="font-bold text-slate-800">{row.nama_mapel}</span>
                     </td>
-                    <td className="px-5 py-4">
-                      <span className="font-semibold">{row.nama_guru}</span>
+                    <td className="px-5 py-4 sticky left-[200px] bg-white group-hover:bg-slate-50 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]">
+                      <span className="font-semibold text-slate-800">{row.nama_guru}</span>
                     </td>
                     <td className="px-5 py-4 font-semibold text-slate-700">
                       {row.hari || "—"}

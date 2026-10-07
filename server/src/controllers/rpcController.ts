@@ -175,13 +175,22 @@ export const verifyLessonPlanDirektur = async (req: AuthRequest, res: Response, 
 // Verify Activity Plan
 export const verifyActivityPlan = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { activity_id, action, catatan_revisi } = req.body;
+    const activityId = req.body.p_activity_id ?? req.body.activity_id;
+    const action = req.body.p_action ?? req.body.action;
+    const catatanRevisi = req.body.p_catatan_revisi ?? req.body.catatan_revisi ?? '';
+    const pegawaiId = await getPegawaiIdFromReq(req);
+
+    if (!activityId) {
+      res.status(400).json({ error: 'activity_id diperlukan' });
+      return;
+    }
 
     const updated = await prisma.activityPlan.update({
-      where: { activity_id: Number(activity_id) },
+      where: { activity_id: Number(activityId) },
       data: {
         status_verifikasi: action,
-        catatan_revisi: catatan_revisi || '',
+        catatan_revisi: action === 'Revisi' ? catatanRevisi : '',
+        verified_by: pegawaiId,
       },
     });
 
