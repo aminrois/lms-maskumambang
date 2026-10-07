@@ -181,34 +181,48 @@ export default function RekapJamGuru() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left text-slate-600">
-              <thead className="bg-slate-50 text-slate-700 text-xs uppercase font-bold tracking-wider border-b border-slate-100">
-                <tr>
-                  <th className="px-4 py-4 text-center w-12">No</th>
-                  <th className="px-5 py-4 min-w-[220px]">Guru / Pendidik</th>
+          <div className="overflow-x-auto relative">
+            <table className="w-full text-sm text-left text-slate-600 border-separate border-spacing-0">
+              <thead className="bg-slate-50 text-slate-700 text-xs uppercase font-bold tracking-wider">
+                <tr className="border-b border-slate-100">
+                  {/* FREEZE KIRI: No & Guru */}
+                  <th className="sticky left-0 z-20 bg-slate-50 px-3 py-4 text-center w-12 min-w-[48px] border-b border-slate-200">
+                    No
+                  </th>
+                  <th className="sticky left-[48px] z-20 bg-slate-50 px-5 py-4 min-w-[220px] shadow-[3px_0_6px_-2px_rgba(0,0,0,0.06)] border-r border-b border-slate-200">
+                    Guru / Pendidik
+                  </th>
+
+                  {/* KOLOM TENGAH (SCROLLABLE): Tiap Lembaga & Cakupan */}
                   {lembagas.map((lem) => (
-                    <th key={lem.lembaga_id} className="px-4 py-4 text-center min-w-[100px]">
+                    <th key={lem.lembaga_id} className="px-4 py-4 text-center min-w-[100px] border-b border-slate-200">
                       <span className="inline-block px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 border border-slate-200/60 font-black">
                         {lem.singkatan || lem.nama_lembaga}
                       </span>
                     </th>
                   ))}
-                  <th className="px-5 py-4 text-center bg-emerald-50/60 text-emerald-900 border-l border-emerald-100 min-w-[130px]">
+                  <th className="px-4 py-4 text-center min-w-[100px] border-b border-slate-200">
+                    Cakupan
+                  </th>
+
+                  {/* FREEZE KANAN: Total Beban & Aksi */}
+                  <th className="sticky right-[96px] z-20 bg-emerald-50 text-emerald-900 border-l border-b border-emerald-200 min-w-[130px] text-center shadow-[-3px_0_6px_-2px_rgba(0,0,0,0.06)]">
                     Total Beban
                   </th>
-                  <th className="px-4 py-4 text-center min-w-[100px]">Cakupan</th>
-                  <th className="px-4 py-4 text-center min-w-[90px]">Aksi</th>
+                  <th className="sticky right-0 z-20 bg-slate-50 px-4 py-4 text-center min-w-[96px] border-b border-slate-200">
+                    Aksi
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
                 {rekapData.map((guru, idx) => (
-                  <tr key={guru.pegawai_id} className="hover:bg-blue-50/20 transition-colors">
-                    <td className="px-4 py-4 text-center font-medium text-slate-400 text-xs">
+                  <tr key={guru.pegawai_id} className="group hover:bg-blue-50/20 transition-colors">
+                    {/* FREEZE KIRI: No & Guru */}
+                    <td className="sticky left-0 z-10 bg-white group-hover:bg-slate-50 px-3 py-4 text-center font-medium text-slate-400 text-xs border-b border-slate-100">
                       {idx + 1}
                     </td>
 
-                    <td className="px-5 py-4">
+                    <td className="sticky left-[48px] z-10 bg-white group-hover:bg-slate-50 px-5 py-4 min-w-[220px] shadow-[3px_0_6px_-2px_rgba(0,0,0,0.06)] border-r border-b border-slate-100">
                       <div className="font-bold text-slate-900 text-sm hover:text-blue-600 transition-colors cursor-pointer" onClick={() => handleOpenDetail(guru)}>
                         {guru.nama_guru}
                       </div>
@@ -221,7 +235,7 @@ export default function RekapJamGuru() {
                     {lembagas.map((lem) => {
                       const jp = guru.jam_per_lembaga[lem.lembaga_id] || 0;
                       return (
-                        <td key={lem.lembaga_id} className="px-4 py-4 text-center">
+                        <td key={lem.lembaga_id} className="px-4 py-4 text-center border-b border-slate-100">
                           {jp > 0 ? (
                             <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 font-bold text-xs border border-blue-100">
                               {jp} JP
@@ -233,24 +247,24 @@ export default function RekapJamGuru() {
                       );
                     })}
 
-                    {/* Kolom Total Beban Jam Mengajar */}
-                    <td className="px-5 py-4 text-center bg-emerald-50/30 border-l border-emerald-100 font-black text-sm">
-                      <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-600 text-white shadow-2xs font-extrabold text-xs">
-                        <Clock className="w-3.5 h-3.5" />
-                        {guru.total_jp} JP
-                      </span>
-                    </td>
-
                     {/* Info Cakupan Kelas & Mapel */}
-                    <td className="px-4 py-4 text-center text-xs text-slate-600 font-medium">
+                    <td className="px-4 py-4 text-center text-xs text-slate-600 font-medium border-b border-slate-100">
                       <div className="flex flex-col items-center gap-0.5">
                         <span className="text-slate-800 font-bold">{guru.total_kelas} Kelas</span>
                         <span className="text-[11px] text-slate-400">{guru.total_mapel} Mapel</span>
                       </div>
                     </td>
 
-                    {/* Tombol Aksi Detail */}
-                    <td className="px-4 py-4 text-center">
+                    {/* FREEZE KANAN: Total Beban Jam Mengajar */}
+                    <td className="sticky right-[96px] z-10 bg-emerald-50/90 group-hover:bg-emerald-100/70 border-l border-b border-emerald-200 px-4 py-4 text-center font-black text-sm shadow-[-3px_0_6px_-2px_rgba(0,0,0,0.06)]">
+                      <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-600 text-white shadow-2xs font-extrabold text-xs">
+                        <Clock className="w-3.5 h-3.5" />
+                        {guru.total_jp} JP
+                      </span>
+                    </td>
+
+                    {/* FREEZE KANAN: Tombol Aksi Detail */}
+                    <td className="sticky right-0 z-10 bg-white group-hover:bg-slate-50 px-4 py-4 text-center min-w-[96px] border-b border-slate-100">
                       <Button
                         size="sm"
                         variant="outline"

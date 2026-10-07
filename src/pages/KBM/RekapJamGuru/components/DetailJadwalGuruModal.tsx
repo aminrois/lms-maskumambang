@@ -131,7 +131,14 @@ export function DetailJadwalGuruModal({
                           {j.singkatan_lembaga}
                         </span>
                       </td>
-                      <td className="px-4 py-3 font-bold text-slate-900">{j.nama_kelas}</td>
+                      <td className="px-4 py-3 font-bold text-slate-900">
+                        <div>{j.nama_kelas}</div>
+                        {j.is_paralel && (
+                          <span className="inline-block mt-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold">
+                            Paralel ({j.jumlah_kelas_paralel} Kelas)
+                          </span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 font-medium text-slate-700">{j.nama_mapel}</td>
                       <td className="px-4 py-3">
                         <div className="font-semibold text-slate-800">{j.hari}</div>

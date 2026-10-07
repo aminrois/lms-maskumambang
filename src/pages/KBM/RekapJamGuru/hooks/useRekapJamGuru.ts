@@ -11,6 +11,9 @@ export interface JadwalDetailItem {
   singkatan_lembaga: string;
   kelas_id: number;
   nama_kelas: string;
+  kelas_list: string[];
+  is_paralel: boolean;
+  jumlah_kelas_paralel: number;
   mapel_id: number;
   nama_mapel: string;
   hari: string;
@@ -27,7 +30,7 @@ export interface GuruJamRekap {
   nama_guru: string;
   nip: string;
   bagian?: string | null;
-  jam_per_lembaga: Record<number, number>; // lembaga_id -> total JP
+  jam_per_lembaga: Record<number, number>; // lembaga_id -> total JP (dihitung 1x untuk paralel)
   total_jp: number;
   total_kelas: number;
   total_mapel: number;
@@ -80,12 +83,37 @@ export function useRekapJamGuru() {
     },
   });
 
-  // 4. Proses Rekapitulasi Data
+  // 4. Proses Rekapitulasi Data dengan Deduplikasi Kelas Paralel
   const rekapData: GuruJamRekap[] = useMemo(() => {
     if (!lembagas.length && !rawJadwals.length) return [];
 
-    // Map untuk mengumpulkan beban jam per pegawai
-    const guruMap = new Map<number, GuruJamRekap>();
+    // Helper tipe internal per guru
+    type GuruAccumulator = {
+      pegawai_id: number;
+      nama_guru: string;
+      nip: string;
+      bagian: string | null;
+      all_classes: Set<string>;
+      all_mapels: Set<string>;
+      // Map slot per jam unik: key = `${hari}_${urutan_jam}_${mapel_id}_${lembaga_id}`
+      slots: Map<string, {
+        hari: string;
+        urutan_jam: number;
+        jam_mulai_display: string;
+        jam_selesai_display: string;
+        mapel_id: number;
+        nama_mapel: string;
+        lembaga_id: number;
+        nama_lembaga: string;
+        singkatan_lembaga: string;
+        kelas_list: string[];
+        kelas_ids: number[];
+        ruangan: string | null;
+        jadwal_ids: number[];
+      }>;
+    };
+
+    const guruMap = new Map<number, GuruAccumulator>();
 
     // Seed data dari daftar pegawai yang ada
     pegawais.forEach((p: any) => {
@@ -95,11 +123,9 @@ export function useRekapJamGuru() {
         nama_guru: p.nama || `Guru #${p.pegawai_id}`,
         nip: p.nip || "—",
         bagian: p.bagian || null,
-        jam_per_lembaga: {},
-        total_jp: 0,
-        total_kelas: 0,
-        total_mapel: 0,
-        jadwals: [],
+        all_classes: new Set<string>(),
+        all_mapels: new Set<string>(),
+        slots: new Map(),
       });
     });
 
@@ -110,79 +136,172 @@ export function useRekapJamGuru() {
 
       const kelas = row.kelas || {};
       const lembaga = kelas.lembaga || {};
-      const lembagaId = Number(kelas.lembaga_id || lembaga.lembaga_id);
+      const lembagaId = Number(kelas.lembaga_id || lembaga.lembaga_id || 0);
       const namaLembaga = lembaga.nama_lembaga || "Lembaga";
       const singkatanLembaga = lembaga.singkatan || namaLembaga;
 
       const mapel = row.mapel || {};
+      const mapelId = Number(row.mapel_id || mapel.mapel_id || 0);
       const namaMapel = mapel.nama_mapel || "Mata Pelajaran";
       const namaKelas = kelas.nama_kelas || "Kelas";
+      const kelasId = Number(row.kelas_id || kelas.kelas_id || 0);
 
-      // Hitung Durasi Jam Pelajaran (JP)
-      const uMulai = Number(row.jam_mulai?.urutan_jam) || 0;
+      const hari = row.hari || "—";
+      const uMulai = Number(row.jam_mulai?.urutan_jam) || 1;
       const uSelesai = Number(row.jam_selesai?.urutan_jam) || uMulai;
-      let jp = 1;
-      if (uMulai > 0 && uSelesai >= uMulai) {
-        jp = uSelesai - uMulai + 1;
-      }
 
       const jamMulaiDisplay = row.jam_mulai?.jam_mulai ? String(row.jam_mulai.jam_mulai).substring(0, 5) : "—";
       const jamSelesaiDisplay = row.jam_selesai?.jam_selesai ? String(row.jam_selesai.jam_selesai).substring(0, 5) : "—";
 
-      // Ambil / Buat objek guru
       if (!guruMap.has(pegawaiId)) {
         guruMap.set(pegawaiId, {
           pegawai_id: pegawaiId,
           nama_guru: row.pegawai?.nama || `Guru #${pegawaiId}`,
           nip: row.pegawai?.nip || "—",
           bagian: row.pegawai?.bagian || null,
-          jam_per_lembaga: {},
-          total_jp: 0,
-          total_kelas: 0,
-          total_mapel: 0,
-          jadwals: [],
+          all_classes: new Set<string>(),
+          all_mapels: new Set<string>(),
+          slots: new Map(),
         });
       }
 
-      const guru = guruMap.get(pegawaiId)!;
+      const guruAcc = guruMap.get(pegawaiId)!;
+      guruAcc.all_classes.add(namaKelas);
+      guruAcc.all_mapels.add(namaMapel);
 
-      // Akumulasikan JP ke lembaga terkait
-      if (lembagaId) {
-        guru.jam_per_lembaga[lembagaId] = (guru.jam_per_lembaga[lembagaId] || 0) + jp;
+      // KUNCI UTAMA DEDUPLIKASI KELAS PARALEL:
+      // Setiap jam pelajaran di dalam rentang uMulai s/d uSelesai diidentifikasi berdasarkan
+      // `hari + urutan_jam + mapel_id + lembaga_id`.
+      // Jika guru mengajar mapel yang sama pada jam & hari yang sama untuk lebih dari 1 kelas (paralel),
+      // jam tersebut HANYA DIHITUNG 1 KALI (1 JP) ke total beban mengajar!
+      for (let u = uMulai; u <= uSelesai; u++) {
+        const slotKey = `${hari}_${u}_${mapelId}_${lembagaId}`;
+        if (!guruAcc.slots.has(slotKey)) {
+          guruAcc.slots.set(slotKey, {
+            hari,
+            urutan_jam: u,
+            jam_mulai_display: jamMulaiDisplay,
+            jam_selesai_display: jamSelesaiDisplay,
+            mapel_id: mapelId,
+            nama_mapel: namaMapel,
+            lembaga_id: lembagaId,
+            nama_lembaga: namaLembaga,
+            singkatan_lembaga: singkatanLembaga,
+            kelas_list: [namaKelas],
+            kelas_ids: [kelasId],
+            ruangan: row.ruangan || null,
+            jadwal_ids: [row.jadwal_id],
+          });
+        } else {
+          // Kelas paralel terdeteksi pada waktu yang sama: gabungkan nama kelasnya tanpa menambah JP ganda
+          const existingSlot = guruAcc.slots.get(slotKey)!;
+          if (!existingSlot.kelas_list.includes(namaKelas)) {
+            existingSlot.kelas_list.push(namaKelas);
+          }
+          if (!existingSlot.kelas_ids.includes(kelasId)) {
+            existingSlot.kelas_ids.push(kelasId);
+          }
+          existingSlot.jadwal_ids.push(row.jadwal_id);
+          if (!existingSlot.ruangan && row.ruangan) {
+            existingSlot.ruangan = row.ruangan;
+          }
+        }
       }
-      guru.total_jp += jp;
-
-      // Simpan rincian sesi jadwal
-      guru.jadwals.push({
-        jadwal_id: row.jadwal_id,
-        lembaga_id: lembagaId,
-        nama_lembaga: namaLembaga,
-        singkatan_lembaga: singkatanLembaga,
-        kelas_id: Number(row.kelas_id || kelas.kelas_id),
-        nama_kelas: namaKelas,
-        mapel_id: Number(row.mapel_id || mapel.mapel_id),
-        nama_mapel: namaMapel,
-        hari: row.hari || "—",
-        urutan_jam_mulai: uMulai,
-        urutan_jam_selesai: uSelesai,
-        jam_mulai_display: jamMulaiDisplay,
-        jam_selesai_display: jamSelesaiDisplay,
-        jp,
-        ruangan: row.ruangan || null,
-      });
     });
 
-    // Hitung metadata total kelas & total mapel unik yang diampu tiap guru
+    const DAY_ORDER: Record<string, number> = {
+      Ahad: 1,
+      Senin: 2,
+      Selasa: 3,
+      Rabu: 4,
+      Kamis: 5,
+      Jumat: 6,
+      Sabtu: 7,
+    };
+
+    // Susun hasil rekapitulasi per guru
     const result: GuruJamRekap[] = [];
-    guruMap.forEach((guru) => {
-      // Hanya sertakan guru yang memiliki jam mengajar (> 0) atau terdaftar
-      if (guru.total_jp > 0 || guru.jadwals.length > 0) {
-        const uniqueClasses = new Set(guru.jadwals.map((j) => j.nama_kelas));
-        const uniqueMapels = new Set(guru.jadwals.map((j) => j.nama_mapel));
-        guru.total_kelas = uniqueClasses.size;
-        guru.total_mapel = uniqueMapels.size;
-        result.push(guru);
+
+    guruMap.forEach((guruAcc) => {
+      const totalSlotCount = guruAcc.slots.size;
+      if (totalSlotCount === 0 && guruAcc.all_classes.size === 0) return;
+
+      const jamPerLembaga: Record<number, number> = {};
+      let totalJp = 0;
+
+      // Akumulasikan beban JP per lembaga (tiap slot jam riil = 1 JP)
+      guruAcc.slots.forEach((slot) => {
+        if (slot.lembaga_id) {
+          jamPerLembaga[slot.lembaga_id] = (jamPerLembaga[slot.lembaga_id] || 0) + 1;
+        }
+        totalJp += 1;
+      });
+
+      // Gabungkan jam-jam berurutan (consecutive hours) menjadi sesi blok mengajar yang rapi untuk modal & tabel rincian
+      const sortedSlots = Array.from(guruAcc.slots.values()).sort((a, b) => {
+        const dayDiff = (DAY_ORDER[a.hari] || 99) - (DAY_ORDER[b.hari] || 99);
+        if (dayDiff !== 0) return dayDiff;
+        return a.urutan_jam - b.urutan_jam;
+      });
+
+      const groupedJadwals: JadwalDetailItem[] = [];
+
+      for (const slot of sortedSlots) {
+        const sortedKelasNames = [...slot.kelas_list].sort();
+        const kelasLabel = sortedKelasNames.join(", ");
+        const isParalel = slot.kelas_list.length > 1;
+
+        // Cek apakah slot ini berurutan langsung dengan item sebelumnya (hari sama, mapel sama, lembaga sama, kelas sama, dan jam n+1)
+        const lastGroup = groupedJadwals.length > 0 ? groupedJadwals[groupedJadwals.length - 1] : null;
+
+        if (
+          lastGroup &&
+          lastGroup.hari === slot.hari &&
+          lastGroup.mapel_id === slot.mapel_id &&
+          lastGroup.lembaga_id === slot.lembaga_id &&
+          lastGroup.nama_kelas === kelasLabel &&
+          lastGroup.urutan_jam_selesai === slot.urutan_jam - 1
+        ) {
+          // Perpanjang blok jam
+          lastGroup.urutan_jam_selesai = slot.urutan_jam;
+          lastGroup.jam_selesai_display = slot.jam_selesai_display;
+          lastGroup.jp += 1;
+        } else {
+          // Buat item sesi blok baru
+          groupedJadwals.push({
+            jadwal_id: slot.jadwal_ids[0],
+            lembaga_id: slot.lembaga_id,
+            nama_lembaga: slot.nama_lembaga,
+            singkatan_lembaga: slot.singkatan_lembaga,
+            kelas_id: slot.kelas_ids[0],
+            nama_kelas: kelasLabel,
+            kelas_list: sortedKelasNames,
+            is_paralel: isParalel,
+            jumlah_kelas_paralel: slot.kelas_list.length,
+            mapel_id: slot.mapel_id,
+            nama_mapel: slot.nama_mapel,
+            hari: slot.hari,
+            urutan_jam_mulai: slot.urutan_jam,
+            urutan_jam_selesai: slot.urutan_jam,
+            jam_mulai_display: slot.jam_mulai_display,
+            jam_selesai_display: slot.jam_selesai_display,
+            jp: 1,
+            ruangan: slot.ruangan,
+          });
+        }
       }
+
+      result.push({
+        pegawai_id: guruAcc.pegawai_id,
+        nama_guru: guruAcc.nama_guru,
+        nip: guruAcc.nip,
+        bagian: guruAcc.bagian,
+        jam_per_lembaga: jamPerLembaga,
+        total_jp: totalJp,
+        total_kelas: guruAcc.all_classes.size,
+        total_mapel: guruAcc.all_mapels.size,
+        jadwals: groupedJadwals,
+      });
     });
 
     return result;
@@ -192,7 +311,7 @@ export function useRekapJamGuru() {
   const filteredAndSortedData = useMemo(() => {
     return rekapData
       .filter((guru) => {
-        // Filter Search (Nama Guru, NIP, atau Mapel yang diajar)
+        // Filter Search (Nama Guru, NIP, atau Mapel/Kelas yang diajar)
         if (searchTerm.trim() !== "") {
           const q = searchTerm.toLowerCase();
           const matchNama = guru.nama_guru.toLowerCase().includes(q);
@@ -283,11 +402,11 @@ export function useRekapJamGuru() {
           "Nama Guru": guru.nama_guru,
           "NIP": guru.nip !== "—" ? guru.nip : "-",
           "Lembaga": j.singkatan_lembaga,
-          "Kelas": j.nama_kelas,
+          "Kelas": j.nama_kelas + (j.is_paralel ? ` (Gabungan ${j.jumlah_kelas_paralel} Kelas)` : ""),
           "Mata Pelajaran": j.nama_mapel,
           "Hari": j.hari,
           "Jam Pelajaran (JP)": j.jp,
-          "Waktu Jam Ke-": `${j.urutan_jam_mulai} s/d ${j.urutan_jam_selesai}`,
+          "Waktu Jam Ke-": j.urutan_jam_mulai === j.urutan_jam_selesai ? `Jam Ke-${j.urutan_jam_mulai}` : `Jam Ke-${j.urutan_jam_mulai} s/d ${j.urutan_jam_selesai}`,
           "Waktu Jam": `${j.jam_mulai_display} - ${j.jam_selesai_display}`,
           "Ruangan": j.ruangan || "-",
         });
