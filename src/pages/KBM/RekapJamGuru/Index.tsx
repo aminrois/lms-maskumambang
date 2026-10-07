@@ -1,6 +1,7 @@
+import { useState, useEffect } from "react";
 import {
   Users, Clock, Download, RefreshCw, Search, School, BarChart3,
-  Eye
+  Eye, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,6 +29,17 @@ export default function RekapJamGuru() {
     handleExportExcel,
     refetch,
   } = useRekapJamGuru();
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedLembagaFilter, sortBy]);
+
+  const totalData = rekapData.length;
+  const totalPages = Math.ceil(totalData / itemsPerPage) || 1;
+  const paginatedData = rekapData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto w-full animate-in fade-in duration-300">
@@ -215,77 +227,127 @@ export default function RekapJamGuru() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
-                {rekapData.map((guru, idx) => (
-                  <tr key={guru.pegawai_id} className="group hover:bg-blue-50/20 transition-colors">
-                    {/* FREEZE KIRI: No & Guru */}
-                    <td className="sticky left-0 z-10 bg-white group-hover:bg-slate-50 px-3 py-4 text-center font-medium text-slate-400 text-xs border-b border-slate-100">
-                      {idx + 1}
-                    </td>
+                {paginatedData.map((guru, idx) => {
+                  const itemNo = (currentPage - 1) * itemsPerPage + idx + 1;
+                  return (
+                    <tr key={guru.pegawai_id} className="group hover:bg-blue-50/20 transition-colors">
+                      {/* FREEZE KIRI: No & Guru */}
+                      <td className="sticky left-0 z-10 bg-white group-hover:bg-slate-50 px-3 py-4 text-center font-medium text-slate-400 text-xs border-b border-slate-100">
+                        {itemNo}
+                      </td>
 
-                    <td className="sticky left-[48px] z-10 bg-white group-hover:bg-slate-50 px-5 py-4 min-w-[220px] shadow-[3px_0_6px_-2px_rgba(0,0,0,0.06)] border-r border-b border-slate-100">
-                      <div className="font-bold text-slate-900 text-sm hover:text-blue-600 transition-colors cursor-pointer" onClick={() => handleOpenDetail(guru)}>
-                        {guru.nama_guru}
-                      </div>
-                      <div className="text-[11px] text-slate-400 font-mono mt-0.5">
-                        {guru.nip !== "—" ? `NIP: ${guru.nip}` : "Non-NIP"}
-                      </div>
-                    </td>
+                      <td className="sticky left-[48px] z-10 bg-white group-hover:bg-slate-50 px-5 py-4 min-w-[220px] shadow-[3px_0_6px_-2px_rgba(0,0,0,0.06)] border-r border-b border-slate-100">
+                        <div className="font-bold text-slate-900 text-sm hover:text-blue-600 transition-colors cursor-pointer" onClick={() => handleOpenDetail(guru)}>
+                          {guru.nama_guru}
+                        </div>
+                        <div className="text-[11px] text-slate-400 font-mono mt-0.5">
+                          {guru.nip !== "—" ? `NIP: ${guru.nip}` : "Non-NIP"}
+                        </div>
+                      </td>
 
-                    {/* Kolom Tiap Lembaga */}
-                    {lembagas.map((lem) => {
-                      const jp = guru.jam_per_lembaga[lem.lembaga_id] || 0;
-                      return (
-                        <td key={lem.lembaga_id} className="px-4 py-4 text-center border-b border-slate-100">
-                          {jp > 0 ? (
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 font-bold text-xs border border-blue-100">
-                              {jp} JP
-                            </span>
-                          ) : (
-                            <span className="text-slate-300 font-medium text-xs">—</span>
-                          )}
-                        </td>
-                      );
-                    })}
+                      {/* Kolom Tiap Lembaga */}
+                      {lembagas.map((lem) => {
+                        const jp = guru.jam_per_lembaga[lem.lembaga_id] || 0;
+                        return (
+                          <td key={lem.lembaga_id} className="px-4 py-4 text-center border-b border-slate-100">
+                            {jp > 0 ? (
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 font-bold text-xs border border-blue-100">
+                                {jp} JP
+                              </span>
+                            ) : (
+                              <span className="text-slate-300 font-medium text-xs">—</span>
+                            )}
+                          </td>
+                        );
+                      })}
 
-                    {/* Info Cakupan Kelas & Mapel */}
-                    <td className="px-4 py-4 text-center text-xs text-slate-600 font-medium border-b border-slate-100">
-                      <div className="flex flex-col items-center gap-0.5">
-                        <span className="text-slate-800 font-bold">{guru.total_kelas} Kelas</span>
-                        <span className="text-[11px] text-slate-400">{guru.total_mapel} Mapel</span>
-                      </div>
-                    </td>
+                      {/* Info Cakupan Kelas & Mapel */}
+                      <td className="px-4 py-4 text-center text-xs text-slate-600 font-medium border-b border-slate-100">
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className="text-slate-800 font-bold">{guru.total_kelas} Kelas</span>
+                          <span className="text-[11px] text-slate-400">{guru.total_mapel} Mapel</span>
+                        </div>
+                      </td>
 
-                    {/* FREEZE KANAN: Total Beban Jam Mengajar */}
-                    <td className="sticky right-[96px] z-10 bg-emerald-50/90 group-hover:bg-emerald-100/70 border-l border-b border-emerald-200 px-4 py-4 text-center font-black text-sm shadow-[-3px_0_6px_-2px_rgba(0,0,0,0.06)]">
-                      <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-600 text-white shadow-2xs font-extrabold text-xs">
-                        <Clock className="w-3.5 h-3.5" />
-                        {guru.total_jp} JP
-                      </span>
-                    </td>
+                      {/* FREEZE KANAN: Total Beban Jam Mengajar */}
+                      <td className="sticky right-[96px] z-10 bg-emerald-50/90 group-hover:bg-emerald-100/70 border-l border-b border-emerald-200 px-4 py-4 text-center font-black text-sm shadow-[-3px_0_6px_-2px_rgba(0,0,0,0.06)]">
+                        <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-600 text-white shadow-2xs font-extrabold text-xs">
+                          <Clock className="w-3.5 h-3.5" />
+                          {guru.total_jp} JP
+                        </span>
+                      </td>
 
-                    {/* FREEZE KANAN: Tombol Aksi Detail */}
-                    <td className="sticky right-0 z-10 bg-white group-hover:bg-slate-50 px-4 py-4 text-center min-w-[96px] border-b border-slate-100">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleOpenDetail(guru)}
-                        className="rounded-xl border-slate-200 text-slate-700 hover:text-blue-600 hover:bg-blue-50/50 text-xs h-8 px-2.5 font-semibold cursor-pointer"
-                      >
-                        <Eye className="w-3.5 h-3.5 mr-1 text-slate-500" />
-                        <span>Rincian</span>
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
+                      {/* FREEZE KANAN: Tombol Aksi Detail */}
+                      <td className="sticky right-0 z-10 bg-white group-hover:bg-slate-50 px-4 py-4 text-center min-w-[96px] border-b border-slate-100">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleOpenDetail(guru)}
+                          className="rounded-xl border-slate-200 text-slate-700 hover:text-blue-600 hover:bg-blue-50/50 text-xs h-8 px-2.5 font-semibold cursor-pointer"
+                        >
+                          <Eye className="w-3.5 h-3.5 mr-1 text-slate-500" />
+                          <span>Rincian</span>
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
 
-        <div className="p-4 bg-slate-50/60 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center text-xs text-slate-500 gap-2">
-          <span>Menampilkan <strong>{rekapData.length}</strong> guru pengampu jadwal.</span>
-          <span className="italic">* Beban jam (JP) dihitung proporsional dari alokasi jam tatap muka jadwal pelajaran.</span>
-        </div>
+        {/* Pagination & Page Size Toolbar */}
+        {totalData > 0 && (
+          <div className="p-4 bg-slate-50/60 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center text-xs text-slate-600 gap-4">
+            <div className="flex items-center gap-2.5">
+              <span className="text-slate-500 font-medium">Tampilkan:</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="bg-white border border-slate-200 rounded-xl px-2.5 py-1 text-xs font-bold text-slate-700 outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+              >
+                {[10, 15, 20, 25, 50, 100].map((val) => (
+                  <option key={val} value={val}>{val}</option>
+                ))}
+              </select>
+              <span className="text-slate-500">
+                per halaman • Menampilkan {Math.min((currentPage - 1) * itemsPerPage + 1, totalData)}–{Math.min(currentPage * itemsPerPage, totalData)} dari {totalData} guru
+              </span>
+            </div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="rounded-xl h-8 px-3 text-xs font-semibold bg-white border-slate-200"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5 mr-1" />
+                  Sebelumnya
+                </Button>
+                <span className="px-3 py-1 font-bold text-xs bg-white border border-slate-200 rounded-xl text-slate-700">
+                  {currentPage} / {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="rounded-xl h-8 px-3 text-xs font-semibold bg-white border-slate-200"
+                >
+                  Selanjutnya
+                  <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
       </Card>
 
       {/* Modal Detail Jadwal Guru */}

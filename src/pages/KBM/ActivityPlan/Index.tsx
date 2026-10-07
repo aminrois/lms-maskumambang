@@ -49,6 +49,9 @@ export default function ActivityPlanIndex() {
     currentPage,
     setCurrentPage,
     totalPages,
+    totalCount,
+    itemsPerPage,
+    setItemsPerPage,
   } = useActivityPlan();
 
   return (
@@ -78,6 +81,9 @@ export default function ActivityPlanIndex() {
         currentPage={currentPage}
         setCurrentPage={setCurrentPage}
         totalPages={totalPages}
+        totalCount={totalCount}
+        itemsPerPage={itemsPerPage}
+        setItemsPerPage={setItemsPerPage}
       />
 
       <ActivityPlanDialog

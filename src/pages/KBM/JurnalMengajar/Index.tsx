@@ -14,6 +14,9 @@ export default function KbmJurnalMengajar() {
     canDelete,
     currentPage,
     setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage,
+    totalCount,
     searchQuery,
     setSearchQuery,
     statusFilter,
@@ -216,7 +219,9 @@ export default function KbmJurnalMengajar() {
         currentPage={currentPage}
         setCurrentPage={setCurrentPage}
         totalPages={totalPages}
-        itemsPerPage={8}
+        itemsPerPage={itemsPerPage}
+        setItemsPerPage={setItemsPerPage}
+        totalCount={totalCount}
         viewMode={viewMode}
         onConfirmDelete={confirmDelete}
         onViewDetail={(id) => navigate(`/kbm/jurnal-mengajar/${id}`)}

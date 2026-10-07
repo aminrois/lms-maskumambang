@@ -21,6 +21,9 @@ interface ActivityPlanListProps {
   currentPage: number;
   setCurrentPage: (page: number) => void;
   totalPages: number;
+  totalCount?: number;
+  itemsPerPage?: number;
+  setItemsPerPage?: (val: number) => void;
 }
 
 export function ActivityPlanList({
@@ -37,7 +40,10 @@ export function ActivityPlanList({
   onOpenDelete,
   currentPage,
   setCurrentPage,
-  totalPages
+  totalPages,
+  totalCount = 0,
+  itemsPerPage = 10,
+  setItemsPerPage
 }: ActivityPlanListProps) {
   return (
     <div className="space-y-4">
@@ -186,27 +192,54 @@ export function ActivityPlanList({
       )}
 
       {/* Pagination Controls */}
-      {totalPages > 1 && (
-        <div className="flex justify-center items-center mt-6 gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-            disabled={currentPage === 1 || isLoading}
-          >
-            Sebelumnya
-          </Button>
-          <span className="text-sm text-gray-600 font-medium px-4">
-            Halaman {currentPage} dari {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-            disabled={currentPage === totalPages || isLoading}
-          >
-            Selanjutnya
-          </Button>
+      {totalCount > 0 && (
+        <div className="flex flex-col sm:flex-row justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 shadow-xs gap-4 mt-6">
+          <div className="flex items-center gap-2.5 text-xs text-slate-600">
+            <span className="text-slate-500 font-medium">Tampilkan:</span>
+            {setItemsPerPage ? (
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 text-xs font-bold text-slate-700 outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+              >
+                {[10, 15, 20, 25, 50, 100].map((val) => (
+                  <option key={val} value={val}>{val}</option>
+                ))}
+              </select>
+            ) : null}
+            <span className="text-slate-500">
+              per halaman • Menampilkan {Math.min((currentPage - 1) * itemsPerPage + 1, totalCount)}–{Math.min(currentPage * itemsPerPage, totalCount)} dari {totalCount} data
+            </span>
+          </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1 || isLoading}
+                className="rounded-xl h-8 px-3 text-xs font-semibold bg-white border-slate-200"
+              >
+                Sebelumnya
+              </Button>
+              <span className="px-3 py-1 font-bold text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-700">
+                {currentPage} / {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage === totalPages || isLoading}
+                className="rounded-xl h-8 px-3 text-xs font-semibold bg-white border-slate-200"
+              >
+                Selanjutnya
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>

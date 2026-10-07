@@ -25,6 +25,7 @@ export const JadwalGuruDirektur: React.FC = () => {
     setCurrentPage,
     totalPages,
     itemsPerPage,
+    setItemsPerPage,
     selectedTeacher,
     setSelectedTeacher,
     refetch
@@ -458,10 +459,25 @@ export const JadwalGuruDirektur: React.FC = () => {
         </div>
 
         {/* Pagination Footer */}
-        {totalPages > 1 && (
+        {filteredGroups.length > 0 && (
           <div className="flex flex-col sm:flex-row justify-between items-center bg-white p-4 border-t border-slate-100 gap-4">
-            <div className="text-xs font-medium text-slate-500">
-              Menampilkan {((currentPage - 1) * itemsPerPage) + 1}–{Math.min(currentPage * itemsPerPage, filteredGroups.length)} dari {filteredGroups.length} guru
+            <div className="flex items-center gap-2.5 text-xs text-slate-600">
+              <span className="text-slate-500 font-medium">Tampilkan:</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="bg-white border border-slate-200 rounded-xl px-2.5 py-1 text-xs font-bold text-slate-700 outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer shadow-2xs"
+              >
+                {[10, 15, 20, 25, 50, 100].map((val) => (
+                  <option key={val} value={val}>{val}</option>
+                ))}
+              </select>
+              <span className="text-slate-500 font-semibold">
+                per halaman • Menampilkan {((currentPage - 1) * itemsPerPage) + 1}–{Math.min(currentPage * itemsPerPage, filteredGroups.length)} dari {filteredGroups.length} guru
+              </span>
             </div>
             <div className="flex items-center space-x-2">
               <Button
@@ -469,19 +485,19 @@ export const JadwalGuruDirektur: React.FC = () => {
                 size="sm"
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="h-8 text-xs font-semibold rounded-lg"
+                className="h-8 text-xs font-semibold rounded-lg cursor-pointer"
               >
                 <ChevronLeft className="w-3.5 h-3.5 mr-1" /> Sebelum
               </Button>
               <div className="flex items-center px-3 py-1 text-xs font-bold text-slate-700 bg-slate-100 rounded-lg">
-                {currentPage} / {totalPages}
+                {currentPage} / {Math.max(1, totalPages)}
               </div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="h-8 text-xs font-semibold rounded-lg"
+                disabled={currentPage >= totalPages}
+                className="h-8 text-xs font-semibold rounded-lg cursor-pointer"
               >
                 Lanjut <ChevronRight className="w-3.5 h-3.5 ml-1" />
               </Button>

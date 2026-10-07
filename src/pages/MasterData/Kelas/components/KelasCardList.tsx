@@ -12,6 +12,7 @@ interface KelasCardListProps {
   currentPage: number;
   totalPages: number;
   itemsPerPage: number;
+  setItemsPerPage?: (val: number) => void;
   totalData: number;
   setCurrentPage: (val: number | ((prev: number) => number)) => void;
 }
@@ -26,6 +27,7 @@ export default function KelasCardList({
   currentPage,
   totalPages,
   itemsPerPage,
+  setItemsPerPage,
   totalData,
   setCurrentPage
 }: KelasCardListProps) {
@@ -112,26 +114,43 @@ export default function KelasCardList({
       </div>
 
       {/* Pagination Controls */}
-      {totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row justify-between items-center bg-white p-4 rounded-xl border shadow-sm gap-4 mt-6">
-          <div className="text-sm text-gray-500">
-            Menampilkan {((currentPage - 1) * itemsPerPage) + 1}–{Math.min(currentPage * itemsPerPage, totalData)} dari {totalData} data
+      {totalData > 0 && (
+        <div className="flex flex-col sm:flex-row justify-between items-center bg-white p-4 rounded-xl border border-slate-200 shadow-2xs gap-4 mt-6">
+          <div className="flex items-center gap-2.5 text-xs text-slate-600">
+            <span className="text-slate-500 font-medium">Tampilkan:</span>
+            {setItemsPerPage && (
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="bg-white border border-slate-200 rounded-xl px-2.5 py-1 text-xs font-bold text-slate-700 outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer shadow-2xs"
+              >
+                {[6, 10, 15, 20, 25, 50, 100].map((val) => (
+                  <option key={val} value={val}>{val}</option>
+                ))}
+              </select>
+            )}
+            <span className="text-slate-500 font-semibold">
+              per halaman • Menampilkan {((currentPage - 1) * itemsPerPage) + 1}–{Math.min(currentPage * itemsPerPage, totalData)} dari {totalData} data
+            </span>
           </div>
           <div className="flex space-x-2">
             <button
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1.5 border rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 transition-colors"
+              className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold hover:bg-slate-50 disabled:opacity-40 transition-colors bg-white cursor-pointer"
             >
               Sebelumnya
             </button>
-            <div className="flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg">
-              {currentPage} / {totalPages}
+            <div className="flex items-center px-3 py-1.5 text-xs font-bold text-slate-700 bg-slate-50 rounded-lg border border-slate-100">
+              {currentPage} / {Math.max(1, totalPages)}
             </div>
             <button
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1.5 border rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 transition-colors"
+              disabled={currentPage >= totalPages}
+              className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold hover:bg-slate-50 disabled:opacity-40 transition-colors bg-white cursor-pointer"
             >
               Selanjutnya
             </button>

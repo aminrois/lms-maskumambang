@@ -21,7 +21,7 @@ const RiwayatSetoranTahfidz: React.FC = () => {
 
   // Pagination
   const [page, setPage] = useState<number>(0);
-  const pageSize = 20;
+  const [pageSize, setPageSize] = useState<number>(20);
 
   // Fetch Riwayat Setoran
   const { data, isLoading } = useQuery({
@@ -32,6 +32,7 @@ const RiwayatSetoranTahfidz: React.FC = () => {
       tanggalMulai,
       tanggalAkhir,
       page,
+      pageSize,
     ],
     queryFn: async () => {
       return await tahfidzService.getSetoranList({
@@ -382,11 +383,26 @@ const RiwayatSetoranTahfidz: React.FC = () => {
         )}
 
         {/* Pagination Bar */}
-        {totalCount > pageSize && (
-          <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span>
-              Menampilkan {page * pageSize + 1} - {Math.min((page + 1) * pageSize, totalCount)} dari {totalCount} setoran
-            </span>
+        {totalCount > 0 && (
+          <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
+            <div className="flex items-center gap-2.5 text-xs text-slate-600">
+              <span className="text-slate-500 font-medium">Tampilkan:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setPage(0);
+                }}
+                className="bg-white border border-slate-200 rounded-xl px-2.5 py-1 text-xs font-bold text-slate-700 outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer shadow-2xs"
+              >
+                {[10, 15, 20, 25, 50, 100].map((val) => (
+                  <option key={val} value={val}>{val}</option>
+                ))}
+              </select>
+              <span className="text-slate-500 font-semibold">
+                per halaman • Menampilkan {page * pageSize + 1} - {Math.min((page + 1) * pageSize, totalCount)} dari {totalCount} setoran
+              </span>
+            </div>
             <div className="flex items-center gap-2">
               <button
                 disabled={page === 0}
@@ -395,7 +411,7 @@ const RiwayatSetoranTahfidz: React.FC = () => {
               >
                 Sebelumnya
               </button>
-              <span className="font-bold text-slate-700">Halaman {page + 1}</span>
+              <span className="font-bold text-slate-700">Halaman {page + 1} / {Math.max(1, Math.ceil(totalCount / pageSize))}</span>
               <button
                 disabled={(page + 1) * pageSize >= totalCount}
                 onClick={() => setPage((p) => p + 1)}

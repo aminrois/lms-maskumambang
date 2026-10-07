@@ -15,6 +15,8 @@ interface JurnalListProps {
   setCurrentPage: (page: number) => void;
   totalPages: number;
   itemsPerPage: number;
+  setItemsPerPage?: (val: number) => void;
+  totalCount?: number;
   onConfirmDelete: (e: React.MouseEvent, jurnal: JurnalUI) => void;
   onViewDetail: (id: number) => void;
   viewMode?: 'card' | 'table';
@@ -79,6 +81,8 @@ export function JurnalList({
   setCurrentPage,
   totalPages,
   itemsPerPage,
+  setItemsPerPage,
+  totalCount,
   onConfirmDelete,
   onViewDetail,
   viewMode = 'card'
@@ -339,10 +343,27 @@ export function JurnalList({
             </div>
           )}
 
-          {totalPages > 1 && (
+          {filteredData.length > 0 && (
             <div className="flex flex-col sm:flex-row justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 shadow-xs gap-4 mt-6">
-              <div className="text-xs text-slate-500 font-semibold">
-                Menampilkan {((currentPage - 1) * itemsPerPage) + 1}–{Math.min(currentPage * itemsPerPage, filteredData.length)} dari {filteredData.length} sesi
+              <div className="flex items-center gap-2.5 text-xs text-slate-600">
+                <span className="text-slate-500 font-medium">Tampilkan:</span>
+                {setItemsPerPage && (
+                  <select
+                    value={itemsPerPage}
+                    onChange={(e) => {
+                      setItemsPerPage(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="bg-white border border-slate-200 rounded-xl px-2.5 py-1 text-xs font-bold text-slate-700 outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer shadow-2xs"
+                  >
+                    {[10, 15, 20, 25, 50, 100].map((val) => (
+                      <option key={val} value={val}>{val}</option>
+                    ))}
+                  </select>
+                )}
+                <span className="text-slate-500 font-semibold">
+                  per halaman • Menampilkan {Math.min(((currentPage - 1) * itemsPerPage) + 1, totalCount || filteredData.length)}–{Math.min(currentPage * itemsPerPage, totalCount || filteredData.length)} dari {totalCount || filteredData.length} sesi
+                </span>
               </div>
               <div className="flex space-x-2">
                 <button
@@ -353,11 +374,11 @@ export function JurnalList({
                   Sebelumnya
                 </button>
                 <div className="flex items-center px-4 py-1.5 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-100 rounded-xl">
-                  {currentPage} / {totalPages}
+                  {currentPage} / {Math.max(1, totalPages)}
                 </div>
                 <button
                   onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                  disabled={currentPage === totalPages}
+                  disabled={currentPage >= totalPages}
                   className="px-3 py-1.5 border border-slate-200 rounded-xl text-xs font-semibold hover:bg-slate-50 disabled:opacity-40 transition-colors bg-white text-slate-700 cursor-pointer"
                 >
                   Selanjutnya

@@ -40,6 +40,8 @@ export default function MonitoringUniversal() {
     setStatusFilter,
     currentPage,
     setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage,
     isStatusInfoOpen,
     setIsStatusInfoOpen,
     tanggalMulai,
@@ -94,6 +96,8 @@ export default function MonitoringUniversal() {
           setStatusFilter={setStatusFilter}
           currentPage={currentPage}
           setCurrentPage={setCurrentPage}
+          itemsPerPage={itemsPerPage}
+          setItemsPerPage={setItemsPerPage}
           isStatusInfoOpen={isStatusInfoOpen}
           setIsStatusInfoOpen={setIsStatusInfoOpen}
           tanggalMulai={tanggalMulai}

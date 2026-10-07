@@ -302,11 +302,11 @@ export function useRekapSiswa() {
     };
   }, [rekapData]);
 
-  const ITEMS_PER_PAGE = 10;
-  const totalPages = Math.ceil(rekapData.length / ITEMS_PER_PAGE) || 1;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const totalPages = Math.ceil(rekapData.length / itemsPerPage) || 1;
   const paginatedData = useMemo(() => {
-    return rekapData.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-  }, [rekapData, currentPage]);
+    return rekapData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  }, [rekapData, currentPage, itemsPerPage]);
 
   const getHealthColor = (percentage: number) => {
     if (percentage >= 90) return 'text-emerald-600 bg-emerald-50 border-emerald-200';
@@ -345,6 +345,8 @@ export function useRekapSiswa() {
     setStep,
     currentPage,
     setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage,
     lembagas,
     kelases,
     isKelasGuruLoading,

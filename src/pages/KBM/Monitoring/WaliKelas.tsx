@@ -12,6 +12,8 @@ export default function MonitoringWaliKelas() {
     setStatusFilter,
     currentPage,
     setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage,
     isLoading,
     isStatusInfoOpen,
     setIsStatusInfoOpen,
@@ -67,6 +69,8 @@ export default function MonitoringWaliKelas() {
         setStatusFilter={setStatusFilter}
         currentPage={currentPage}
         setCurrentPage={setCurrentPage}
+        itemsPerPage={itemsPerPage}
+        setItemsPerPage={setItemsPerPage}
         isStatusInfoOpen={isStatusInfoOpen}
         setIsStatusInfoOpen={setIsStatusInfoOpen}
         tanggalMulai={tanggalMulai}

@@ -169,12 +169,12 @@ export function useRekapAbsensiHarian() {
   }, [rekapData]);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 15;
+  const [itemsPerPage, setItemsPerPage] = useState(15);
   
   const paginatedData = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
     return rekapData.slice(start, start + itemsPerPage);
-  }, [rekapData, currentPage]);
+  }, [rekapData, currentPage, itemsPerPage]);
   
   const totalPages = Math.ceil(rekapData.length / itemsPerPage);
 
@@ -203,6 +203,8 @@ export function useRekapAbsensiHarian() {
     hasMultipleClasses,
     currentPage,
     setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage,
     lembagas,
     kelases: availableKelas,
     isKelasLoading: isKelasLoadingCombined,

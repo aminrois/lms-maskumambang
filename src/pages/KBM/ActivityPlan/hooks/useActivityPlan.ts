@@ -58,7 +58,7 @@ export function useActivityPlan() {
   const isLembagaDisabled = !isSuperAdminOrDirektur && !!userLembagaId;
 
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5; // Use 5 to be consistent with UI lists typically
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Reset page to 1 when tab changes
   useEffect(() => {
@@ -67,7 +67,7 @@ export function useActivityPlan() {
 
   // 1. Fetch Activity Plans with Pagination
   const { data: activityData = { data: [], totalCount: 0 }, isLoading } = useQuery({
-    queryKey: ["kbm", "activity-plans", activeTab, currentPage],
+    queryKey: ["kbm", "activity-plans", activeTab, currentPage, itemsPerPage],
     staleTime: 60 * 1000,
     queryFn: async () => {
       const params: any = {
@@ -379,5 +379,8 @@ export function useActivityPlan() {
     currentPage,
     setCurrentPage,
     totalPages,
+    totalCount,
+    itemsPerPage,
+    setItemsPerPage,
   };
 }

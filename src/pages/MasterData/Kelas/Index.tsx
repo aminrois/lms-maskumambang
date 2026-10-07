@@ -26,7 +26,7 @@ export default function MasterDataKelas() {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
+  const [itemsPerPage, setItemsPerPage] = useState(6);
   const { canCreate, canUpdate, canDelete } = usePermissions('kelas');
 
   // Realtime: auto-refresh saat ada perubahan data kelas dari user lain
@@ -241,6 +241,7 @@ export default function MasterDataKelas() {
           currentPage={currentPage}
           totalPages={totalPages}
           itemsPerPage={itemsPerPage}
+          setItemsPerPage={setItemsPerPage}
           totalData={filteredKelas.length}
           setCurrentPage={setCurrentPage}
         />

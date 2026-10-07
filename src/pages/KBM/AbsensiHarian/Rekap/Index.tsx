@@ -25,6 +25,8 @@ export default function RekapAbsensiHarianIndex() {
     setTanggalAkhir,
     currentPage,
     setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage,
     paginatedData,
     totalPages,
     totals,
@@ -71,6 +73,8 @@ export default function RekapAbsensiHarianIndex() {
           totalPages={totalPages}
           currentPage={currentPage}
           setCurrentPage={setCurrentPage}
+          itemsPerPage={itemsPerPage}
+          setItemsPerPage={setItemsPerPage}
           totals={totals}
           isLoading={isLoading}
           isError={isError}

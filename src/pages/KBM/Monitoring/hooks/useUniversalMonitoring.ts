@@ -263,11 +263,11 @@ export function useUniversalMonitoring() {
     setCurrentPage(1);
   }, [debouncedSearchTerm, selectedKelasId, statusFilter]);
 
-  const ITEMS_PER_PAGE = 10;
-  const totalPages = Math.ceil(filteredRows.length / ITEMS_PER_PAGE) || 1;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const totalPages = Math.ceil(filteredRows.length / itemsPerPage) || 1;
   const paginatedRows = useMemo(() => {
-    return filteredRows.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-  }, [filteredRows, currentPage]);
+    return filteredRows.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  }, [filteredRows, currentPage, itemsPerPage]);
 
   const summary = useMemo(() => {
     return {
@@ -298,6 +298,8 @@ export function useUniversalMonitoring() {
     setStatusFilter,
     currentPage,
     setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage,
     isStatusInfoOpen,
     setIsStatusInfoOpen,
     tanggalMulai,

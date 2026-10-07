@@ -159,9 +159,24 @@ export function DataTable<TData, TValue>({
         )}
       </div>
       
-      <div className="flex items-center justify-between px-2">
-        <div className="flex-1 text-sm text-gray-500">
-          Menampilkan {table.getFilteredRowModel().rows.length} total baris
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2 py-1">
+        <div className="flex items-center gap-2.5 text-xs text-slate-600">
+          <span className="text-slate-500 font-medium">Tampilkan:</span>
+          <select
+            value={table.getState().pagination.pageSize}
+            onChange={(e) => {
+              table.setPageSize(Number(e.target.value));
+              table.setPageIndex(0);
+            }}
+            className="bg-white border border-slate-200 rounded-xl px-2.5 py-1 text-xs font-bold text-slate-700 outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer shadow-2xs"
+          >
+            {[10, 15, 20, 25, 50, 100].map((val) => (
+              <option key={val} value={val}>{val}</option>
+            ))}
+          </select>
+          <span className="text-slate-500 font-semibold">
+            per halaman • Menampilkan {table.getFilteredRowModel().rows.length > 0 ? (table.getState().pagination.pageIndex * table.getState().pagination.pageSize) + 1 : 0}–{Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, table.getFilteredRowModel().rows.length)} dari {table.getFilteredRowModel().rows.length} baris data
+          </span>
         </div>
         <div className="flex items-center space-x-2">
           <Button
@@ -169,16 +184,19 @@ export function DataTable<TData, TValue>({
             size="sm"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
-            className="rounded-lg h-8 px-3"
+            className="rounded-lg h-8 px-3 text-xs cursor-pointer"
           >
             Sebelumnya
           </Button>
+          <span className="text-xs font-bold text-slate-700 px-2">
+            {table.getFilteredRowModel().rows.length > 0 ? table.getState().pagination.pageIndex + 1 : 1} / {Math.max(1, table.getPageCount())}
+          </span>
           <Button
             variant="outline"
             size="sm"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
-            className="rounded-lg h-8 px-3"
+            className="rounded-lg h-8 px-3 text-xs cursor-pointer"
           >
             Selanjutnya
           </Button>

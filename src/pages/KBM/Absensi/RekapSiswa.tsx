@@ -13,6 +13,8 @@ export default function RekapSiswa() {
     setStep,
     currentPage,
     setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage,
     lembagas,
     kelases,
     isKelasGuruLoading,
@@ -62,6 +64,8 @@ export default function RekapSiswa() {
           filter={filter}
           currentPage={currentPage}
           setCurrentPage={setCurrentPage}
+          itemsPerPage={itemsPerPage}
+          setItemsPerPage={setItemsPerPage}
           mapels={mapels}
           paginatedData={paginatedData}
           rekapData={rekapData}

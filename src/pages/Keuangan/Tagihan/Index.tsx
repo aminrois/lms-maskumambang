@@ -22,6 +22,8 @@ export default function TagihanSiswaIndex() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [posFilter, setPosFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Modals
   const [showGenerateSppModal, setShowGenerateSppModal] = useState(false);
@@ -248,54 +250,98 @@ export default function TagihanSiswaIndex() {
                   </td>
                 </tr>
               ) : (
-                tagihanList.map((t: any) => {
-                  const isLunas = t.status === "Lunas";
-                  const isSebagian = t.status === "Sebagian";
+                tagihanList
+                  .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                  .map((t: any) => {
+                    const isLunas = t.status === "Lunas";
+                    const isSebagian = t.status === "Sebagian";
 
-                  return (
-                    <tr key={t.tagihan_id} className="group hover:bg-slate-50/80 transition-colors">
-                      <td className="p-4 sticky left-0 bg-white group-hover:bg-slate-50 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]">
-                        <div className="font-bold text-slate-800">{t.siswa?.nama || "-"}</div>
-                        <div className="text-[11px] text-slate-500">
-                          NIS: {t.siswa?.nis} • {t.siswa?.kelas?.nama_kelas || "-"}
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="font-bold text-slate-800">{t.nama_tagihan}</div>
-                        <div className="text-[11px] text-slate-500">{t.pos?.nama_pos}</div>
-                      </td>
-                      <td className="p-4 text-right font-bold text-slate-800">
-                        {formatRupiah(t.nominal_total)}
-                      </td>
-                      <td className="p-4 text-right font-bold text-emerald-600">
-                        {formatRupiah(t.nominal_terbayar)}
-                      </td>
-                      <td className="p-4 text-right font-bold text-rose-600">
-                        {formatRupiah(t.sisa_tagihan)}
-                      </td>
-                      <td className="p-4 text-center">
-                        <span
-                          className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                            isLunas
-                              ? "bg-emerald-50 text-emerald-700"
-                              : isSebagian
-                              ? "bg-amber-50 text-amber-700"
-                              : "bg-rose-50 text-rose-700"
-                          }`}
-                        >
-                          {t.status}
-                        </span>
-                      </td>
-                      <td className="p-4 text-slate-500 text-[11px]">
-                        {t.jatuh_tempo || "-"}
-                      </td>
-                    </tr>
-                  );
-                })
+                    return (
+                      <tr key={t.tagihan_id} className="group hover:bg-slate-50/80 transition-colors">
+                        <td className="p-4 sticky left-0 bg-white group-hover:bg-slate-50 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]">
+                          <div className="font-bold text-slate-800">{t.siswa?.nama || "-"}</div>
+                          <div className="text-[11px] text-slate-500">
+                            NIS: {t.siswa?.nis} • {t.siswa?.kelas?.nama_kelas || "-"}
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <div className="font-bold text-slate-800">{t.nama_tagihan}</div>
+                          <div className="text-[11px] text-slate-500">{t.pos?.nama_pos}</div>
+                        </td>
+                        <td className="p-4 text-right font-bold text-slate-800">
+                          {formatRupiah(t.nominal_total)}
+                        </td>
+                        <td className="p-4 text-right font-bold text-emerald-600">
+                          {formatRupiah(t.nominal_terbayar)}
+                        </td>
+                        <td className="p-4 text-right font-bold text-rose-600">
+                          {formatRupiah(t.sisa_tagihan)}
+                        </td>
+                        <td className="p-4 text-center">
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                              isLunas
+                                ? "bg-emerald-50 text-emerald-700"
+                                : isSebagian
+                                ? "bg-amber-50 text-amber-700"
+                                : "bg-rose-50 text-rose-700"
+                            }`}
+                          >
+                            {t.status}
+                          </span>
+                        </td>
+                        <td className="p-4 text-slate-500 text-[11px]">
+                          {t.jatuh_tempo || "-"}
+                        </td>
+                      </tr>
+                    );
+                  })
               )}
             </tbody>
           </table>
         </div>
+
+        {tagihanList.length > 0 && (
+          <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/50">
+            <div className="flex items-center gap-2.5 text-xs text-slate-600">
+              <span className="text-slate-500 font-medium">Tampilkan:</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="bg-white border border-slate-200 rounded-xl px-2.5 py-1 text-xs font-bold text-slate-700 outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer shadow-2xs"
+              >
+                {[10, 15, 20, 25, 50, 100].map((val) => (
+                  <option key={val} value={val}>{val}</option>
+                ))}
+              </select>
+              <span className="text-slate-500 font-semibold">
+                per halaman • Menampilkan {Math.min(((currentPage - 1) * itemsPerPage) + 1, tagihanList.length)}–{Math.min(currentPage * itemsPerPage, tagihanList.length)} dari {tagihanList.length} tagihan
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-bold hover:bg-white disabled:opacity-40 cursor-pointer bg-white"
+              >
+                Sebelumnya
+              </button>
+              <span className="font-bold text-xs text-slate-700 px-2">
+                {currentPage} / {Math.max(1, Math.ceil(tagihanList.length / itemsPerPage))}
+              </span>
+              <button
+                disabled={currentPage >= Math.ceil(tagihanList.length / itemsPerPage)}
+                onClick={() => setCurrentPage((p) => p + 1)}
+                className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-bold hover:bg-white disabled:opacity-40 cursor-pointer bg-white"
+              >
+                Selanjutnya
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modal 1: Generate SPP Massal */}

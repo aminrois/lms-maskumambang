@@ -40,7 +40,7 @@ export function useJadwalGuruDirektur() {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const itemsPerPage = 10;
+  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
 
   // Selected teacher for Detail Page view
   const [selectedTeacher, setSelectedTeacher] = useState<TeacherJadwalGroup | null>(null);
@@ -313,6 +313,7 @@ export function useJadwalGuruDirektur() {
     setCurrentPage,
     totalPages,
     itemsPerPage,
+    setItemsPerPage,
     selectedTeacher,
     setSelectedTeacher,
     refetch: fetchData

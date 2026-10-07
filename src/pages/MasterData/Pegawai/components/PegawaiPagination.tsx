@@ -30,7 +30,7 @@ export default function PegawaiPagination({
           }}
           className="border-gray-200 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 block p-1.5"
         >
-          {[10, 20, 30, 40, 50].map((val) => (
+          {[10, 15, 20, 25, 50, 100].map((val) => (
             <option key={val} value={val}>{val}</option>
           ))}
         </select>

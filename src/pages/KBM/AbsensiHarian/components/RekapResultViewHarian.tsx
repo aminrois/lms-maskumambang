@@ -8,6 +8,8 @@ interface RekapResultViewHarianProps {
     totalPages: number;
     currentPage: number;
     setCurrentPage: (val: number) => void;
+    itemsPerPage?: number;
+    setItemsPerPage?: (val: number) => void;
     totals: any;
     isLoading: boolean;
     isError: boolean;
@@ -28,6 +30,8 @@ export function RekapResultViewHarian({
     totalPages,
     currentPage,
     setCurrentPage,
+    itemsPerPage = 15,
+    setItemsPerPage,
     totals,
     isLoading,
     isError,
@@ -217,26 +221,48 @@ export function RekapResultViewHarian({
                         </table>
                     </div>
                 )}
-                {rekapData.length > 0 && totalPages > 1 && (
-                    <div className="px-6 py-4 border-t bg-gray-50 flex items-center justify-between">
-                        <span className="text-sm text-gray-500">
-                            Menampilkan {((currentPage - 1) * 15) + 1}–{Math.min(currentPage * 15, rekapData.length)} dari {rekapData.length} data
-                        </span>
-                        <div className="flex gap-2">
+                {rekapData.length > 0 && (
+                    <div className="px-6 py-4 border-t bg-gray-50 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-2.5 text-xs text-slate-600">
+                            <span className="text-slate-500 font-medium">Tampilkan:</span>
+                            {setItemsPerPage && (
+                                <select
+                                    value={itemsPerPage}
+                                    onChange={(e) => {
+                                        setItemsPerPage(Number(e.target.value));
+                                        setCurrentPage(1);
+                                    }}
+                                    className="bg-white border border-slate-200 rounded-xl px-2.5 py-1 text-xs font-bold text-slate-700 outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer shadow-2xs"
+                                >
+                                    {[10, 15, 20, 25, 50, 100].map((val) => (
+                                        <option key={val} value={val}>{val}</option>
+                                    ))}
+                                </select>
+                            )}
+                            <span className="text-slate-500 font-semibold">
+                                per halaman • Menampilkan {Math.min(((currentPage - 1) * itemsPerPage) + 1, rekapData.length)}–{Math.min(currentPage * itemsPerPage, rekapData.length)} dari {rekapData.length} data
+                            </span>
+                        </div>
+                        <div className="flex items-center space-x-2">
                             <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                                 disabled={currentPage === 1}
+                                className="h-8 text-xs rounded-lg cursor-pointer"
                             >
                                 <ChevronLeft className="w-4 h-4 mr-1" />
                                 Sebelumnya
                             </Button>
+                            <span className="text-xs font-bold text-slate-700 px-2">
+                                {currentPage} / {Math.max(1, totalPages)}
+                            </span>
                             <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                                disabled={currentPage === totalPages}
+                                disabled={currentPage >= totalPages}
+                                className="h-8 text-xs rounded-lg cursor-pointer"
                             >
                                 Selanjutnya
                                 <ChevronRight className="w-4 h-4 ml-1" />
