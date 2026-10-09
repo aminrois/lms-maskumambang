@@ -1237,6 +1237,10 @@ export const getHalaqahDetail = async (req: Request, res: Response, next: NextFu
                   orderBy: { created_at: 'desc' },
                   include: { pegawai: { select: { nama: true } } },
                 },
+                tahfidz_target: {
+                  where: { status: 'Aktif' },
+                  orderBy: { created_at: 'desc' },
+                },
               },
             },
           },
@@ -1482,6 +1486,427 @@ export const removeAnggotaHalaqah = async (req: Request, res: Response, next: Ne
       where: { halaqah_id: Number(id), siswa_id: Number(siswa_id) },
     });
     res.json({ success: true, message: 'Santri berhasil dikeluarkan dari kelompok halaqoh' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ==========================================
+// 8. TILAWAH AL-QUR'AN HARIAN SANTRI
+// ==========================================
+
+export const getTilawahList = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const {
+      siswa_id,
+      kelas_id,
+      diinput_oleh,
+      tanggal_mulai,
+      tanggal_akhir,
+      limit = 50,
+      offset = 0,
+      search,
+    } = req.query;
+
+    const where: any = {};
+    if (siswa_id) where.siswa_id = Number(siswa_id);
+    if (diinput_oleh) where.diinput_oleh = String(diinput_oleh);
+
+    if (tanggal_mulai && tanggal_akhir) {
+      where.tanggal = {
+        gte: String(tanggal_mulai),
+        lte: String(tanggal_akhir),
+      };
+    } else if (tanggal_mulai) {
+      where.tanggal = { gte: String(tanggal_mulai) };
+    }
+
+    if (kelas_id) {
+      where.siswa = { kelas_id: Number(kelas_id) };
+    }
+
+    if (search) {
+      where.OR = [
+        { siswa: { nama: { contains: String(search), mode: 'insensitive' } } },
+        { surat_mulai_nama: { contains: String(search), mode: 'insensitive' } },
+        { surat_selesai_nama: { contains: String(search), mode: 'insensitive' } },
+        { keterangan: { contains: String(search), mode: 'insensitive' } },
+      ];
+    }
+
+    const [total, items] = await Promise.all([
+      prisma.tahfidzTilawah.count({ where }),
+      prisma.tahfidzTilawah.findMany({
+        where,
+        include: {
+          siswa: {
+            select: {
+              siswa_id: true,
+              nama: true,
+              nis: true,
+              kelas: { select: { kelas_id: true, nama_kelas: true } },
+            },
+          },
+        },
+        orderBy: [{ tanggal: 'desc' }, { created_at: 'desc' }],
+        take: Number(limit),
+        skip: Number(offset),
+      }),
+    ]);
+
+    res.json({
+      success: true,
+      data: items,
+      meta: {
+        total,
+        limit: Number(limit),
+        offset: Number(offset),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getTilawahDetail = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const item = await prisma.tahfidzTilawah.findUnique({
+      where: { tilawah_id: Number(id) },
+      include: {
+        siswa: {
+          select: {
+            siswa_id: true,
+            nama: true,
+            nis: true,
+            kelas: true,
+          },
+        },
+      },
+    });
+
+    if (!item) {
+      res.status(404).json({ success: false, message: 'Data tilawah tidak ditemukan' });
+      return;
+    }
+
+    res.json({ success: true, data: item });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createTilawah = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const authUser = getAuthInfo(req);
+    const {
+      siswa_id,
+      siswa_ids, // array for bulk input (e.g. 1 class read the same surah & ayat)
+      tanggal,
+      surat_mulai,
+      surat_mulai_nama,
+      ayat_mulai,
+      surat_selesai,
+      surat_selesai_nama,
+      ayat_selesai,
+      halaman_mulai,
+      halaman_selesai,
+      total_halaman,
+      total_ayat,
+      keterangan,
+      diinput_oleh,
+      penginput_nama,
+    } = req.body;
+
+    const defaultTanggal = tanggal || new Date().toISOString().split('T')[0];
+    const roleInput = diinput_oleh || (authUser?.role === 'wali_murid' || authUser?.role === 'wali' ? 'Wali Santri' : 'Wali Kelas');
+    const inputName = penginput_nama || authUser?.nama || authUser?.username || 'Wali Kelas';
+    const userId = authUser?.user_id ? Number(authUser.user_id) : null;
+
+    // Bulk creation if siswa_ids is provided
+    if (Array.isArray(siswa_ids) && siswa_ids.length > 0) {
+      const records = siswa_ids.map((sId: number) => ({
+        siswa_id: Number(sId),
+        tanggal: defaultTanggal,
+        surat_mulai: Number(surat_mulai),
+        surat_mulai_nama: String(surat_mulai_nama),
+        ayat_mulai: Number(ayat_mulai),
+        surat_selesai: Number(surat_selesai),
+        surat_selesai_nama: String(surat_selesai_nama),
+        ayat_selesai: Number(ayat_selesai),
+        halaman_mulai: halaman_mulai ? Number(halaman_mulai) : null,
+        halaman_selesai: halaman_selesai ? Number(halaman_selesai) : null,
+        total_halaman: total_halaman ? Number(total_halaman) : null,
+        total_ayat: total_ayat ? Number(total_ayat) : null,
+        keterangan: keterangan ? String(keterangan) : null,
+        diinput_oleh: roleInput,
+        user_id: userId,
+        penginput_nama: inputName,
+      }));
+
+      await prisma.tahfidzTilawah.createMany({
+        data: records,
+      });
+
+      res.status(201).json({
+        success: true,
+        message: `Berhasil mencatat tilawah untuk ${siswa_ids.length} santri`,
+      });
+      return;
+    }
+
+    if (!siswa_id || !surat_mulai || !ayat_mulai || !surat_selesai || !ayat_selesai) {
+      res.status(400).json({ success: false, message: 'Siswa, surat, dan ayat mulai/selesai wajib diisi' });
+      return;
+    }
+
+    const newTilawah = await prisma.tahfidzTilawah.create({
+      data: {
+        siswa_id: Number(siswa_id),
+        tanggal: defaultTanggal,
+        surat_mulai: Number(surat_mulai),
+        surat_mulai_nama: String(surat_mulai_nama),
+        ayat_mulai: Number(ayat_mulai),
+        surat_selesai: Number(surat_selesai),
+        surat_selesai_nama: String(surat_selesai_nama),
+        ayat_selesai: Number(ayat_selesai),
+        halaman_mulai: halaman_mulai ? Number(halaman_mulai) : null,
+        halaman_selesai: halaman_selesai ? Number(halaman_selesai) : null,
+        total_halaman: total_halaman ? Number(total_halaman) : null,
+        total_ayat: total_ayat ? Number(total_ayat) : null,
+        keterangan: keterangan ? String(keterangan) : null,
+        diinput_oleh: roleInput,
+        user_id: userId,
+        penginput_nama: inputName,
+      },
+      include: {
+        siswa: { select: { nama: true, nis: true } },
+      },
+    });
+
+    res.status(201).json({
+      success: true,
+      data: newTilawah,
+      message: 'Laporan tilawah santri berhasil disimpan',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateTilawah = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const {
+      tanggal,
+      surat_mulai,
+      surat_mulai_nama,
+      ayat_mulai,
+      surat_selesai,
+      surat_selesai_nama,
+      ayat_selesai,
+      halaman_mulai,
+      halaman_selesai,
+      total_halaman,
+      total_ayat,
+      keterangan,
+    } = req.body;
+
+    const dataToUpdate: any = {};
+    if (tanggal !== undefined) dataToUpdate.tanggal = String(tanggal);
+    if (surat_mulai !== undefined) dataToUpdate.surat_mulai = Number(surat_mulai);
+    if (surat_mulai_nama !== undefined) dataToUpdate.surat_mulai_nama = String(surat_mulai_nama);
+    if (ayat_mulai !== undefined) dataToUpdate.ayat_mulai = Number(ayat_mulai);
+    if (surat_selesai !== undefined) dataToUpdate.surat_selesai = Number(surat_selesai);
+    if (surat_selesai_nama !== undefined) dataToUpdate.surat_selesai_nama = String(surat_selesai_nama);
+    if (ayat_selesai !== undefined) dataToUpdate.ayat_selesai = Number(ayat_selesai);
+    if (halaman_mulai !== undefined) dataToUpdate.halaman_mulai = Number(halaman_mulai);
+    if (halaman_selesai !== undefined) dataToUpdate.halaman_selesai = Number(halaman_selesai);
+    if (total_halaman !== undefined) dataToUpdate.total_halaman = Number(total_halaman);
+    if (total_ayat !== undefined) dataToUpdate.total_ayat = Number(total_ayat);
+    if (keterangan !== undefined) dataToUpdate.keterangan = keterangan ? String(keterangan) : null;
+
+    const updated = await prisma.tahfidzTilawah.update({
+      where: { tilawah_id: Number(id) },
+      data: dataToUpdate,
+      include: {
+        siswa: { select: { nama: true, nis: true } },
+      },
+    });
+
+    res.json({
+      success: true,
+      data: updated,
+      message: 'Data tilawah berhasil diperbarui',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteTilawah = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params;
+    await prisma.tahfidzTilawah.delete({
+      where: { tilawah_id: Number(id) },
+    });
+    res.json({ success: true, message: 'Data tilawah berhasil dihapus' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getTilawahStats = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { siswa_id } = req.params;
+    const sId = Number(siswa_id);
+
+    const [totalEntries, sumHalaman, lastTilawah, recentList] = await Promise.all([
+      prisma.tahfidzTilawah.count({ where: { siswa_id: sId } }),
+      prisma.tahfidzTilawah.aggregate({
+        where: { siswa_id: sId },
+        _sum: { total_halaman: true, total_ayat: true },
+      }),
+      prisma.tahfidzTilawah.findFirst({
+        where: { siswa_id: sId },
+        orderBy: [{ tanggal: 'desc' }, { created_at: 'desc' }],
+      }),
+      prisma.tahfidzTilawah.findMany({
+        where: { siswa_id: sId },
+        orderBy: [{ tanggal: 'desc' }, { created_at: 'desc' }],
+        take: 7,
+      }),
+    ]);
+
+    const totalHalaman = sumHalaman._sum.total_halaman || 0;
+    const totalAyat = sumHalaman._sum.total_ayat || 0;
+    const estimasiKhatam = Math.floor(totalHalaman / 604);
+    const sisaHalamanKhatam = totalHalaman % 604;
+
+    res.json({
+      success: true,
+      data: {
+        totalEntries,
+        totalHalaman,
+        totalAyat,
+        estimasiKhatam,
+        sisaHalamanKhatam,
+        lastTilawah,
+        recentList,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getSantriTilawah = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { kelas_id, search } = req.query;
+    const authUser = getAuthInfo(req);
+    const userRoles = authUser?.roles || [];
+
+    const isGlobal =
+      userRoles.includes('Super Admin') ||
+      userRoles.includes('Direktur') ||
+      userRoles.includes('Kepala Sekolah') ||
+      userRoles.includes('WaKa Kurikulum') ||
+      userRoles.includes('Admin Lembaga');
+
+    const isWaliKelas = userRoles.includes('Wali Kelas');
+    const isWaliMurid = userRoles.includes('Wali Murid') || userRoles.includes('Wali') || userRoles.includes('wali_murid');
+
+    const whereSiswa: any = {
+      NOT: { status: 'Tidak Aktif' },
+    };
+
+    if (kelas_id) {
+      whereSiswa.kelas_id = Number(kelas_id);
+    } else if (isWaliKelas && !isGlobal) {
+      const userPegawaiId = await resolvePegawaiId(authUser?.pegawai_id, authUser?.user_id);
+      if (userPegawaiId) {
+        const myClasses = await prisma.kelas.findMany({
+          where: { wali_kelas_id: userPegawaiId },
+          select: { kelas_id: true },
+        });
+        const classIds = myClasses.map((c) => c.kelas_id);
+        if (classIds.length > 0) {
+          whereSiswa.kelas_id = { in: classIds };
+        }
+      }
+    } else if (isWaliMurid && !isGlobal) {
+      const userId = authUser?.user_id ? String(authUser.user_id) : undefined;
+      if (userId) {
+        const wali = await prisma.waliMurid.findFirst({
+          where: { user_id: userId },
+          select: { wali_id: true },
+        });
+        if (wali) {
+          whereSiswa.wali_murid_id = wali.wali_id;
+        }
+      }
+    }
+
+    if (search) {
+      whereSiswa.OR = [
+        { nama: { contains: String(search), mode: 'insensitive' } },
+        { nis: { contains: String(search), mode: 'insensitive' } },
+        { nisn: { contains: String(search), mode: 'insensitive' } },
+      ];
+    }
+
+    const santriList = await prisma.siswa.findMany({
+      where: whereSiswa,
+      include: {
+        kelas: {
+          include: { lembaga: true },
+        },
+      },
+      orderBy: [
+        { kelas: { nama_kelas: 'asc' } },
+        { nama: 'asc' },
+      ],
+    });
+
+    res.json({ success: true, data: santriList });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getKelasTilawah = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const authUser = getAuthInfo(req);
+    const userRoles = authUser?.roles || [];
+
+    const isGlobal =
+      userRoles.includes('Super Admin') ||
+      userRoles.includes('Direktur') ||
+      userRoles.includes('Kepala Sekolah') ||
+      userRoles.includes('WaKa Kurikulum') ||
+      userRoles.includes('Admin Lembaga');
+
+    const isWaliKelas = userRoles.includes('Wali Kelas');
+
+    const whereKelas: any = {};
+
+    if (isWaliKelas && !isGlobal) {
+      const userPegawaiId = await resolvePegawaiId(authUser?.pegawai_id, authUser?.user_id);
+      if (userPegawaiId) {
+        whereKelas.wali_kelas_id = userPegawaiId;
+      }
+    }
+
+    const classes = await prisma.kelas.findMany({
+      where: whereKelas,
+      include: {
+        lembaga: true,
+        wali_kelas: { select: { pegawai_id: true, nama: true } },
+      },
+      orderBy: { nama_kelas: 'asc' },
+    });
+
+    res.json({ success: true, data: classes });
   } catch (error) {
     next(error);
   }

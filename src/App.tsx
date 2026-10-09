@@ -55,6 +55,7 @@ const MonitoringUniversal   = React.lazy(() => import("./pages/KBM/Monitoring/Un
 const MonitoringWaliKelas   = React.lazy(() => import("./pages/KBM/Monitoring/WaliKelas"));
 const ActivityPlanIndex     = React.lazy(() => import("./pages/KBM/ActivityPlan/Index"));
 const RekapJamGuru          = React.lazy(() => import("./pages/KBM/RekapJamGuru/Index"));
+const RekapLessonPlanIndex  = React.lazy(() => import("./pages/KBM/RekapLessonPlan/Index"));
 
 // Tahfidz & Hafalan
 const TahfidzPenugasan      = React.lazy(() => import("./pages/Tahfidz/Penugasan/Index"));
@@ -62,6 +63,7 @@ const TahfidzSetoran        = React.lazy(() => import("./pages/Tahfidz/Setoran/F
 const TahfidzTarget         = React.lazy(() => import("./pages/Tahfidz/Target/TargetSantri"));
 const TahfidzRiwayat        = React.lazy(() => import("./pages/Tahfidz/Riwayat/RiwayatSetoran"));
 const TahfidzHalaqah        = React.lazy(() => import("./pages/Tahfidz/Halaqah/Index"));
+const TahfidzTilawah        = React.lazy(() => import("./pages/Tahfidz/Tilawah/Index"));
 
 // Keuangan & SPP
 const LoketKasirIndex         = React.lazy(() => import("./pages/Keuangan/LoketKasir/Index"));
@@ -468,6 +470,22 @@ const App: React.FC = () => {
                   <Route path="absensi/rekap-harian" element={<RekapAbsensiHarianIndex />} />
                 </Route>
 
+                {/* Rekap Lesson Plan Pengawasan Guru */}
+                <Route
+                  element={
+                    <ProtectedRoute
+                      allowedRoles={[
+                        "Direktur",
+                        "Super Admin",
+                        "Kepala Sekolah",
+                        "WaKa Kurikulum",
+                      ]}
+                    />
+                  }
+                >
+                  <Route path="rekap-lesson-plan" element={<RekapLessonPlanIndex />} />
+                </Route>
+
                 {/* Reset Absensi (Khusus Direktur & Super Admin) */}
                 <Route
                   element={
@@ -587,6 +605,17 @@ const App: React.FC = () => {
                   }
                 >
                   <Route path="setoran" element={<TahfidzSetoran />} />
+                </Route>
+
+                {/* Tilawah Harian Santri: Super Admin, Direktur, Guru Tahfidz, Wali Kelas, Wali Murid */}
+                <Route
+                  element={
+                    <ProtectedRoute
+                      allowedRoles={["Super Admin", "Direktur", "Guru Tahfidz", "Wali Kelas", "Wali Murid"]}
+                    />
+                  }
+                >
+                  <Route path="tilawah" element={<TahfidzTilawah />} />
                 </Route>
 
                 {/* Target & Progres Santri */}

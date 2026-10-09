@@ -50,4 +50,14 @@ router.delete('/halaqah/:id', tahfidzController.deleteHalaqah);
 router.post('/halaqah/:id/anggota', tahfidzController.addAnggotaHalaqah);
 router.delete('/halaqah/:id/anggota/:siswa_id', tahfidzController.removeAnggotaHalaqah);
 
+// 7. Tilawah Al-Qur'an Harian (Wali Kelas & Wali Santri)
+router.get('/tilawah', tahfidzController.getTilawahList);
+router.get('/tilawah/santri', tahfidzController.getSantriTilawah);
+router.get('/tilawah/kelas', tahfidzController.getKelasTilawah);
+router.get('/tilawah/stats/:siswa_id', tahfidzController.getTilawahStats);
+router.get('/tilawah/:id', tahfidzController.getTilawahDetail);
+router.post('/tilawah', tahfidzController.createTilawah);
+router.patch('/tilawah/:id', tahfidzController.updateTilawah);
+router.delete('/tilawah/:id', tahfidzController.deleteTilawah);
+
 export default router;

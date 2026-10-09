@@ -5,6 +5,8 @@ import { authenticate } from '../middlewares/authMiddleware';
 const router = Router();
 
 // Lesson Plan (RPP)
+router.get('/lesson-plan/monitoring-rekap', authenticate, kbmController.getLessonPlanMonitoringRekap);
+router.get('/lesson-plan-monitoring-rekap', authenticate, kbmController.getLessonPlanMonitoringRekap);
 router.get('/lesson-plan', authenticate, kbmController.getLessonPlans);
 router.get('/lesson-plan/:id', authenticate, kbmController.getLessonPlanById);
 router.post('/lesson-plan', authenticate, kbmController.createLessonPlan);

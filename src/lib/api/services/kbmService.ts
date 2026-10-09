@@ -475,3 +475,71 @@ export {
   bulkVerifyLessonPlans,
   resetVerificationLessonPlans
 } from "./rpcService";
+
+export interface GuruLessonPlanRekapItem {
+  pegawai_id: number;
+  nig: string;
+  nip: string | null;
+  nama: string;
+  jabatan: string;
+  lembaga_list: string[];
+  primary_lembaga: string;
+  total_jadwal: number;
+  mapel_diampu: string[];
+  kelas_diampu: string[];
+  total_rpp: number;
+  total_pertemuan_dibuat: number;
+  target_pertemuan: number;
+  persentase: number;
+  status_kepatuhan: 'Belum Buat' | 'Sebagian' | 'Lengkap';
+  pertemuan_dibuat: number[];
+  pertemuan_belum_dibuat: number[];
+  verifikasi_direktur: {
+    disetujui: number;
+    menunggu: number;
+    revisi: number;
+  };
+  lesson_plans: {
+    lesson_plan_id: number;
+    judul_rpp: string;
+    status_verifikasi_direktur: string | null;
+    catatan_revisi_direktur: string | null;
+    total_detail: number;
+    pertemuan_list: number[];
+  }[];
+}
+
+export interface LessonPlanMonitoringRekapResponse {
+  summary: {
+    total_guru: number;
+    total_lengkap: number;
+    total_sebagian: number;
+    total_belum_buat: number;
+    persentase_kepatuhan: number;
+    total_menunggu_verifikasi: number;
+    target_pertemuan: number;
+  };
+  rekap_per_lembaga: {
+    lembaga_id: number;
+    nama_lembaga: string;
+    singkatan: string;
+    total_guru: number;
+    lengkap: number;
+    sebagian: number;
+    belum: number;
+    persentase: number;
+  }[];
+  guru_rekap: GuruLessonPlanRekapItem[];
+}
+
+export const getLessonPlanMonitoringRekap = async (params?: {
+  lembaga_id?: number | string;
+  target_pertemuan?: number;
+}): Promise<LessonPlanMonitoringRekapResponse> => {
+  const response = await restClient.get<LessonPlanMonitoringRekapResponse>(
+    "/kbm/lesson-plan/monitoring-rekap",
+    { params }
+  );
+  return response.data;
+};
+

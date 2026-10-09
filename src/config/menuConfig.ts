@@ -58,6 +58,7 @@ export const allMenuGroups: MenuGroup[] = [
       { name: "Rekap Absensi Mapel", icon: Clipboard, path: "/kbm/absensi/rekap-siswa", allowedRoles: ['Direktur', 'Kepala Sekolah', 'WaKa Kurikulum', 'Guru'], color: "pink" },
       { name: "Absensi Harian", icon: Clipboard, path: "/kbm/absensi/harian", allowedRoles: ['Wali Kelas'], color: "cyan" },
       { name: "Rekap Kehadiran", icon: FileText, path: "/kbm/absensi/rekap-harian", allowedRoles: ['Direktur', 'Wali Kelas'], color: "orange" },
+      { name: "Rekap Lesson Plan", icon: FileText, path: "/kbm/rekap-lesson-plan", allowedRoles: ['Super Admin', 'Direktur', 'Kepala Sekolah', 'WaKa Kurikulum'], color: "blue" },
       { name: "Reset Absensi", icon: RotateCcw, path: "/kbm/absensi/reset", allowedRoles: ['Direktur', 'Super Admin'], color: "rose" },
       { name: "Monitoring", icon: BarChart, path: "/kbm/monitoring/universal", allowedRoles: ['Direktur', 'Kepala Sekolah', 'WaKa Kurikulum'], color: "indigo" },
       { name: "Rekap Jam Guru", icon: Clock, path: "/kbm/rekap-jam-guru", allowedRoles: ['Direktur', 'Super Admin'], color: "emerald" },
@@ -68,6 +69,7 @@ export const allMenuGroups: MenuGroup[] = [
     category: "Tahfidz & Hafalan",
     items: [
       { name: "Input Setoran", icon: Sparkles, path: "/tahfidz/setoran", allowedRoles: ['Super Admin', 'Direktur', 'Guru Tahfidz'], color: "emerald" },
+      { name: "Tilawah Harian", icon: BookOpen, path: "/tahfidz/tilawah", allowedRoles: ['Super Admin', 'Direktur', 'Guru Tahfidz', 'Wali Kelas', 'Wali Murid'], color: "indigo" },
       { name: "Target & Progres", icon: Target, path: "/tahfidz/target", allowedRoles: ['Super Admin', 'Direktur', 'Guru Tahfidz', 'Wali Kelas'], color: "blue" },
       { name: "Riwayat Setoran", icon: History, path: "/tahfidz/riwayat", allowedRoles: ['Super Admin', 'Direktur', 'Guru Tahfidz', 'Wali Kelas', 'Wali Murid'], color: "purple" },
       { name: "Penugasan Kelas", icon: UserCheck, path: "/tahfidz/penugasan", allowedRoles: ['Super Admin', 'Direktur'], color: "amber" },

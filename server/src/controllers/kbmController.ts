@@ -558,3 +558,175 @@ export const deleteActivityPlan = async (req: Request, res: Response, next: Next
     next(error);
   }
 };
+
+// REKAP & MONITORING PENGAWASAN LESSON PLAN (DIREKTUR / KEPSEK)
+export const getLessonPlanMonitoringRekap = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { lembaga_id, target_pertemuan } = req.query;
+    const targetCount = Number(target_pertemuan) || 16;
+
+    // Filter guru yang statusnya Aktif
+    const pegawaiWhere: any = { status: 'Aktif' };
+    if (lembaga_id) {
+      pegawaiWhere.pegawai_lembaga = {
+        some: { lembaga_id: Number(lembaga_id) },
+      };
+    }
+
+    const allLembaga = await prisma.lembaga.findMany({
+      select: { lembaga_id: true, nama_lembaga: true, singkatan: true },
+      orderBy: { lembaga_id: 'asc' },
+    });
+
+    const listPegawai = await prisma.pegawai.findMany({
+      where: pegawaiWhere,
+      include: {
+        pegawai_lembaga: {
+          include: { lembaga: true },
+        },
+        jadwal_pelajaran: {
+          include: {
+            kelas: { include: { lembaga: true } },
+            mapel: true,
+          },
+        },
+        lesson_plans: {
+          include: {
+            details: {
+              orderBy: { pertemuan_ke: 'asc' },
+            },
+            jadwal: {
+              include: { kelas: true, mapel: true },
+            },
+          },
+        },
+      },
+      orderBy: { nama: 'asc' },
+    });
+
+    // Kalkulasi rekap per guru
+    const guruRekap = listPegawai.map((guru) => {
+      const allDetails = guru.lesson_plans.flatMap((lp) => lp.details || []);
+      const totalRpp = guru.lesson_plans.length;
+
+      // Ambil kumpulan nomor pertemuan_ke unik yang telah dibuat
+      const uniquePertemuanSet = new Set(allDetails.map((d) => d.pertemuan_ke));
+      const pertemuanDibuat = Array.from(uniquePertemuanSet).sort((a, b) => a - b);
+      const totalPertemuanDibuat = pertemuanDibuat.length;
+
+      // Hitung pertemuan yang belum dibuat (dari 1 s/d targetCount)
+      const pertemuanBelumDibuat: number[] = [];
+      for (let i = 1; i <= targetCount; i++) {
+        if (!uniquePertemuanSet.has(i)) {
+          pertemuanBelumDibuat.push(i);
+        }
+      }
+
+      // Status Verifikasi Direktur
+      const disetujuiDirekturCount = guru.lesson_plans.filter((lp) => lp.status_verifikasi_direktur === 'Disetujui').length;
+      const menungguDirekturCount = guru.lesson_plans.filter((lp) => lp.status_verifikasi_direktur === 'Menunggu Verifikasi').length;
+      const revisiDirekturCount = guru.lesson_plans.filter((lp) => lp.status_verifikasi_direktur === 'Revisi').length;
+
+      // Status Kepatuhan:
+      // 'Belum Buat' jika totalPertemuanDibuat === 0
+      // 'Lengkap' jika totalPertemuanDibuat >= targetCount
+      // 'Sebagian' jika 0 < totalPertemuanDibuat < targetCount
+      let statusKepatuhan: 'Belum Buat' | 'Sebagian' | 'Lengkap' = 'Belum Buat';
+      if (totalPertemuanDibuat >= targetCount) {
+        statusKepatuhan = 'Lengkap';
+      } else if (totalPertemuanDibuat > 0) {
+        statusKepatuhan = 'Sebagian';
+      }
+
+      // Lembaga list
+      const lembagaList = guru.pegawai_lembaga.map((pl) => pl.lembaga.singkatan || pl.lembaga.nama_lembaga);
+      const primaryLembaga = guru.pegawai_lembaga[0]?.lembaga?.nama_lembaga || '-';
+
+      // Mapel & Kelas yang diampu
+      const mapelList = Array.from(new Set(guru.jadwal_pelajaran.map((j) => j.mapel?.nama_mapel).filter(Boolean))) as string[];
+      const kelasList = Array.from(new Set(guru.jadwal_pelajaran.map((j) => j.kelas?.nama_kelas).filter(Boolean))) as string[];
+
+      return {
+        pegawai_id: guru.pegawai_id,
+        nig: guru.nig,
+        nip: guru.nip,
+        nama: guru.nama,
+        jabatan: guru.jabatan,
+        lembaga_list: lembagaList,
+        primary_lembaga: primaryLembaga,
+        total_jadwal: guru.jadwal_pelajaran.length,
+        mapel_diampu: mapelList,
+        kelas_diampu: kelasList,
+        total_rpp: totalRpp,
+        total_pertemuan_dibuat: totalPertemuanDibuat,
+        target_pertemuan: targetCount,
+        persentase: Math.min(100, Math.round((totalPertemuanDibuat / targetCount) * 100)),
+        status_kepatuhan: statusKepatuhan,
+        pertemuan_dibuat: pertemuanDibuat,
+        pertemuan_belum_dibuat: pertemuanBelumDibuat,
+        verifikasi_direktur: {
+          disetujui: disetujuiDirekturCount,
+          menunggu: menungguDirekturCount,
+          revisi: revisiDirekturCount,
+        },
+        lesson_plans: guru.lesson_plans.map((lp) => ({
+          lesson_plan_id: lp.lesson_plan_id,
+          judul_rpp: lp.judul_rpp,
+          status_verifikasi_direktur: lp.status_verifikasi_direktur,
+          catatan_revisi_direktur: lp.catatan_revisi_direktur,
+          total_detail: lp.details.length,
+          pertemuan_list: lp.details.map((d) => d.pertemuan_ke),
+        })),
+      };
+    });
+
+    // KPI Summary
+    const totalGuru = guruRekap.length;
+    const totalLengkap = guruRekap.filter((g) => g.status_kepatuhan === 'Lengkap').length;
+    const totalSebagian = guruRekap.filter((g) => g.status_kepatuhan === 'Sebagian').length;
+    const totalBelumBuat = guruRekap.filter((g) => g.status_kepatuhan === 'Belum Buat').length;
+    const totalRppMenungguVerifikasi = guruRekap.reduce((acc, g) => acc + g.verifikasi_direktur.menunggu, 0);
+    const persentaseKepatuhan = totalGuru > 0 ? Math.round((totalLengkap / totalGuru) * 100) : 0;
+
+    // Rekap per Lembaga
+    const rekapPerLembaga = allLembaga.map((lembaga) => {
+      const guruInLembaga = listPegawai.filter((p) =>
+        p.pegawai_lembaga.some((pl) => pl.lembaga_id === lembaga.lembaga_id)
+      );
+      const ids = new Set(guruInLembaga.map((g) => g.pegawai_id));
+      const rekapInLembaga = guruRekap.filter((g) => ids.has(g.pegawai_id));
+
+      const lenLembaga = rekapInLembaga.length;
+      const lengkap = rekapInLembaga.filter((g) => g.status_kepatuhan === 'Lengkap').length;
+      const sebagian = rekapInLembaga.filter((g) => g.status_kepatuhan === 'Sebagian').length;
+      const belum = rekapInLembaga.filter((g) => g.status_kepatuhan === 'Belum Buat').length;
+
+      return {
+        lembaga_id: lembaga.lembaga_id,
+        nama_lembaga: lembaga.nama_lembaga,
+        singkatan: lembaga.singkatan,
+        total_guru: lenLembaga,
+        lengkap,
+        sebagian,
+        belum,
+        persentase: lenLembaga > 0 ? Math.round((lengkap / lenLembaga) * 100) : 0,
+      };
+    });
+
+    res.json({
+      summary: {
+        total_guru: totalGuru,
+        total_lengkap: totalLengkap,
+        total_sebagian: totalSebagian,
+        total_belum_buat: totalBelumBuat,
+        persentase_kepatuhan: persentaseKepatuhan,
+        total_menunggu_verifikasi: totalRppMenungguVerifikasi,
+        target_pertemuan: targetCount,
+      },
+      rekap_per_lembaga: rekapPerLembaga,
+      guru_rekap: guruRekap,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

@@ -202,6 +202,7 @@ model Siswa {
   tahfidz_target      TahfidzTarget[]
   tahfidz_setoran     TahfidzSetoran[]
   tahfidz_halaqah_siswa TahfidzHalaqahSiswa[]
+  tahfidz_tilawah     TahfidzTilawah[]
   tagihan_siswa       TagihanSiswa[]
   pembayaran_transaksi PembayaranTransaksi[]
   guidance_detail     SiswaGuidanceDetail?
@@ -558,6 +559,35 @@ model TahfidzHalaqahSiswa {
   @@index([halaqah_id])
   @@index([siswa_id])
   @@map("tahfidz_halaqah_siswa")
+}
+
+model TahfidzTilawah {
+  tilawah_id          Int       @id @default(autoincrement())
+  siswa_id            Int
+  tanggal             String    // YYYY-MM-DD
+  surat_mulai         Int       // 1 - 114
+  surat_mulai_nama    String
+  ayat_mulai          Int
+  surat_selesai       Int       // 1 - 114
+  surat_selesai_nama  String
+  ayat_selesai        Int
+  halaman_mulai       Int?      // 1 - 604
+  halaman_selesai     Int?      // 1 - 604
+  total_halaman       Float?
+  total_ayat          Int?
+  keterangan          String?   // e.g. "Ba'da Subuh", "Tadarus Mandiri", "Lancar", etc.
+  diinput_oleh        String    // 'Wali Kelas' | 'Wali Santri' | 'Guru Tahfidz' | 'Admin'
+  user_id             Int?
+  penginput_nama      String?   // Nama Penginput / Ustadz / Orang Tua
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+
+  siswa               Siswa     @relation(fields: [siswa_id], references: [siswa_id], onDelete: Cascade)
+
+  @@index([siswa_id])
+  @@index([tanggal])
+  @@index([diinput_oleh])
+  @@map("tahfidz_tilawah")
 }
 
 // ═══════════════════════════════════════════════════════

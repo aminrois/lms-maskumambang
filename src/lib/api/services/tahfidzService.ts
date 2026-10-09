@@ -328,5 +328,120 @@ export const tahfidzService = {
     const res = await apiClient.delete(`/tahfidz/halaqah/${id}/anggota/${siswa_id}`);
     return res.data;
   },
+
+  // 7. Tilawah Harian Al-Qur'an (Wali Kelas & Wali Santri)
+  getTilawahList: async (params?: {
+    siswa_id?: number;
+    kelas_id?: number;
+    diinput_oleh?: string;
+    tanggal_mulai?: string;
+    tanggal_akhir?: string;
+    limit?: number;
+    offset?: number;
+    search?: string;
+  }) => {
+    const res = await apiClient.get('/tahfidz/tilawah', { params });
+    return res.data;
+  },
+
+  getSantriTilawah: async (params?: { kelas_id?: number; search?: string }) => {
+    const res = await apiClient.get('/tahfidz/tilawah/santri', { params });
+    return res.data?.data || [];
+  },
+
+  getKelasTilawah: async () => {
+    const res = await apiClient.get('/tahfidz/tilawah/kelas');
+    return res.data?.data || [];
+  },
+
+  getTilawahDetail: async (id: number) => {
+    const res = await apiClient.get(`/tahfidz/tilawah/${id}`);
+    return res.data?.data as TahfidzTilawahItem;
+  },
+
+  createTilawah: async (payload: {
+    siswa_id?: number;
+    siswa_ids?: number[];
+    tanggal?: string;
+    surat_mulai: number;
+    surat_mulai_nama: string;
+    ayat_mulai: number;
+    surat_selesai: number;
+    surat_selesai_nama: string;
+    ayat_selesai: number;
+    halaman_mulai?: number;
+    halaman_selesai?: number;
+    total_halaman?: number;
+    total_ayat?: number;
+    keterangan?: string;
+    diinput_oleh?: string;
+    penginput_nama?: string;
+  }) => {
+    const res = await apiClient.post('/tahfidz/tilawah', payload);
+    return res.data;
+  },
+
+  updateTilawah: async (
+    id: number,
+    payload: Partial<{
+      tanggal: string;
+      surat_mulai: number;
+      surat_mulai_nama: string;
+      ayat_mulai: number;
+      surat_selesai: number;
+      surat_selesai_nama: string;
+      ayat_selesai: number;
+      halaman_mulai: number;
+      halaman_selesai: number;
+      total_halaman: number;
+      total_ayat: number;
+      keterangan: string;
+    }>
+  ) => {
+    const res = await apiClient.patch(`/tahfidz/tilawah/${id}`, payload);
+    return res.data;
+  },
+
+  deleteTilawah: async (id: number) => {
+    const res = await apiClient.delete(`/tahfidz/tilawah/${id}`);
+    return res.data;
+  },
+
+  getTilawahStats: async (siswa_id: number) => {
+    const res = await apiClient.get(`/tahfidz/tilawah/stats/${siswa_id}`);
+    return res.data?.data;
+  },
 };
+
+export interface TahfidzTilawahItem {
+  tilawah_id: number;
+  siswa_id: number;
+  tanggal: string;
+  surat_mulai: number;
+  surat_mulai_nama: string;
+  ayat_mulai: number;
+  surat_selesai: number;
+  surat_selesai_nama: string;
+  ayat_selesai: number;
+  halaman_mulai?: number;
+  halaman_selesai?: number;
+  total_halaman?: number;
+  total_ayat?: number;
+  keterangan?: string;
+  diinput_oleh: 'Wali Kelas' | 'Wali Santri' | 'Guru Tahfidz' | 'Admin';
+  user_id?: number;
+  penginput_nama?: string;
+  created_at?: string;
+  updated_at?: string;
+  siswa?: {
+    siswa_id: number;
+    nama: string;
+    nis?: string;
+    kelas?: {
+      kelas_id: number;
+      nama_kelas: string;
+    };
+  };
+}
+
 

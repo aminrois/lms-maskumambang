@@ -136,6 +136,7 @@ export default function DashboardModel1() {
         </Card>
       </div>
 
+      {/* Menu Cepat */}
       <Card className="border-gray-100 shadow-sm">
         <CardHeader className="pb-4">
           <CardTitle className="text-lg font-medium flex items-center gap-2 text-gray-700">
@@ -181,3 +182,4 @@ export default function DashboardModel1() {
     </div>
   );
 }
+
