@@ -10,33 +10,23 @@ import {
   Search,
   Filter,
   Trash2,
-  Edit,
   Save,
-  Clock,
   CheckCircle2,
-  Award,
-  TrendingUp,
   BookmarkCheck,
-  ChevronRight,
   PlusCircle,
   History,
-  Layers,
   Users,
-  AlertCircle,
-  FileSpreadsheet
 } from "lucide-react";
 import { QURAN_SURAHS } from "../../../data/quranSurahList";
 import {
   calculatePagesAndStats,
   getSurahMeta,
-  getPageForVerse,
 } from "../../../data/quranPageMapping";
 import {
   tahfidzService,
   type TahfidzTilawahItem,
 } from "../../../lib/api/services/tahfidzService";
 import { useAuthStore } from "../../../store/useAuthStore";
-import { apiClient } from "../../../lib/api/axios";
 
 type ActiveTab = "input" | "riwayat" | "tracker";
 type ModeInput = "individu" | "kelas";
@@ -79,11 +69,11 @@ export const TilawahSantriPage: React.FC = () => {
   const [customKeterangan, setCustomKeterangan] = useState<string>("");
   
   // Default diinput_oleh based on user role
-  const isWaliSantri = role === "Wali Murid" || role === "Wali" || role === "wali_murid";
+  const isWaliSantri = (role as any) === "Wali Murid" || (role as any) === "Wali" || (role as any) === "wali_murid";
   const defaultPenginputRole = isWaliSantri ? "Wali Santri" : "Wali Kelas";
   const [diinputOleh, setDiinputOleh] = useState<string>(defaultPenginputRole);
   const [penginputNama, setPenginputNama] = useState<string>(
-    user?.nama || user?.username || (isWaliSantri ? "Orang Tua / Wali Santri" : "Wali Kelas")
+    (user as any)?.nama || (user as any)?.name || user?.username || (isWaliSantri ? "Orang Tua / Wali Santri" : "Wali Kelas")
   );
 
   // Filter State for Riwayat Tab
@@ -94,9 +84,6 @@ export const TilawahSantriPage: React.FC = () => {
   const [searchRiwayat, setSearchRiwayat] = useState<string>("");
   const [page, setPage] = useState<number>(1);
   const limit = 20;
-
-  // Edit Modal State
-  const [editingItem, setEditingItem] = useState<TahfidzTilawahItem | null>(null);
 
   // Fetch Kelas (Filtered by Wali Kelas if role is Wali Kelas)
   const { data: kelasList = [] } = useQuery({
@@ -200,7 +187,6 @@ export const TilawahSantriPage: React.FC = () => {
   const {
     data: tilawahResponse,
     isLoading: isLoadingRiwayat,
-    refetch: refetchRiwayat,
   } = useQuery({
     queryKey: [
       "tilawah-history-list",
@@ -228,11 +214,6 @@ export const TilawahSantriPage: React.FC = () => {
   const tilawahList: TahfidzTilawahItem[] = tilawahResponse?.data || [];
   const totalRiwayat = tilawahResponse?.meta?.total || 0;
   const totalPagesCount = Math.ceil(totalRiwayat / limit);
-
-  // Global Aggregate Statistics
-  const totalPagesRead = useMemo(() => {
-    return tilawahList.reduce((acc, item) => acc + (item.total_halaman || 0), 0);
-  }, [tilawahList]);
 
   // Create Tilawah Mutation
   const createMutation = useMutation({
@@ -834,7 +815,7 @@ export const TilawahSantriPage: React.FC = () => {
               <h3 className="font-bold text-xs uppercase tracking-wider text-slate-700">Filter Riwayat</h3>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
               <div>
                 <label className="block text-[11px] font-bold text-slate-600 mb-1">Kelas</label>
                 <select
@@ -878,6 +859,19 @@ export const TilawahSantriPage: React.FC = () => {
                   value={filterTanggalMulai}
                   onChange={(e) => {
                     setFilterTanggalMulai(e.target.value);
+                    setPage(1);
+                  }}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 mb-1">Tanggal Akhir</label>
+                <input
+                  type="date"
+                  value={filterTanggalAkhir}
+                  onChange={(e) => {
+                    setFilterTanggalAkhir(e.target.value);
                     setPage(1);
                   }}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20"

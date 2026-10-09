@@ -24,7 +24,6 @@ import {
   SlidersHorizontal,
   Target,
   Award,
-  TrendingUp,
   Info
 } from "lucide-react";
 import { QURAN_SURAHS } from "../../../data/quranSurahList";

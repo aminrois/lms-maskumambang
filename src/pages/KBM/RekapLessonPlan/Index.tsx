@@ -12,11 +12,9 @@ import {
   ArrowUpRight,
   Eye,
   Building2,
-  BookOpen,
   UserX,
   X,
   Sparkles,
-  Download,
   RefreshCw,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
