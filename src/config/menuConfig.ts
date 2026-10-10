@@ -3,7 +3,7 @@ import {
   Calendar, BarChart, FileText, BookOpen, Clock,
   PenTool, Clipboard, Eye, CalendarDays, BookMarked, RotateCcw,
   Sparkles, Target, History, UserCheck, Users, Wallet, ShieldCheck, Settings,
-  Compass, MessageSquare
+  Compass, MessageSquare, Bell
 } from "lucide-react";
 
 export type MenuItem = {
@@ -24,7 +24,8 @@ export const allMenuGroups: MenuGroup[] = [
     category: "Umum",
     items: [
       { name: "Dashboard", icon: LayoutDashboard, path: "/dashboard", color: "blue" },
-      { name: "Doa & Dzikir", icon: BookMarked, path: "/doa-dzikir", allowedRoles: ['Super Admin', 'Direktur'], color: "amber" }
+      { name: "Doa & Dzikir", icon: BookMarked, path: "/doa-dzikir", allowedRoles: ['Super Admin', 'Direktur'], color: "amber" },
+      { name: "Notifikasi", icon: Bell, path: "/notifikasi", allowedRoles: ['Super Admin', 'Direktur'], color: "blue" }
     ]
   },
   {

@@ -79,6 +79,8 @@ const SesiKonselingIndex      = React.lazy(() => import("./pages/Guidance/SesiKo
 // Doa & Dzikir (Direktur / Super Admin)
 const DoaDzikirIndex          = React.lazy(() => import("./pages/DoaDzikir/Index"));
 
+// Notifikasi (Direktur / Super Admin)
+const NotifikasiIndex         = React.lazy(() => import("./pages/Notifikasi/Index"));
 
 // Fallback loading saat halaman sedang di-fetch (lazy chunk loading)
 const PageLoader = () => (
@@ -191,6 +193,7 @@ const App: React.FC = () => {
                 }
               >
                 <Route path="/doa-dzikir" element={<DoaDzikirIndex />} />
+                <Route path="/notifikasi" element={<NotifikasiIndex />} />
               </Route>
 
               {/* --- ROUTING LINK MASTER DATA --- */}

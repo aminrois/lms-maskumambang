@@ -9,8 +9,7 @@ import {
   Image,
   ActivityIndicator,
   RefreshControl,
-  SafeAreaView,
-  StatusBar,
+  StatusBar
 } from "react-native";
 import {
   ChevronLeft,
@@ -23,7 +22,7 @@ import {
   Award,
   Calendar,
   MapPin,
-  ShieldCheck,
+  ShieldCheck
 } from "lucide-react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { guidanceService } from "../../api/guidanceService";
@@ -65,7 +64,7 @@ export const WaliDetailSantriScreen = () => {
   const wali = siswa?.wali_murid || {};
 
   return (
-    <SafeAreaView style={styles.container}>
+    < style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
 
       {/* Header */}
@@ -264,57 +263,57 @@ export const WaliDetailSantriScreen = () => {
           </View>
         </ScrollView>
       )}
-    </SafeAreaView>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8FAFC",
-  },
+    backgroundColor: "#F8FAFC"
+},
   header: {
     backgroundColor: "#162E6E",
     paddingTop: 12,
     paddingBottom: 16,
     paddingHorizontal: 16,
     flexDirection: "row",
-    alignItems: "center",
-  },
+    alignItems: "center"
+},
   backButton: {
     padding: 8,
     borderRadius: 12,
     backgroundColor: "rgba(255, 255, 255, 0.15)",
-    marginRight: 12,
-  },
+    marginRight: 12
+},
   headerTitleContainer: {
-    flex: 1,
-  },
+    flex: 1
+},
   headerTitle: {
     fontSize: 17,
     fontWeight: "800",
-    color: "#FFFFFF",
-  },
+    color: "#FFFFFF"
+},
   headerSubtitle: {
     fontSize: 11,
     color: "#CBD5E1",
-    marginTop: 2,
-  },
+    marginTop: 2
+},
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
-  },
+    padding: 20
+},
   loadingText: {
     fontSize: 12,
     color: "#64748B",
-    marginTop: 10,
-  },
+    marginTop: 10
+},
   body: {
     flex: 1,
-    padding: 16,
-  },
+    padding: 16
+},
   heroCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 20,
@@ -327,19 +326,19 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
     shadowRadius: 10,
-    elevation: 2,
-  },
+    elevation: 2
+},
   photoWrapper: {
     position: "relative",
-    marginBottom: 12,
-  },
+    marginBottom: 12
+},
   photoImg: {
     width: 96,
     height: 96,
     borderRadius: 24,
     borderWidth: 3,
-    borderColor: "#162E6E",
-  },
+    borderColor: "#162E6E"
+},
   photoPlaceholder: {
     width: 96,
     height: 96,
@@ -348,13 +347,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 3,
-    borderColor: "#EFF6FF",
-  },
+    borderColor: "#EFF6FF"
+},
   photoInitial: {
     fontSize: 40,
     fontWeight: "800",
-    color: "#FFFFFF",
-  },
+    color: "#FFFFFF"
+},
   activeStatusBadge: {
     position: "absolute",
     bottom: -6,
@@ -367,41 +366,41 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     gap: 4,
     borderWidth: 2,
-    borderColor: "#FFFFFF",
-  },
+    borderColor: "#FFFFFF"
+},
   activeStatusText: {
     fontSize: 9.5,
     fontWeight: "800",
-    color: "#FFFFFF",
-  },
+    color: "#FFFFFF"
+},
   heroNama: {
     fontSize: 17,
     fontWeight: "800",
     color: "#0F172A",
-    textAlign: "center",
-  },
+    textAlign: "center"
+},
   heroNisn: {
     fontSize: 12,
     color: "#64748B",
-    marginTop: 4,
-  },
+    marginTop: 4
+},
   badgesRow: {
     flexDirection: "row",
     gap: 8,
-    marginTop: 10,
-  },
+    marginTop: 10
+},
   pillBadge: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 20,
-    gap: 4,
-  },
+    gap: 4
+},
   pillBadgeText: {
     fontSize: 11,
-    fontWeight: "700",
-  },
+    fontWeight: "700"
+},
   sectionCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
@@ -413,8 +412,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 6,
-    elevation: 1,
-  },
+    elevation: 1
+},
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -422,70 +421,70 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#F1F5F9",
     paddingBottom: 10,
-    marginBottom: 10,
-  },
+    marginBottom: 10
+},
   iconCircle: {
     width: 32,
     height: 32,
     borderRadius: 8,
     backgroundColor: "#EFF6FF",
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center"
+},
   sectionTitle: {
     fontSize: 13.5,
     fontWeight: "800",
-    color: "#0F172A",
-  },
+    color: "#0F172A"
+},
   infoRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: 7,
     borderBottomWidth: 1,
-    borderBottomColor: "#F8FAFC",
-  },
+    borderBottomColor: "#F8FAFC"
+},
   infoLabel: {
     fontSize: 11.5,
-    color: "#64748B",
-  },
+    color: "#64748B"
+},
   infoValue: {
     fontSize: 12,
     fontWeight: "700",
     color: "#1E293B",
     maxWidth: "58%",
-    textAlign: "right",
-  },
+    textAlign: "right"
+},
   alamatBox: {
     backgroundColor: "#F8FAFC",
     padding: 10,
     borderRadius: 10,
-    marginTop: 8,
-  },
+    marginTop: 8
+},
   alamatLabel: {
     fontSize: 10.5,
     fontWeight: "700",
-    color: "#64748B",
-  },
+    color: "#64748B"
+},
   alamatValue: {
     fontSize: 11.5,
     color: "#334155",
-    lineHeight: 16,
-  },
+    lineHeight: 16
+},
   daruratBox: {
     backgroundColor: "#FEF2F2",
     padding: 10,
     borderRadius: 10,
-    marginTop: 8,
-  },
+    marginTop: 8
+},
   daruratTitle: {
     fontSize: 10.5,
     fontWeight: "700",
     color: "#991B1B",
-    marginBottom: 2,
-  },
+    marginBottom: 2
+},
   daruratContent: {
     fontSize: 11.5,
-    color: "#7F1D1D",
-  },
+    color: "#7F1D1D"
+}
 });

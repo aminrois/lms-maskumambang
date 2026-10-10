@@ -5,9 +5,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  SafeAreaView,
   StatusBar,
 } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 import { useNavigation } from "@react-navigation/native";
 import { ArrowLeft, BookOpen, RotateCw } from "lucide-react-native";
@@ -16,6 +16,7 @@ const MUSHAF_URL = "https://mushaf.maskumambang.net";
 
 export const QuranScreen = () => {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const webViewRef = useRef<WebView>(null);
 
   const [loading, setLoading] = useState(true);
@@ -31,11 +32,11 @@ export const QuranScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={[]}>
       <StatusBar barStyle="light-content" backgroundColor="#09204A" />
 
       {/* Top Navbar: Hanya Tombol Back dan Judul */}
-      <View style={styles.headerBar}>
+      <View style={[styles.headerBar, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity
           style={styles.navIconBtn}
           onPress={handleGoBack}
@@ -114,7 +115,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: "rgba(255, 255, 255, 0.1)",
   },

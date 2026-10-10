@@ -8,8 +8,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-  SafeAreaView,
-  StatusBar,
+  StatusBar
 } from "react-native";
 import {
   ChevronLeft,
@@ -22,7 +21,7 @@ import {
   GraduationCap,
   HeartPulse,
   Calendar,
-  User,
+  User
 } from "lucide-react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { guidanceService, KonselingSesi } from "../../api/guidanceService";
@@ -75,8 +74,8 @@ export const WaliGuidanceScreen = () => {
     1: { label: "1: Belum Bisa", color: "#DC2626", bg: "#FEF2F2" },
     2: { label: "2: Bisa", color: "#D97706", bg: "#FFFBEB" },
     3: { label: "3: Butuh Kontrol", color: "#2563EB", bg: "#EFF6FF" },
-    4: { label: "4: Mandiri & Istiqomah", color: "#16A34A", bg: "#F0FDF4" },
-  };
+    4: { label: "4: Mandiri & Istiqomah", color: "#16A34A", bg: "#F0FDF4" }
+};
 
   const g = siswaDetail?.guidance_detail || {};
   const konselingList: KonselingSesi[] = (siswaDetail?.konseling_sesi || []).filter(
@@ -84,7 +83,7 @@ export const WaliGuidanceScreen = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    < style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
 
       {/* Header */}
@@ -262,8 +261,8 @@ export const WaliGuidanceScreen = () => {
                               ? "#DCFCE7"
                               : sesi.status_follow_up === "Dirujuk ke Pihak Luar"
                               ? "#F3E8FF"
-                              : "#DBEAFE",
-                        },
+                              : "#DBEAFE"
+},
                       ]}
                     >
                       <Text
@@ -275,8 +274,8 @@ export const WaliGuidanceScreen = () => {
                                 ? "#15803D"
                                 : sesi.status_follow_up === "Dirujuk ke Pihak Luar"
                                 ? "#7E22CE"
-                                : "#1D4ED8",
-                          },
+                                : "#1D4ED8"
+},
                         ]}
                       >
                         {sesi.status_follow_up}
@@ -289,62 +288,62 @@ export const WaliGuidanceScreen = () => {
           </View>
         </ScrollView>
       )}
-    </SafeAreaView>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8FAFC",
-  },
+    backgroundColor: "#F8FAFC"
+},
   header: {
     backgroundColor: "#162E6E",
     paddingTop: 12,
     paddingBottom: 16,
     paddingHorizontal: 16,
     flexDirection: "row",
-    alignItems: "center",
-  },
+    alignItems: "center"
+},
   backButton: {
     padding: 8,
     borderRadius: 12,
     backgroundColor: "rgba(255, 255, 255, 0.15)",
-    marginRight: 12,
-  },
+    marginRight: 12
+},
   headerTitleContainer: {
-    flex: 1,
-  },
+    flex: 1
+},
   headerTitle: {
     fontSize: 16,
     fontWeight: "800",
-    color: "#FFFFFF",
-  },
+    color: "#FFFFFF"
+},
   headerSubtitle: {
     fontSize: 11,
     color: "#CBD5E1",
-    marginTop: 2,
-  },
+    marginTop: 2
+},
   headerIconBox: {
     padding: 8,
     borderRadius: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-  },
+    backgroundColor: "rgba(255, 255, 255, 0.15)"
+},
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
-  },
+    padding: 20
+},
   loadingText: {
     fontSize: 12,
     color: "#64748B",
-    marginTop: 10,
-  },
+    marginTop: 10
+},
   body: {
     flex: 1,
-    padding: 16,
-  },
+    padding: 16
+},
   heroCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -358,8 +357,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 6,
-    elevation: 1,
-  },
+    elevation: 1
+},
   avatarCircle: {
     width: 48,
     height: 48,
@@ -367,28 +366,28 @@ const styles = StyleSheet.create({
     backgroundColor: "#162E6E",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
-  },
+    marginRight: 12
+},
   avatarText: {
     fontSize: 20,
     fontWeight: "800",
-    color: "#FFFFFF",
-  },
+    color: "#FFFFFF"
+},
   heroName: {
     fontSize: 15,
     fontWeight: "800",
-    color: "#0F172A",
-  },
+    color: "#0F172A"
+},
   heroMeta: {
     fontSize: 11,
     color: "#64748B",
-    marginTop: 2,
-  },
+    marginTop: 2
+},
   heroLembaga: {
     fontSize: 10.5,
     color: "#94A3B8",
-    marginTop: 1,
-  },
+    marginTop: 1
+},
   sectionCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
@@ -400,8 +399,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 6,
-    elevation: 1,
-  },
+    elevation: 1
+},
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -409,106 +408,106 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#F1F5F9",
     paddingBottom: 10,
-    marginBottom: 12,
-  },
+    marginBottom: 12
+},
   sectionIconCircle: {
     width: 32,
     height: 32,
     borderRadius: 8,
     backgroundColor: "#FEF3C7",
     justifyContent: "center",
-    alignItems: "center",
-  },
+    alignItems: "center"
+},
   sectionTitle: {
     fontSize: 13.5,
     fontWeight: "800",
-    color: "#0F172A",
-  },
+    color: "#0F172A"
+},
   sectionSubtitle: {
     fontSize: 10.5,
     color: "#64748B",
-    marginTop: 1,
-  },
+    marginTop: 1
+},
   fundamentalList: {
-    gap: 8,
-  },
+    gap: 8
+},
   fundamentalRow: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#F8FAFC",
     padding: 10,
-    borderRadius: 10,
-  },
+    borderRadius: 10
+},
   fundamentalLabel: {
     fontSize: 11.5,
     fontWeight: "700",
-    color: "#1E293B",
-  },
+    color: "#1E293B"
+},
   fundamentalDesc: {
     fontSize: 10,
     color: "#64748B",
-    marginTop: 1,
-  },
+    marginTop: 1
+},
   scoreBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
-    marginLeft: 8,
-  },
+    marginLeft: 8
+},
   scoreText: {
     fontSize: 10,
-    fontWeight: "800",
-  },
+    fontWeight: "800"
+},
   catatanBox: {
     backgroundColor: "#EFF6FF",
     padding: 10,
     borderRadius: 10,
-    marginTop: 12,
-  },
+    marginTop: 12
+},
   catatanTitle: {
     fontSize: 10.5,
     fontWeight: "700",
     color: "#1E40AF",
-    marginBottom: 2,
-  },
+    marginBottom: 2
+},
   catatanContent: {
     fontSize: 11.5,
     color: "#1E3A8A",
-    lineHeight: 16,
-  },
+    lineHeight: 16
+},
   kuliahGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10,
-  },
+    gap: 10
+},
   kuliahItem: {
     width: "48%",
     backgroundColor: "#F8FAFC",
     padding: 10,
-    borderRadius: 10,
-  },
+    borderRadius: 10
+},
   kuliahLabel: {
     fontSize: 10,
     color: "#64748B",
-    marginBottom: 2,
-  },
+    marginBottom: 2
+},
   kuliahValue: {
     fontSize: 11.5,
     fontWeight: "700",
-    color: "#0F172A",
-  },
+    color: "#0F172A"
+},
   emptyKonseling: {
     padding: 16,
     backgroundColor: "#F8FAFC",
     borderRadius: 12,
-    alignItems: "center",
-  },
+    alignItems: "center"
+},
   emptyKonselingText: {
     fontSize: 11.5,
     color: "#64748B",
     textAlign: "center",
-    lineHeight: 16,
-  },
+    lineHeight: 16
+},
   konselingCard: {
     backgroundColor: "#F8FAFC",
     borderRadius: 12,
@@ -516,87 +515,87 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderWidth: 1,
     borderColor: "#EEF2F6",
-    gap: 6,
-  },
+    gap: 6
+},
   konselingCardTop: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-  },
+    alignItems: "center"
+},
   kategoriBadge: {
     paddingHorizontal: 7,
     paddingVertical: 2,
     backgroundColor: "#EFF6FF",
-    borderRadius: 6,
-  },
+    borderRadius: 6
+},
   kategoriText: {
     fontSize: 10,
     fontWeight: "700",
-    color: "#1D4ED8",
-  },
+    color: "#1D4ED8"
+},
   dateRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-  },
+    gap: 4
+},
   dateText: {
     fontSize: 10,
-    color: "#94A3B8",
-  },
+    color: "#94A3B8"
+},
   konselingTopik: {
     fontSize: 12.5,
     fontWeight: "700",
-    color: "#0F172A",
-  },
+    color: "#0F172A"
+},
   solusiBox: {
     backgroundColor: "#F0FDF4",
     padding: 8,
-    borderRadius: 8,
-  },
+    borderRadius: 8
+},
   solusiLabel: {
     fontSize: 9.5,
     fontWeight: "700",
     color: "#15803D",
-    marginBottom: 1,
-  },
+    marginBottom: 1
+},
   solusiText: {
     fontSize: 11,
-    color: "#166534",
-  },
+    color: "#166534"
+},
   followUpBox: {
     backgroundColor: "#FAF5FF",
     padding: 8,
-    borderRadius: 8,
-  },
+    borderRadius: 8
+},
   followUpLabel: {
     fontSize: 9.5,
     fontWeight: "700",
     color: "#7E22CE",
-    marginBottom: 1,
-  },
+    marginBottom: 1
+},
   followUpText: {
     fontSize: 11,
-    color: "#581C87",
-  },
+    color: "#581C87"
+},
   konselingFooter: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingTop: 6,
     borderTopWidth: 1,
-    borderTopColor: "#EEF2F6",
-  },
+    borderTopColor: "#EEF2F6"
+},
   statusLabel: {
     fontSize: 10,
-    color: "#64748B",
-  },
+    color: "#64748B"
+},
   statusBadge: {
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 12,
-  },
+    borderRadius: 12
+},
   statusBadgeText: {
     fontSize: 10,
-    fontWeight: "700",
-  },
+    fontWeight: "700"
+}
 });

@@ -8,11 +8,10 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  SafeAreaView,
   StatusBar,
   Alert,
   KeyboardAvoidingView,
-  Platform,
+  Platform
 } from "react-native";
 import {
   ChevronLeft,
@@ -22,7 +21,7 @@ import {
   Building,
   Calendar,
   Save,
-  CheckCircle2,
+  CheckCircle2
 } from "lucide-react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { guidanceService } from "../../api/guidanceService";
@@ -58,14 +57,14 @@ export const GuidanceCatatSesiScreen = () => {
         kategori,
         topik_konseling: topik.trim(),
         keluhan_masalah: keluhan.trim(),
-        solusi_kesepakatan: solusi.trim() || undefined,
-      });
+        solusi_kesepakatan: solusi.trim() || undefined
+});
 
       Alert.alert("Berhasil", "Sesi konsultasi santri berhasil dicatat.", [
         {
           text: "OK",
-          onPress: () => navigation.goBack(),
-        },
+          onPress: () => navigation.goBack()
+},
       ]);
     } catch (err: any) {
       Alert.alert(
@@ -78,7 +77,7 @@ export const GuidanceCatatSesiScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    < style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
 
       {/* Header */}
@@ -248,49 +247,49 @@ export const GuidanceCatatSesiScreen = () => {
         onSelect={(date) => setTanggalSesi(date)}
         title="Pilih Tanggal Sesi"
       />
-    </SafeAreaView>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8FAFC",
-  },
+    backgroundColor: "#F8FAFC"
+},
   header: {
     backgroundColor: "#162E6E",
     paddingTop: 12,
     paddingBottom: 16,
     paddingHorizontal: 16,
     flexDirection: "row",
-    alignItems: "center",
-  },
+    alignItems: "center"
+},
   backButton: {
     padding: 8,
     borderRadius: 12,
     backgroundColor: "rgba(255, 255, 255, 0.15)",
-    marginRight: 10,
-  },
+    marginRight: 10
+},
   headerTitleContainer: {
-    flex: 1,
-  },
+    flex: 1
+},
   headerTitle: {
     fontSize: 16,
     fontWeight: "800",
-    color: "#FFFFFF",
-  },
+    color: "#FFFFFF"
+},
   headerSubtitle: {
     fontSize: 11,
     color: "#CBD5E1",
-    marginTop: 2,
-  },
+    marginTop: 2
+},
   body: {
-    flex: 1,
-  },
+    flex: 1
+},
   scrollContent: {
     padding: 16,
-    paddingBottom: 40,
-  },
+    paddingBottom: 40
+},
   studentCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
@@ -304,8 +303,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 6,
-    elevation: 2,
-  },
+    elevation: 2
+},
   studentAvatar: {
     width: 46,
     height: 46,
@@ -315,34 +314,34 @@ const styles = StyleSheet.create({
     borderColor: "#BFDBFE",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
-  },
+    marginRight: 12
+},
   studentAvatarText: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#1E40AF",
-  },
+    color: "#1E40AF"
+},
   studentInfo: {
-    flex: 1,
-  },
+    flex: 1
+},
   studentLabel: {
     fontSize: 9.5,
     fontWeight: "800",
     color: "#2563EB",
     letterSpacing: 0.5,
-    marginBottom: 2,
-  },
+    marginBottom: 2
+},
   studentName: {
     fontSize: 14.5,
     fontWeight: "800",
     color: "#0F172A",
-    marginBottom: 6,
-  },
+    marginBottom: 6
+},
   metaRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 6,
-  },
+    gap: 6
+},
   metaBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -350,19 +349,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
-    gap: 4,
-  },
+    gap: 4
+},
   metaBadgeSecondary: {
-    backgroundColor: "#F1F5F9",
-  },
+    backgroundColor: "#F1F5F9"
+},
   metaBadgeText: {
     fontSize: 10.5,
     fontWeight: "700",
-    color: "#1E40AF",
-  },
+    color: "#1E40AF"
+},
   metaBadgeTextSecondary: {
-    color: "#475569",
-  },
+    color: "#475569"
+},
   formCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
@@ -374,21 +373,21 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 6,
-    elevation: 2,
-  },
+    elevation: 2
+},
   formGroup: {
-    marginBottom: 16,
-  },
+    marginBottom: 16
+},
   formLabel: {
     fontSize: 11.5,
     fontWeight: "700",
     color: "#334155",
-    marginBottom: 6,
-  },
+    marginBottom: 6
+},
   required: {
     color: "#DC2626",
-    fontWeight: "800",
-  },
+    fontWeight: "800"
+},
   dateInputWrapper: {
     flexDirection: "row",
     alignItems: "center",
@@ -397,40 +396,40 @@ const styles = StyleSheet.create({
     borderColor: "#E2E8F0",
     borderRadius: 10,
     paddingHorizontal: 12,
-    height: 42,
-  },
+    height: 42
+},
   dateTextInput: {
     flex: 1,
     fontSize: 12,
     color: "#0F172A",
-    fontWeight: "600",
-  },
+    fontWeight: "600"
+},
   pillContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 6,
-  },
+    gap: 6
+},
   pill: {
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 8,
     backgroundColor: "#F1F5F9",
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
+    borderColor: "#E2E8F0"
+},
   pillActive: {
     backgroundColor: "#162E6E",
-    borderColor: "#162E6E",
-  },
+    borderColor: "#162E6E"
+},
   pillText: {
     fontSize: 11,
     fontWeight: "600",
-    color: "#475569",
-  },
+    color: "#475569"
+},
   pillTextActive: {
     color: "#FFFFFF",
-    fontWeight: "800",
-  },
+    fontWeight: "800"
+},
   textInput: {
     backgroundColor: "#F8FAFC",
     borderWidth: 1,
@@ -439,8 +438,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     height: 42,
     fontSize: 12,
-    color: "#0F172A",
-  },
+    color: "#0F172A"
+},
   textArea: {
     backgroundColor: "#F8FAFC",
     borderWidth: 1,
@@ -450,8 +449,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#0F172A",
     textAlignVertical: "top",
-    minHeight: 80,
-  },
+    minHeight: 80
+},
   submitBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -464,11 +463,11 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
-    elevation: 4,
-  },
+    elevation: 4
+},
   submitBtnText: {
     fontSize: 13,
     fontWeight: "800",
-    color: "#FFFFFF",
-  },
+    color: "#FFFFFF"
+}
 });

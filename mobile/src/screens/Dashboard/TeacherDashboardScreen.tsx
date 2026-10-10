@@ -468,7 +468,7 @@ export const TeacherDashboardScreen = () => {
                 {/* Notification Bell */}
                 <TouchableOpacity
                   style={styles.headerIconBtn}
-                  onPress={() => navigation.navigate("Berita")}
+                  onPress={() => navigation.navigate("Notifikasi")}
                   activeOpacity={0.8}
                 >
                   <Bell size={20} color="#FFFFFF" />
@@ -685,7 +685,7 @@ export const TeacherDashboardScreen = () => {
             </View>
           </TouchableOpacity>
 
-          {/* Card Kanan: Supervisi KBM (jika Pimpinan) atau Jadwal Mengajar */}
+          {/* Card Kanan: Supervisi KBM (Pimpinan) / Jadwal Kelas (WaliKls) / Jadwal Mengajar (Guru) */}
           {isPimpinan ? (
             <TouchableOpacity
               style={styles.dualCard}
@@ -721,6 +721,43 @@ export const TeacherDashboardScreen = () => {
                   <View style={[styles.progressBarFill, { width: "100%", backgroundColor: "#1D4ED8" }]} />
                 </View>
                 <Text style={styles.progressStatusText}>Buka Supervisi ›</Text>
+              </View>
+            </TouchableOpacity>
+          ) : isWaliKls ? (
+            <TouchableOpacity
+              style={styles.dualCard}
+              onPress={() => navigation.navigate("JadwalKelas")}
+              activeOpacity={0.85}
+            >
+              <View style={styles.dualCardHeader}>
+                <View style={styles.dualCardTitleRow}>
+                  <Calendar size={16} color="#059669" />
+                  <Text style={styles.dualCardTitle}>Jadwal Kelas</Text>
+                </View>
+                <ChevronRight size={14} color="#94A3B8" />
+              </View>
+
+              <View style={styles.lmsClassBox}>
+                <View style={styles.lmsClassTop}>
+                  <View style={[styles.lmsIconBox, { backgroundColor: "#F0FDF4" }]}>
+                    <CalendarDays size={18} color="#059669" />
+                  </View>
+                  <View style={[styles.lmsClassBadge, { backgroundColor: "#F0FDF4" }]}>
+                    <Text style={[styles.lmsClassBadgeText, { color: "#059669" }]}>Hari Ini</Text>
+                  </View>
+                </View>
+
+                <Text style={styles.lmsClassName} numberOfLines={1}>
+                  Jadwal Pelajaran Kelas
+                </Text>
+                <Text style={styles.lmsTeacherName} numberOfLines={1}>
+                  Mata Pelajaran & Jadwal Kelas
+                </Text>
+
+                <View style={[styles.progressBarBg, { marginTop: 8 }]}>
+                  <View style={[styles.progressBarFill, { width: "100%", backgroundColor: "#059669" }]} />
+                </View>
+                <Text style={styles.progressStatusText}>Buka Jadwal Kelas ›</Text>
               </View>
             </TouchableOpacity>
           ) : (
@@ -805,7 +842,7 @@ export const TeacherDashboardScreen = () => {
             {/* List 1 */}
             <TouchableOpacity
               style={styles.infoItem}
-              onPress={() => navigation.navigate("Berita")}
+              onPress={() => navigation.navigate("Notifikasi")}
               activeOpacity={0.7}
             >
               <View style={styles.infoItemIcon}>
@@ -820,7 +857,7 @@ export const TeacherDashboardScreen = () => {
             {/* List 2 */}
             <TouchableOpacity
               style={styles.infoItem}
-              onPress={() => navigation.navigate("Berita")}
+              onPress={() => navigation.navigate("Notifikasi")}
               activeOpacity={0.7}
             >
               <View style={styles.infoItemIcon}>
@@ -835,7 +872,7 @@ export const TeacherDashboardScreen = () => {
             {/* List 3 */}
             <TouchableOpacity
               style={[styles.infoItem, { borderBottomWidth: 0 }]}
-              onPress={() => navigation.navigate("Berita")}
+              onPress={() => navigation.navigate("Notifikasi")}
               activeOpacity={0.7}
             >
               <View style={styles.infoItemIcon}>

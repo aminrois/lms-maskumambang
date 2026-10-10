@@ -11,6 +11,8 @@ import {
   User,
   X,
   ScanLine,
+  BookMarked,
+  CalendarDays,
 } from "lucide-react-native";
 import { TeacherDashboardScreen } from "../screens/Dashboard/TeacherDashboardScreen";
 import { ParentDashboardScreen } from "../screens/Dashboard/ParentDashboardScreen";
@@ -70,7 +72,7 @@ export const MainTabNavigator = () => {
           }}
         />
 
-        {/* 2. LMS */}
+        {/* 2. LMS / Tilawah */}
         <Tab.Screen
           name="LmsTab"
           component={LmsScreen}
@@ -80,19 +82,25 @@ export const MainTabNavigator = () => {
           }}
         />
 
-        {/* 3. Scan (Center Elevated Floating Button) */}
+        {/* 3. Scan (Center Elevated - DISABLED, dalam pengembangan) */}
         <Tab.Screen
           name="ScanTab"
           component={TeacherDashboardScreen}
           options={{
             tabBarLabel: "Scan",
-            tabBarButton: (props) => (
+            tabBarButton: () => (
               <TouchableOpacity
                 style={styles.floatingScanWrapper}
-                onPress={() => setShowScanModal(true)}
+                onPress={() =>
+                  Alert.alert(
+                    "🚧 Dalam Pengembangan",
+                    "Fitur Scan QR Code sedang dalam proses pengembangan dan akan segera tersedia. Terima kasih atas kesabaran Anda.",
+                    [{ text: "Mengerti", style: "default" }]
+                  )
+                }
                 activeOpacity={0.85}
               >
-                <View style={styles.floatingScanBtn}>
+                <View style={[styles.floatingScanBtn, { backgroundColor: "#94A3B8" }]}>
                   <QrCode size={24} color="#FFFFFF" />
                 </View>
                 <Text style={styles.floatingScanLabel}>Scan</Text>
@@ -101,13 +109,13 @@ export const MainTabNavigator = () => {
           }}
         />
 
-        {/* 4. Kegiatan */}
+        {/* 4. Event Mendatang */}
         <Tab.Screen
           name="JadwalTab"
           component={JadwalScreen}
           options={{
-            tabBarLabel: "Kegiatan",
-            tabBarIcon: ({ color }) => <Calendar size={22} color={color} />,
+            tabBarLabel: "Event",
+            tabBarIcon: ({ color }) => <CalendarDays size={22} color={color} />,
           }}
         />
 

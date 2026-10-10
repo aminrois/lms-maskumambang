@@ -21,6 +21,7 @@ import { GuidanceCatatSesiScreen } from "../screens/Guidance/GuidanceCatatSesiSc
 import { QuranScreen } from "../screens/Quran/QuranScreen";
 import { ArahKiblatScreen } from "../screens/Quran/ArahKiblatScreen";
 import { DoaDzikirScreen } from "../screens/Quran/DoaDzikirScreen";
+import { NotifikasiScreen } from "../screens/Notifikasi/NotifikasiScreen";
 import { TilawahScreen } from "../screens/Tilawah/TilawahScreen";
 import { MonitoringKbmScreen } from "../screens/Monitoring/MonitoringKbmScreen";
 import { JadwalKelasScreen } from "../screens/Jadwal/JadwalKelasScreen";
@@ -274,6 +275,11 @@ export const AppNavigator = () => {
             <Stack.Screen
               name="DoaDzikir"
               component={DoaDzikirScreen}
+              options={{ animation: "slide_from_right" }}
+            />
+            <Stack.Screen
+              name="Notifikasi"
+              component={NotifikasiScreen}
               options={{ animation: "slide_from_right" }}
             />
           </>

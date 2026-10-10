@@ -9,12 +9,12 @@ import {
   TextInput,
   ActivityIndicator,
   RefreshControl,
-  SafeAreaView,
   StatusBar,
   Modal,
   ScrollView,
   Alert,
 } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Compass,
   Search,
@@ -38,6 +38,7 @@ import { guidanceService, SiswaGuidanceItem, KonselingSesi } from "../../api/gui
 
 export const GuidanceHomeScreen = () => {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<"siswa" | "konseling">("siswa");
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -155,11 +156,11 @@ export const GuidanceHomeScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={[]}>
       <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
 
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerTop}>
           <TouchableOpacity
             style={styles.backButton}
@@ -516,7 +517,6 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: "#162E6E",
-    paddingTop: 12,
     paddingBottom: 16,
     paddingHorizontal: 16,
   },

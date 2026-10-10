@@ -843,4 +843,20 @@ model DoaDzikir {
   @@map("doa_dzikir")
 }
 
+model Notifikasi {
+  id          Int      @id @default(autoincrement())
+  judul       String
+  isi         String   @db.Text
+  kategori    String   @default("Umum") // 'Umum' | 'Akademik' | 'Asrama' | 'Kegiatan' | 'Darurat'
+  target_role String   @default("semua") // 'semua' | 'Guru' | 'Wali Murid' | 'Wali Kelas'
+  is_active   Boolean  @default(true)
+  is_sent     Boolean  @default(false)
+  sent_at     DateTime?
+  created_by  String?  @db.Uuid
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
 
+  @@index([is_active])
+  @@index([created_at])
+  @@map("notifikasi")
+}
