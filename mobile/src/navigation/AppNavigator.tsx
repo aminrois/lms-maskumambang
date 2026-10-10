@@ -5,6 +5,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { LoginScreen } from "../screens/Auth/LoginScreen";
 import { AbsensiMapelScreen } from "../screens/Absensi/AbsensiMapelScreen";
+import { AbsensiHarianScreen } from "../screens/Absensi/AbsensiHarianScreen";
 import { TahfidzSetoranScreen } from "../screens/Tahfidz/TahfidzSetoranScreen";
 import { BeritaScreen } from "../screens/Berita/BeritaScreen";
 import { WaliLaporanHafalanScreen } from "../screens/Wali/WaliLaporanHafalanScreen";
@@ -18,6 +19,13 @@ import { GuidanceHomeScreen } from "../screens/Guidance/GuidanceHomeScreen";
 import { GuidanceDetailScreen } from "../screens/Guidance/GuidanceDetailScreen";
 import { GuidanceCatatSesiScreen } from "../screens/Guidance/GuidanceCatatSesiScreen";
 import { QuranScreen } from "../screens/Quran/QuranScreen";
+import { ArahKiblatScreen } from "../screens/Quran/ArahKiblatScreen";
+import { DoaDzikirScreen } from "../screens/Quran/DoaDzikirScreen";
+import { TilawahScreen } from "../screens/Tilawah/TilawahScreen";
+import { MonitoringKbmScreen } from "../screens/Monitoring/MonitoringKbmScreen";
+import { JadwalKelasScreen } from "../screens/Jadwal/JadwalKelasScreen";
+import { RekapAbsensiHarianScreen } from "../screens/Absensi/RekapAbsensiHarianScreen";
+import { DaftarSiswaKelasScreen } from "../screens/Siswa/DaftarSiswaKelasScreen";
 import { MainTabNavigator } from "./MainTabNavigator";
 import { useAuthStore } from "../store/useAuthStore";
 import { Colors } from "../constants/colors";
@@ -227,6 +235,46 @@ export const AppNavigator = () => {
                 gestureEnabled: false,
                 fullScreenGestureEnabled: false,
               }}
+            />
+            <Stack.Screen
+              name="Tilawah"
+              component={TilawahScreen}
+              options={{ animation: "slide_from_right" }}
+            />
+            <Stack.Screen
+              name="MonitoringKbm"
+              component={MonitoringKbmScreen}
+              options={{ animation: "slide_from_right" }}
+            />
+            <Stack.Screen
+              name="AbsensiHarian"
+              component={AbsensiHarianScreen}
+              options={{ animation: "slide_from_right" }}
+            />
+            <Stack.Screen
+              name="ArahKiblat"
+              component={ArahKiblatScreen}
+              options={{ animation: "slide_from_right" }}
+            />
+            <Stack.Screen
+              name="JadwalKelas"
+              component={JadwalKelasScreen}
+              options={{ animation: "slide_from_right" }}
+            />
+            <Stack.Screen
+              name="RekapAbsensiHarian"
+              component={RekapAbsensiHarianScreen}
+              options={{ animation: "slide_from_right" }}
+            />
+            <Stack.Screen
+              name="DaftarSiswaKelas"
+              component={DaftarSiswaKelasScreen}
+              options={{ animation: "slide_from_right" }}
+            />
+            <Stack.Screen
+              name="DoaDzikir"
+              component={DoaDzikirScreen}
+              options={{ animation: "slide_from_right" }}
             />
           </>
         )}

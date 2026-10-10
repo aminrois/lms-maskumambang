@@ -1,7 +1,7 @@
 // mobile/src/store/useAuthStore.ts
 import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { authService, AuthUser } from "../api/authService";
+import { authService, AuthUser, UserRoleItem } from "../api/authService";
 import { apiClient } from "../api/client";
 import { STORAGE_KEYS, DEFAULT_API_BASE_URL, DEFAULT_AUTO_LOGOUT_MINUTES } from "../constants/config";
 import { biometricService, BiometricStatus } from "../services/biometricService";
@@ -9,6 +9,7 @@ import { biometricService, BiometricStatus } from "../services/biometricService"
 interface AuthState {
   token: string | null;
   user: AuthUser | null;
+  activeRole: UserRoleItem | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   apiBaseUrl: string;
@@ -23,6 +24,7 @@ interface AuthState {
   logout: (isAutoLogout?: boolean) => Promise<void>;
   restoreSession: () => Promise<void>;
   setApiBaseUrl: (url: string) => Promise<void>;
+  setActiveRole: (role: UserRoleItem) => Promise<void>;
 
   // Auto Logout actions
   updateLastActiveTime: () => void;
@@ -40,6 +42,7 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set, get) => ({
   token: null,
   user: null,
+  activeRole: null,
   isAuthenticated: false,
   isLoading: true,
   apiBaseUrl: DEFAULT_API_BASE_URL,
@@ -47,6 +50,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   autoLogoutMinutes: DEFAULT_AUTO_LOGOUT_MINUTES,
   lastActiveTime: Date.now(),
   wasAutoLoggedOut: false,
+
+  setActiveRole: async (role: UserRoleItem) => {
+    set({ activeRole: role });
+    await AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_ROLE, JSON.stringify(role));
+  },
 
   updateLastActiveTime: () => {
     const now = Date.now();
@@ -96,12 +104,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   restoreSession: async () => {
     try {
       set({ isLoading: true });
-      const [savedToken, savedUserData, savedBaseUrl, savedLastActive, savedTimeout] = await Promise.all([
+      const [savedToken, savedUserData, savedBaseUrl, savedLastActive, savedTimeout, savedActiveRoleStr] = await Promise.all([
         AsyncStorage.getItem(STORAGE_KEYS.AUTH_TOKEN),
         AsyncStorage.getItem(STORAGE_KEYS.USER_DATA),
         AsyncStorage.getItem(STORAGE_KEYS.API_BASE_URL),
         AsyncStorage.getItem(STORAGE_KEYS.LAST_ACTIVE_TIME),
         AsyncStorage.getItem(STORAGE_KEYS.AUTO_LOGOUT_TIMEOUT),
+        AsyncStorage.getItem(STORAGE_KEYS.ACTIVE_ROLE),
       ]);
 
       const activeUrl = savedBaseUrl || DEFAULT_API_BASE_URL;
@@ -124,11 +133,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             STORAGE_KEYS.AUTH_TOKEN,
             STORAGE_KEYS.USER_DATA,
             STORAGE_KEYS.LAST_ACTIVE_TIME,
+            STORAGE_KEYS.ACTIVE_ROLE,
           ]);
 
           set({
             token: null,
             user: null,
+            activeRole: null,
             isAuthenticated: false,
             apiBaseUrl: activeUrl,
             biometricStatus: bioStatus,
@@ -142,9 +153,28 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         // Sesi masih valid: perbarui aktivitas terakhir
         await AsyncStorage.setItem(STORAGE_KEYS.LAST_ACTIVE_TIME, String(now));
 
+        const parsedUser: AuthUser = JSON.parse(savedUserData);
+        let resolvedRole: UserRoleItem | null = null;
+        if (savedActiveRoleStr) {
+          try {
+            const parsedRole: UserRoleItem = JSON.parse(savedActiveRoleStr);
+            const match = parsedUser.roles?.find(
+              (r) => r.role_id === parsedRole.role_id && (parsedRole.lembaga_id ? r.lembaga_id === parsedRole.lembaga_id : true)
+            );
+            resolvedRole = match || parsedRole;
+          } catch {}
+        }
+        if (!resolvedRole && parsedUser.roles && parsedUser.roles.length > 0) {
+          resolvedRole = parsedUser.roles[0];
+        }
+        if (resolvedRole) {
+          await AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_ROLE, JSON.stringify(resolvedRole));
+        }
+
         set({
           token: savedToken,
-          user: JSON.parse(savedUserData),
+          user: parsedUser,
+          activeRole: resolvedRole,
           isAuthenticated: true,
           apiBaseUrl: activeUrl,
           biometricStatus: bioStatus,
@@ -157,6 +187,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({
           token: null,
           user: null,
+          activeRole: null,
           isAuthenticated: false,
           apiBaseUrl: activeUrl,
           biometricStatus: bioStatus,
@@ -176,9 +207,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { token, user } = await authService.login(identifier, kata_sandi);
 
       const now = Date.now();
+      const initialRole = user.roles?.[0] || null;
       await AsyncStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
       await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(user));
       await AsyncStorage.setItem(STORAGE_KEYS.LAST_ACTIVE_TIME, String(now));
+      if (initialRole) {
+        await AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_ROLE, JSON.stringify(initialRole));
+      }
 
       // Jika biometrik sebelumnya aktif untuk user ini, perbarui passwordnya
       const currentBio = get().biometricStatus;
@@ -191,6 +226,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({
         token,
         user,
+        activeRole: initialRole,
         isAuthenticated: true,
         isLoading: false,
         biometricStatus: bioStatus,
@@ -250,11 +286,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         STORAGE_KEYS.AUTH_TOKEN,
         STORAGE_KEYS.USER_DATA,
         STORAGE_KEYS.LAST_ACTIVE_TIME,
+        STORAGE_KEYS.ACTIVE_ROLE,
       ]);
       const bioStatus = await biometricService.checkBiometricStatus();
       set({
         token: null,
         user: null,
+        activeRole: null,
         isAuthenticated: false,
         isLoading: false,
         biometricStatus: bioStatus,

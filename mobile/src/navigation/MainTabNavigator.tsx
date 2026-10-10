@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Alert } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Home,
   BookOpen,
@@ -17,25 +18,21 @@ import { JadwalScreen } from "../screens/Jadwal/JadwalScreen";
 import { LmsScreen } from "../screens/LMS/LmsScreen";
 import { ProfileScreen } from "../screens/Profile/ProfileScreen";
 import { useAuthStore } from "../store/useAuthStore";
+import { isWaliMurid } from "../utils/permissions";
 import { Colors } from "../constants/colors";
 
 const Tab = createBottomTabNavigator();
 
 export const MainTabNavigator = () => {
   const [showScanModal, setShowScanModal] = useState(false);
-  const { user } = useAuthStore();
+  const { user, activeRole } = useAuthStore();
+  const insets = useSafeAreaInsets();
 
-  const isWali = user?.roles?.some((r) => {
-    const role = (r.nama_role || "").toLowerCase().trim();
-    return (
-      role === "wali murid" ||
-      role.includes("orang tua") ||
-      role.includes("parent") ||
-      (role.includes("wali") && !role.includes("wali kelas"))
-    );
-  });
-
+  const isWali = isWaliMurid(activeRole || user);
   const DashboardComponent = isWali ? ParentDashboardScreen : TeacherDashboardScreen;
+
+  // Dynamic bottom padding: accounts for Android gesture nav bar
+  const tabBarHeight = 64 + insets.bottom;
 
   return (
     <>
@@ -48,8 +45,8 @@ export const MainTabNavigator = () => {
             backgroundColor: "#FFFFFF",
             borderTopColor: "#EEF2F6",
             borderTopWidth: 1,
-            height: 64,
-            paddingBottom: 10,
+            height: tabBarHeight,
+            paddingBottom: insets.bottom + 6,
             paddingTop: 8,
             shadowColor: "#000",
             shadowOffset: { width: 0, height: -4 },

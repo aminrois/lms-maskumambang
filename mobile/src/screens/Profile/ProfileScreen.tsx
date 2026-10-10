@@ -32,11 +32,13 @@ import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 import { Colors } from "../../constants/colors";
 import { useAuthStore } from "../../store/useAuthStore";
+import { RoleSwitcherModal } from "../../components/RoleSwitcherModal";
 import { APP_CONFIG, PROD_API_BASE_URL, LOCAL_API_BASE_URL } from "../../constants/config";
 
 export const ProfileScreen = () => {
   const {
     user,
+    activeRole,
     logout,
     apiBaseUrl,
     setApiBaseUrl,
@@ -48,6 +50,7 @@ export const ProfileScreen = () => {
     setAutoLogoutMinutes,
   } = useAuthStore();
 
+  const [showRoleModal, setShowRoleModal] = useState(false);
   const [showServerModal, setShowServerModal] = useState(false);
   const [showBioPasswordModal, setShowBioPasswordModal] = useState(false);
   const [bioConfirmPassword, setBioConfirmPassword] = useState("");
@@ -167,9 +170,12 @@ export const ProfileScreen = () => {
             <User size={36} color="#FFFFFF" />
           </View>
           <Text style={styles.userName}>
-            {user?.pegawai?.nama || user?.username || "Pengguna LMS"}
+            {user?.pegawai?.nama || user?.username || "Pengguna SIMAS"}
           </Text>
-          <Text style={styles.userRole}>{user?.roles?.[0]?.nama_role || "Guru"}</Text>
+          <Text style={styles.userRole}>
+            {activeRole?.nama_role || user?.roles?.[0]?.nama_role || "Pengguna"}
+            {activeRole?.lembaga?.singkatan ? ` • ${activeRole.lembaga.singkatan}` : ""}
+          </Text>
 
           {user?.pegawai?.nig && (
             <View style={styles.nipBadge}>
@@ -190,15 +196,27 @@ export const ProfileScreen = () => {
             </View>
           </View>
 
-          <View style={styles.menuItem}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => setShowRoleModal(true)}
+            activeOpacity={user && user.roles.length > 1 ? 0.7 : 1}
+            disabled={!user || user.roles.length <= 1}
+          >
             <View style={styles.iconCircle}>
               <Shield size={18} color={Colors.primary} />
             </View>
             <View style={styles.menuText}>
-              <Text style={styles.menuLabel}>Hak Akses / Peran</Text>
-              <Text style={styles.menuValue}>{user?.roles?.map((r) => r.nama_role).join(", ") || "-"}</Text>
+              <Text style={styles.menuLabel}>Peran Aktif (SIMAS)</Text>
+              <Text style={[styles.menuValue, user && user.roles.length > 1 && { color: "#1D4ED8", fontWeight: "bold" }]}>
+                {activeRole?.nama_role || user?.roles?.[0]?.nama_role || "-"}
+                {activeRole?.lembaga?.singkatan ? ` • ${activeRole.lembaga.singkatan}` : ""}
+                {user && user.roles.length > 1 ? "  ▾ (Ketuk untuk ganti)" : ""}
+              </Text>
             </View>
-          </View>
+            {user && user.roles.length > 1 && (
+              <ChevronRight size={18} color="#94A3B8" />
+            )}
+          </TouchableOpacity>
         </Card>
 
         {/* Keamanan & Biometrik */}
@@ -410,6 +428,12 @@ export const ProfileScreen = () => {
           </View>
         </View>
       </Modal>
+
+      {/* Role Switcher Bottom Sheet */}
+      <RoleSwitcherModal
+        visible={showRoleModal}
+        onClose={() => setShowRoleModal(false)}
+      />
     </SafeAreaView>
   );
 };

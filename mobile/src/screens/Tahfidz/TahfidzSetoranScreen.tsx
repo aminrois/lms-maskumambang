@@ -15,7 +15,7 @@ import {
   Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import {
   BookOpen,
   ScrollText,
@@ -41,14 +41,16 @@ import {
   Plus,
   Edit3,
   Trash2,
+  Eye,
 } from "lucide-react-native";
 import { SwipeBackContainer } from "../../components/ui/SwipeBackContainer";
-import { Header } from "../../components/ui/Header";
 import { Card } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
 import { Colors } from "../../constants/colors";
 import { useAuthStore } from "../../store/useAuthStore";
-import { canInputTahfidz, canViewTahfidz } from "../../utils/permissions";
+import { canInputTahfidz, canViewTahfidz, isWaliKelasRole } from "../../utils/permissions";
+import { SingleDatePickerModal } from "../../components/ui/SingleDatePickerModal";
+import { apiClient } from "../../api/client";
 import {
   tahfidzService,
   TahfidzSiswaItem,
@@ -94,17 +96,25 @@ interface TargetItemData {
 
 export const TahfidzSetoranScreen = () => {
   const navigation = useNavigation<any>();
-  const { user } = useAuthStore();
-  const hasInputPermission = canInputTahfidz(user);
+  const route = useRoute<any>();
+  const { user, activeRole } = useAuthStore();
+  const isWaliKls = isWaliKelasRole(activeRole || user);
+  const isMonitoring = route.params?.mode === "monitoring" || isWaliKls || !canInputTahfidz(activeRole || user);
+  const hasInputPermission = !isMonitoring && canInputTahfidz(activeRole || user);
 
   // Main navigation tab
   const [activeTab, setActiveTab] = useState<ActiveTab>(() => (hasInputPermission ? "input" : "riwayat"));
-  const [modeInput, setModeInput] = useState<ModeInput>("kolosal");
+  const [modeInput, setModeInput] = useState<ModeInput>("individu");
+
+  // Wali Kelas specific state
+  const [waliKelasName, setWaliKelasName] = useState<string>("");
+  const [waliSiswaIds, setWaliSiswaIds] = useState<Set<number>>(new Set());
 
   // Global Session Controls
   const [kategori, setKategori] = useState<KategoriHafalan>("Al-Quran");
   const [jenisSetoran, setJenisSetoran] = useState<JenisSetoran>("Setoran Baru");
   const [tanggal, setTanggal] = useState<string>(new Date().toISOString().split("T")[0]);
+  const [showDatePickerModal, setShowDatePickerModal] = useState(false);
   const [durasiMenit, setDurasiMenit] = useState<string>("15");
   const [kelancaranGlobal, setKelancaranGlobal] = useState<"Sangat Lancar" | "Lancar" | "Kurang Lancar" | "Belum Lancar">("Lancar");
   const [catatanGlobal, setCatatanGlobal] = useState<string>("");
@@ -195,12 +205,96 @@ export const TahfidzSetoranScreen = () => {
         });
       });
 
-      const combinedSantriList = Array.from(allSantriMap.values());
+      let combinedSantriList = Array.from(allSantriMap.values());
+
+      // Filter khusus Wali Kelas / Mode Monitoring: hanya tampilkan murid yang diampu
+      const isWali = isWaliKls || route.params?.mode === "monitoring";
+      const pegawaiId = (user as any)?.pegawai?.pegawai_id || (user as any)?.pegawai_id;
+      if (isWali && pegawaiId) {
+        try {
+          let classes: any[] = [];
+          const cachedKelas = (user as any)?.pegawai?.kelas_wali;
+          if (Array.isArray(cachedKelas) && cachedKelas.length > 0) {
+            classes = cachedKelas;
+          }
+          if (classes.length === 0) {
+            const res = await apiClient.get(`/kelas?wali_kelas_id=${pegawaiId}`);
+            const data = res.data?.data || res.data;
+            if (Array.isArray(data) && data.length > 0) classes = data;
+          }
+          if (classes.length === 0) {
+            const res = await apiClient.get("/kelas");
+            const all = res.data?.data || res.data;
+            if (Array.isArray(all)) {
+              classes = all.filter(
+                (k: any) => k.wali_kelas_id === pegawaiId || k.wali_kelas?.pegawai_id === pegawaiId
+              );
+              if (classes.length === 0 && isWaliKls && all.length > 0) {
+                classes = all.slice(0, 1);
+              }
+            }
+          }
+
+          if (classes.length > 0) {
+            const allowedIds = new Set<number>();
+            let classTitle = "";
+            for (const k of classes) {
+              if (k.nama_kelas && !classTitle) classTitle = k.nama_kelas;
+              if (Array.isArray(k.siswa) && k.siswa.length > 0) {
+                k.siswa.forEach((s: any) => {
+                  allowedIds.add(s.siswa_id);
+                  if (!allSantriMap.has(s.siswa_id)) {
+                    allSantriMap.set(s.siswa_id, {
+                      siswa_id: s.siswa_id,
+                      nama: s.nama,
+                      nisn: s.nisn,
+                      nis: s.nis,
+                      kelas: { kelas_id: k.kelas_id, nama_kelas: k.nama_kelas },
+                    });
+                  }
+                });
+              } else if (k.kelas_id) {
+                try {
+                  const sRes = await apiClient.get(`/siswa?kelas_id=${k.kelas_id}`);
+                  const sData = sRes.data?.data || sRes.data || [];
+                  if (Array.isArray(sData)) {
+                    sData.forEach((s: any) => {
+                      allowedIds.add(s.siswa_id);
+                      if (!allSantriMap.has(s.siswa_id)) {
+                        allSantriMap.set(s.siswa_id, {
+                          siswa_id: s.siswa_id,
+                          nama: s.nama,
+                          nisn: s.nisn,
+                          nis: s.nis,
+                          kelas: { kelas_id: k.kelas_id, nama_kelas: k.nama_kelas },
+                        });
+                      }
+                    });
+                  }
+                } catch (_) {}
+              }
+            }
+
+            if (allowedIds.size > 0) {
+              setWaliSiswaIds(allowedIds);
+              setWaliKelasName(classTitle);
+              combinedSantriList = Array.from(allSantriMap.values()).filter((s) => allowedIds.has(s.siswa_id));
+            }
+          }
+        } catch (err) {
+          console.warn("Gagal filter siswa wali kelas:", err);
+        }
+      }
+
       setSantriList(combinedSantriList);
       setHalaqahList(halaqahData);
 
-      if (combinedSantriList.length > 0 && !selectedSiswaId) {
-        setSelectedSiswaId(combinedSantriList[0].siswa_id);
+      if (combinedSantriList.length > 0) {
+        setSelectedSiswaId((prev) =>
+          prev && combinedSantriList.some((s) => s.siswa_id === prev)
+            ? prev
+            : combinedSantriList[0].siswa_id
+        );
       }
 
       // Initialize kolosal cards for all santri
@@ -228,7 +322,7 @@ export const TahfidzSetoranScreen = () => {
     } finally {
       setLoading(false);
     }
-  }, [selectedSiswaId]);
+  }, [user, activeRole, isWaliKls, route.params?.mode]);
 
   useEffect(() => {
     fetchData();
@@ -560,16 +654,20 @@ export const TahfidzSetoranScreen = () => {
 
   // Filtered Riwayat
   const filteredRiwayat = useMemo(() => {
-    if (!riwayatSearch.trim()) return riwayatList;
+    let list = riwayatList;
+    if ((isWaliKls || isMonitoring) && waliSiswaIds.size > 0) {
+      list = list.filter((item: any) => waliSiswaIds.has(item.siswa_id));
+    }
+    if (!riwayatSearch.trim()) return list;
     const q = riwayatSearch.toLowerCase();
-    return riwayatList.filter(
+    return list.filter(
       (item) =>
         item.siswa?.nama?.toLowerCase().includes(q) ||
         item.surat_mulai_nama?.toLowerCase().includes(q) ||
         item.kitab_hadits?.toLowerCase().includes(q) ||
         item.nama_matan?.toLowerCase().includes(q)
     );
-  }, [riwayatList, riwayatSearch]);
+  }, [riwayatList, riwayatSearch, isWaliKls, isMonitoring, waliSiswaIds]);
 
   return (
     <SwipeBackContainer style={styles.container}>
@@ -588,14 +686,24 @@ export const TahfidzSetoranScreen = () => {
             </TouchableOpacity>
 
             <View style={styles.headerTitleCol}>
-              <Text style={styles.headerTitle}>Tahfidz & Setoran Santri</Text>
+              <Text style={styles.headerTitle}>
+                {isMonitoring ? (route.params?.title || "Pantau Hafalan") : "Tahfidz & Setoran Santri"}
+              </Text>
               <Text style={styles.headerSubtitle}>
-                Manajemen Setoran, Halaqoh & Target
+                {isMonitoring
+                  ? (waliKelasName
+                      ? `Monitoring Hafalan Kelas ${waliKelasName} (${santriList.length} Santri)`
+                      : "Monitoring Setoran, Riwayat & Target Santri")
+                  : "Manajemen Setoran, Halaqoh & Target"}
               </Text>
             </View>
 
             <View style={styles.headerRightBadge}>
-              <ScrollText size={18} color="#93C5FD" />
+              {isMonitoring ? (
+                <Eye size={18} color="#93C5FD" />
+              ) : (
+                <ScrollText size={18} color="#93C5FD" />
+              )}
             </View>
           </View>
         </SafeAreaView>
@@ -603,24 +711,26 @@ export const TahfidzSetoranScreen = () => {
 
       {/* ─── TOP TABS NAVIGATION ─── */}
       <View style={styles.tabBar}>
-        <TouchableOpacity
-          style={[styles.tabItem, activeTab === "input" && styles.tabItemActive]}
-          onPress={() => {
-            if (!hasInputPermission) {
-              Alert.alert(
-                "Akses Dibatasi",
-                "Fitur input setoran hanya dapat diakses oleh Guru Tahfidz dan Administrator."
-              );
-              return;
-            }
-            setActiveTab("input");
-          }}
-        >
-          <BookOpen size={15} color={activeTab === "input" ? "#FFFFFF" : "#64748B"} />
-          <Text style={[styles.tabText, activeTab === "input" && styles.tabTextActive]}>
-            Setoran
-          </Text>
-        </TouchableOpacity>
+        {!isMonitoring && (
+          <TouchableOpacity
+            style={[styles.tabItem, activeTab === "input" && styles.tabItemActive]}
+            onPress={() => {
+              if (!hasInputPermission) {
+                Alert.alert(
+                  "Akses Dibatasi",
+                  "Fitur input setoran hanya dapat diakses oleh Guru Tahfidz dan Administrator."
+                );
+                return;
+              }
+              setActiveTab("input");
+            }}
+          >
+            <BookOpen size={15} color={activeTab === "input" ? "#FFFFFF" : "#64748B"} />
+            <Text style={[styles.tabText, activeTab === "input" && styles.tabTextActive]}>
+              Setoran
+            </Text>
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity
           style={[styles.tabItem, activeTab === "riwayat" && styles.tabItemActive]}
@@ -681,22 +791,22 @@ export const TahfidzSetoranScreen = () => {
                 {/* MODE SWITCHER (Individu vs Kolosal) */}
                 <View style={styles.modeToggleContainer}>
                   <TouchableOpacity
-                    style={[styles.modeToggleBtn, modeInput === "kolosal" && styles.modeToggleBtnActive]}
-                    onPress={() => setModeInput("kolosal")}
-                  >
-                    <Layers size={15} color={modeInput === "kolosal" ? "#fff" : "#475569"} />
-                    <Text style={[styles.modeToggleText, modeInput === "kolosal" && styles.modeToggleTextActive]}>
-                      Mode Kolosal (Halaqoh)
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
                     style={[styles.modeToggleBtn, modeInput === "individu" && styles.modeToggleBtnActive]}
                     onPress={() => setModeInput("individu")}
                   >
                     <User size={15} color={modeInput === "individu" ? "#fff" : "#475569"} />
                     <Text style={[styles.modeToggleText, modeInput === "individu" && styles.modeToggleTextActive]}>
                       Mode Individu
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.modeToggleBtn, modeInput === "kolosal" && styles.modeToggleBtnActive]}
+                    onPress={() => setModeInput("kolosal")}
+                  >
+                    <Layers size={15} color={modeInput === "kolosal" ? "#fff" : "#475569"} />
+                    <Text style={[styles.modeToggleText, modeInput === "kolosal" && styles.modeToggleTextActive]}>
+                      Mode Kolosal (Halaqoh)
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -764,15 +874,16 @@ export const TahfidzSetoranScreen = () => {
                   <View style={styles.rowTwoCols}>
                     <View style={styles.colHalf}>
                       <Text style={styles.fieldLabel}>Tanggal</Text>
-                      <View style={styles.inputWithIcon}>
-                        <Calendar size={14} color="#64748b" />
-                        <TextInput
-                          style={styles.textInputInBox}
-                          value={tanggal}
-                          onChangeText={setTanggal}
-                          placeholder="YYYY-MM-DD"
-                        />
-                      </View>
+                      <TouchableOpacity
+                        style={styles.inputWithIcon}
+                        onPress={() => setShowDatePickerModal(true)}
+                        activeOpacity={0.8}
+                      >
+                        <Calendar size={14} color="#162E6E" />
+                        <Text style={[styles.textInputInBox, { paddingTop: 6, fontWeight: "600", color: "#0F172A" }]}>
+                          {tanggal || "Pilih Tanggal"}
+                        </Text>
+                      </TouchableOpacity>
                     </View>
 
                     <View style={styles.colHalf}>
@@ -1826,6 +1937,15 @@ export const TahfidzSetoranScreen = () => {
           </View>
         </SafeAreaView>
       </Modal>
+
+      {/* ─── TANGGAL PICKER MODAL (KALENDER VISUAL HP) ─── */}
+      <SingleDatePickerModal
+        visible={showDatePickerModal}
+        onClose={() => setShowDatePickerModal(false)}
+        value={tanggal}
+        onSelect={(date) => setTanggal(date)}
+        title="Pilih Tanggal Setoran"
+      />
     </SwipeBackContainer>
   );
 };

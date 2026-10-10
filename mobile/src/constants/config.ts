@@ -16,6 +16,7 @@ export const STORAGE_KEYS = {
   BIOMETRIC_USER: "@lms_biometric_user",
   LAST_ACTIVE_TIME: "@simas_last_active_time",
   AUTO_LOGOUT_TIMEOUT: "@simas_auto_logout_minutes",
+  ACTIVE_ROLE: "@simas_active_role",
 };
 
 export const APP_CONFIG = {

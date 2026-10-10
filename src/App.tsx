@@ -76,6 +76,9 @@ const GuidanceIndex           = React.lazy(() => import("./pages/Guidance/Index"
 const GuidanceDetailSiswa     = React.lazy(() => import("./pages/Guidance/DetailSiswa"));
 const SesiKonselingIndex      = React.lazy(() => import("./pages/Guidance/SesiKonseling"));
 
+// Doa & Dzikir (Direktur / Super Admin)
+const DoaDzikirIndex          = React.lazy(() => import("./pages/DoaDzikir/Index"));
+
 
 // Fallback loading saat halaman sedang di-fetch (lazy chunk loading)
 const PageLoader = () => (
@@ -178,6 +181,17 @@ const App: React.FC = () => {
             {/* Semua halaman masuk ke dalam MainLayout (Punya Sidebar & Header) */}
             <Route element={<MainLayout />}>
               <Route path="/dashboard" element={<DashboardIndex />} />
+
+              {/* Doa & Dzikir: Super Admin & Direktur */}
+              <Route
+                element={
+                  <ProtectedRoute
+                    allowedRoles={["Super Admin", "Direktur"]}
+                  />
+                }
+              >
+                <Route path="/doa-dzikir" element={<DoaDzikirIndex />} />
+              </Route>
 
               {/* --- ROUTING LINK MASTER DATA --- */}
               <Route path="/master-data">

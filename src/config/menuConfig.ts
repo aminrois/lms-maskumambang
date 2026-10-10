@@ -23,7 +23,8 @@ export const allMenuGroups: MenuGroup[] = [
   {
     category: "Umum",
     items: [
-      { name: "Dashboard", icon: LayoutDashboard, path: "/dashboard", color: "blue" }
+      { name: "Dashboard", icon: LayoutDashboard, path: "/dashboard", color: "blue" },
+      { name: "Doa & Dzikir", icon: BookMarked, path: "/doa-dzikir", allowedRoles: ['Super Admin', 'Direktur'], color: "amber" }
     ]
   },
   {

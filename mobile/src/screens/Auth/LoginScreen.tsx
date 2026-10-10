@@ -230,17 +230,7 @@ export const LoginScreen = () => {
               </View>
             )}
 
-            {/* Server Settings Link */}
-            <TouchableOpacity
-              onPress={() => setShowServerModal(true)}
-              style={styles.serverConfigBtn}
-              activeOpacity={0.7}
-            >
-              <Server size={14} color={Colors.textSub} />
-              <Text style={styles.serverConfigText}>
-                Server: {apiBaseUrl.replace(/https?:\/\//, "").slice(0, 24)}...
-              </Text>
-            </TouchableOpacity>
+            {/* Server Settings — Hidden from user, accessible via triple-tap on logo */}
           </View>
 
           {/* Footer */}

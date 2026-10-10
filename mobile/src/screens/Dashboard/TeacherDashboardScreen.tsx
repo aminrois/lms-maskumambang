@@ -12,6 +12,8 @@ import {
   FlatList,
   Dimensions,
   Platform,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
@@ -21,6 +23,7 @@ import {
   Calendar,
   Clock,
   Compass,
+  Navigation,
   BookMarked,
   Newspaper,
   MoreHorizontal,
@@ -44,10 +47,25 @@ import {
   Sparkles,
   Share2,
   Wallet,
+  BarChart3,
+  Clipboard,
+  Shield,
+  Eye,
+  Users,
+  CalendarDays,
 } from "lucide-react-native";
 import { Colors } from "../../constants/colors";
 import { useAuthStore } from "../../store/useAuthStore";
-import { canInputTahfidz, canViewTahfidz, canManageKBM } from "../../utils/permissions";
+import {
+  canInputTahfidz,
+  canViewTahfidz,
+  canManageKBM,
+  isPimpinanRole,
+  isGuruTahfidzRole,
+  isWaliKelasRole,
+} from "../../utils/permissions";
+import { RoleBadgeButton } from "../../components/RoleBadgeButton";
+import { RoleSwitcherModal } from "../../components/RoleSwitcherModal";
 import { APP_CONFIG } from "../../constants/config";
 import {
   getPrayerTimes,
@@ -60,19 +78,34 @@ import {
   CityLocation,
   calculatePrayerTimes,
 } from "../../utils/prayerAndQibla";
+import { useLocationStore } from "../../store/useLocationStore";
 
 const { width } = Dimensions.get("window");
 
 export const TeacherDashboardScreen = () => {
   const navigation = useNavigation<any>();
-  const { user } = useAuthStore();
-  const isTahfidzUser = canInputTahfidz(user);
+  const { user, activeRole } = useAuthStore();
+  const isPimpinan = isPimpinanRole(activeRole || user);
+  const isTahfidz = isGuruTahfidzRole(activeRole || user);
+  const isWaliKls = isWaliKelasRole(activeRole || user);
+  const isTahfidzUser = canInputTahfidz(activeRole || user);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Lokasi & Prayer times state dinamis
-  const [selectedCity, setSelectedCity] = useState<CityLocation>(INDONESIAN_CITIES[0]);
+  // Lokasi & Prayer times state terpusat (GPS / Manual)
+  const {
+    currentLocation: selectedCity,
+    isGpsActive,
+    isLoadingGps,
+    fetchCurrentLocation,
+    setSelectedCity,
+  } = useLocationStore();
   const [deviceHeading, setDeviceHeading] = useState<number>(0);
   const [showCityPickerModal, setShowCityPickerModal] = useState(false);
+
+  // Ambil lokasi GPS perangkat saat dashboard dimuat
+  useEffect(() => {
+    fetchCurrentLocation();
+  }, []);
 
   const dynamicPrayer = useMemo(() => calculatePrayerTimes(selectedCity), [selectedCity]);
   const qiblaAngle = (dynamicPrayer.qiblaBearing - deviceHeading + 360) % 360;
@@ -89,6 +122,7 @@ export const TeacherDashboardScreen = () => {
   const [showBeritaModal, setShowBeritaModal] = useState(false);
   const [showLainnyaModal, setShowLainnyaModal] = useState(false);
   const [showScanModal, setShowScanModal] = useState(false);
+  const [showRoleModal, setShowRoleModal] = useState(false);
   const [selectedNews, setSelectedNews] = useState<any | null>(null);
 
   // Update prayer time on mount & interval
@@ -108,8 +142,255 @@ export const TeacherDashboardScreen = () => {
     }, 600);
   };
 
-  const userName = user?.pegawai?.nama || user?.username || "Amin Rois";
-  const userRole = user?.roles?.[0]?.nama_role || "Santri MTs YKUI";
+  const userName = user?.pegawai?.nama || user?.username || "Pengguna";
+  const userRole = activeRole?.nama_role || user?.roles?.[0]?.nama_role || "Guru";
+
+  // Dynamic 8-Grid Menu based on active role
+  const menuItems = useMemo(() => {
+    if (isPimpinan) {
+      return [
+        {
+          title: "Monitoring KBM",
+          icon: <BarChart3 size={24} color="#FFFFFF" />,
+          bg: "#1D4ED8",
+          onPress: () => navigation.navigate("MonitoringKbm"),
+        },
+        {
+          title: "Setoran Hafalan",
+          icon: <ScrollText size={24} color="#FFFFFF" />,
+          bg: "#3b82f6",
+          onPress: () => navigation.navigate("TahfidzSetoran"),
+        },
+        {
+          title: "Presensi Guru",
+          icon: <CheckCircle2 size={24} color="#FFFFFF" />,
+          bg: "#8b5cf6",
+          onPress: () => navigation.navigate("JadwalTab"),
+        },
+        {
+          title: "Jadwal Pelajaran",
+          icon: <Calendar size={24} color="#FFFFFF" />,
+          bg: "#059669",
+          onPress: () => navigation.navigate("JadwalTab"),
+        },
+        {
+          title: "Tilawah Harian",
+          icon: <BookOpen size={24} color="#FFFFFF" />,
+          bg: "#7C3AED",
+          onPress: () => navigation.navigate("Tilawah"),
+        },
+        {
+          title: "Doa & Dzikir",
+          icon: <BookMarked size={24} color="#FFFFFF" />,
+          bg: "#0284c7",
+          onPress: () => navigation.navigate("DoaDzikir"),
+        },
+        {
+          title: "Berita",
+          icon: <Newspaper size={24} color="#FFFFFF" />,
+          bg: "#f43f5e",
+          onPress: () => navigation.navigate("Berita"),
+        },
+        {
+          title: "Bimbingan",
+          icon: <Compass size={24} color="#FFFFFF" />,
+          bg: "#162E6E",
+          onPress: () => navigation.navigate("GuidanceHome"),
+        },
+      ];
+    }
+
+    if (isTahfidz) {
+      return [
+        {
+          title: "Setoran Hafalan",
+          icon: <ScrollText size={24} color="#FFFFFF" />,
+          bg: "#3b82f6",
+          onPress: () => navigation.navigate("TahfidzSetoran"),
+        },
+        {
+          title: "Tilawah Harian",
+          icon: <BookOpen size={24} color="#FFFFFF" />,
+          bg: "#7C3AED",
+          onPress: () => navigation.navigate("Tilawah"),
+        },
+        {
+          title: "Al-Qur'an",
+          icon: <BookOpen size={24} color="#FFFFFF" />,
+          bg: "#059669",
+          onPress: () => navigation.navigate("Quran"),
+        },
+        {
+          title: "Presensi Guru",
+          icon: <CheckCircle2 size={24} color="#FFFFFF" />,
+          bg: "#8b5cf6",
+          onPress: () => navigation.navigate("JadwalTab"),
+        },
+        {
+          title: "Bimbingan",
+          icon: <Compass size={24} color="#FFFFFF" />,
+          bg: "#162E6E",
+          onPress: () => navigation.navigate("GuidanceHome"),
+        },
+        {
+          title: "Doa & Dzikir",
+          icon: <BookMarked size={24} color="#FFFFFF" />,
+          bg: "#0284c7",
+          onPress: () => navigation.navigate("DoaDzikir"),
+        },
+        {
+          title: "Berita",
+          icon: <Newspaper size={24} color="#FFFFFF" />,
+          bg: "#f43f5e",
+          onPress: () => navigation.navigate("Berita"),
+        },
+        {
+          title: "Jadwal",
+          icon: <Calendar size={24} color="#FFFFFF" />,
+          bg: "#0284c7",
+          onPress: () => navigation.navigate("JadwalTab"),
+        },
+      ];
+    }
+
+    if (isWaliKls) {
+      return [
+        {
+          title: "Absensi Harian",
+          icon: <Clipboard size={24} color="#FFFFFF" />,
+          bg: "#059669",
+          onPress: () => navigation.navigate("AbsensiHarian"),
+        },
+        {
+          title: "Tilawah Harian",
+          icon: <BookOpen size={24} color="#FFFFFF" />,
+          bg: "#4F46E5",
+          onPress: () => navigation.navigate("Tilawah"),
+        },
+        {
+          title: "Bimbingan",
+          icon: <Compass size={24} color="#FFFFFF" />,
+          bg: "#162E6E",
+          onPress: () => navigation.navigate("GuidanceHome"),
+        },
+        {
+          title: "Pantau Hafalan",
+          icon: <Eye size={24} color="#FFFFFF" />,
+          bg: "#3B82F6",
+          onPress: () =>
+            navigation.navigate("TahfidzSetoran", {
+              mode: "monitoring",
+              title: "Pantau Hafalan",
+            }),
+        },
+        {
+          title: "Daftar Siswa",
+          icon: <Users size={24} color="#FFFFFF" />,
+          bg: "#8B5CF6",
+          onPress: () => navigation.navigate("DaftarSiswaKelas"),
+        },
+        {
+          title: "Rekap Kehadiran",
+          icon: <FileText size={24} color="#FFFFFF" />,
+          bg: "#0284C7",
+          onPress: () => navigation.navigate("RekapAbsensiHarian"),
+        },
+        {
+          title: "Jadwal Kelas",
+          icon: <Calendar size={24} color="#FFFFFF" />,
+          bg: "#10B981",
+          onPress: () => navigation.navigate("JadwalKelas"),
+        },
+        {
+          title: "Al-Qur'an",
+          icon: <BookOpen size={24} color="#FFFFFF" />,
+          bg: "#059669",
+          onPress: () => navigation.navigate("Quran"),
+        },
+        {
+          title: "Doa & Dzikir",
+          icon: <BookMarked size={24} color="#FFFFFF" />,
+          bg: "#0284C7",
+          onPress: () => navigation.navigate("DoaDzikir"),
+        },
+        {
+          title: "Berita",
+          icon: <Newspaper size={24} color="#FFFFFF" />,
+          bg: "#F43F5E",
+          onPress: () => navigation.navigate("Berita"),
+        },
+        {
+          title: "Arah Kiblat",
+          icon: <Compass size={24} color="#FFFFFF" />,
+          bg: "#0D9488",
+          onPress: () => navigation.navigate("ArahKiblat"),
+        },
+        {
+          title: "Alarm",
+          icon: <Bell size={24} color="#FFFFFF" />,
+          bg: "#D97706",
+          badge: "SOON",
+          onPress: () =>
+            Alert.alert(
+              "Fitur Segera Hadir",
+              "Fitur Alarm Pengingat sedang dalam tahap pengembangan dan akan segera tersedia."
+            ),
+        },
+      ];
+    }
+
+    // Default Guru Mapel
+    return [
+      {
+        title: "LMS Guru",
+        icon: <GraduationCap size={24} color="#FFFFFF" />,
+        bg: "#10b981",
+        onPress: () => navigation.navigate("LmsTab"),
+      },
+      {
+        title: "Jadwal Mengajar",
+        icon: <Calendar size={24} color="#FFFFFF" />,
+        bg: "#059669",
+        onPress: () => navigation.navigate("JadwalTab"),
+      },
+      {
+        title: "Presensi Guru",
+        icon: <CheckCircle2 size={24} color="#FFFFFF" />,
+        bg: "#8b5cf6",
+        onPress: () => navigation.navigate("JadwalTab"),
+      },
+      {
+        title: "Al-Qur'an",
+        icon: <BookOpen size={24} color="#FFFFFF" />,
+        bg: "#059669",
+        onPress: () => navigation.navigate("Quran"),
+      },
+      {
+        title: "Doa & Dzikir",
+        icon: <BookMarked size={24} color="#FFFFFF" />,
+        bg: "#0284c7",
+        onPress: () => navigation.navigate("DoaDzikir"),
+      },
+      {
+        title: "Arah Kiblat",
+        icon: <Compass size={24} color="#FFFFFF" />,
+        bg: "#162E6E",
+        onPress: () => navigation.navigate("ArahKiblat"),
+      },
+      {
+        title: "Berita",
+        icon: <Newspaper size={24} color="#FFFFFF" />,
+        bg: "#f43f5e",
+        onPress: () => navigation.navigate("Berita"),
+      },
+      {
+        title: "Setoran Hafalan",
+        icon: <ScrollText size={24} color="#FFFFFF" />,
+        bg: "#3b82f6",
+        onPress: () => navigation.navigate("TahfidzSetoran"),
+      },
+    ];
+  }, [isPimpinan, isTahfidz, isWaliKls]);
 
   // Data Berita Pesantren
   const BERITA_LIST = [
@@ -193,18 +474,6 @@ export const TeacherDashboardScreen = () => {
                   <Bell size={20} color="#FFFFFF" />
                   <View style={styles.unreadDot} />
                 </TouchableOpacity>
-
-                {/* Profile Avatar */}
-                <TouchableOpacity
-                  style={styles.profileBtn}
-                  onPress={() => navigation.navigate("ProfileTab")}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.avatarCircle}>
-                    <Text style={styles.avatarText}>{userName.charAt(0)}</Text>
-                  </View>
-                  <ChevronDown size={14} color="#FFFFFF" style={{ marginLeft: 4 }} />
-                </TouchableOpacity>
               </View>
             </View>
 
@@ -212,8 +481,8 @@ export const TeacherDashboardScreen = () => {
             <View style={styles.greetingBox}>
               <Text style={styles.greetingSub}>Assalamu'alaikum Warahmatullah,</Text>
               <Text style={styles.greetingName}>{userName}</Text>
-              <View style={styles.rolePill}>
-                <Text style={styles.rolePillText}>{userRole}</Text>
+              <View style={{ marginTop: 6, flexDirection: "row", alignItems: "center" }}>
+                <RoleBadgeButton variant="dark" />
               </View>
             </View>
           </SafeAreaView>
@@ -240,7 +509,9 @@ export const TeacherDashboardScreen = () => {
                     onPress={() => setShowCityPickerModal(true)}
                     style={{ flexDirection: "row", alignItems: "center" }}
                   >
-                    <Text style={styles.sholatLocationText}>📍 {selectedCity.name} ▾</Text>
+                    <Text style={styles.sholatLocationText}>
+                      📍 {selectedCity.name} {isGpsActive ? "(GPS)" : ""} ▾
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -340,112 +611,40 @@ export const TeacherDashboardScreen = () => {
         </View>
 
         {/* ═══════════════════════════════════════════════════════
-            3. QUICK ACTION 8-GRID MENU (Sama seperti Wali Santri)
+            3. QUICK ACTION GRID MENU (Dinamis Sesuai Peran Aktif)
         ════════════════════════════════════════════════════════ */}
         <View style={styles.menuGridContainer}>
-          <View style={styles.menuGridRow}>
-            {/* 1. LMS Guru */}
-            <TouchableOpacity
-              style={styles.gridCard}
-              onPress={() => navigation.navigate("LmsTab")}
-              activeOpacity={0.8}
+          {Array.from({ length: Math.ceil(menuItems.length / 4) }).map((_, rowIdx) => (
+            <View
+              key={rowIdx}
+              style={[styles.menuGridRow, rowIdx > 0 && { marginTop: 14 }]}
             >
-              <View style={[styles.gridIconCircle, { backgroundColor: "#10b981" }]}>
-                <GraduationCap size={24} color="#FFFFFF" />
-              </View>
-              <Text style={styles.gridCardTitle}>LMS Guru</Text>
-            </TouchableOpacity>
-
-            {/* 2. Setoran Hafalan */}
-            <TouchableOpacity
-              style={styles.gridCard}
-              onPress={() => navigation.navigate("TahfidzSetoran")}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.gridIconCircle, { backgroundColor: "#3b82f6" }]}>
-                <ScrollText size={24} color="#FFFFFF" />
-              </View>
-              <Text style={styles.gridCardTitle}>Setoran Hafalan</Text>
-            </TouchableOpacity>
-
-            {/* 3. Presensi Guru */}
-            <TouchableOpacity
-              style={styles.gridCard}
-              onPress={() => navigation.navigate("JadwalTab")}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.gridIconCircle, { backgroundColor: "#8b5cf6" }]}>
-                <CheckCircle2 size={24} color="#FFFFFF" />
-              </View>
-              <Text style={styles.gridCardTitle}>Presensi Guru</Text>
-            </TouchableOpacity>
-
-            {/* 4. Jadwal Mengajar */}
-            <TouchableOpacity
-              style={styles.gridCard}
-              onPress={() => navigation.navigate("JadwalTab")}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.gridIconCircle, { backgroundColor: "#059669" }]}>
-                <Calendar size={24} color="#FFFFFF" />
-              </View>
-              <Text style={styles.gridCardTitle}>Jadwal Mengajar</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={[styles.menuGridRow, { marginTop: 12 }]}>
-            {/* 5. Arah Kiblat */}
-            <TouchableOpacity
-              style={styles.gridCard}
-              onPress={() => setShowKiblatModal(true)}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.gridIconCircle, { backgroundColor: "#f97316" }]}>
-                <Compass size={24} color="#FFFFFF" />
-              </View>
-              <Text style={styles.gridCardTitle}>Arah Kiblat</Text>
-            </TouchableOpacity>
-
-            {/* 6. Doa & Dzikir */}
-            <TouchableOpacity
-              style={styles.gridCard}
-              onPress={() => setShowDoaModal(true)}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.gridIconCircle, { backgroundColor: "#0284c7" }]}>
-                <BookMarked size={24} color="#FFFFFF" />
-              </View>
-              <Text style={styles.gridCardTitle}>Doa & Dzikir</Text>
-            </TouchableOpacity>
-
-            {/* 7. Berita */}
-            <TouchableOpacity
-              style={styles.gridCard}
-              onPress={() => navigation.navigate("Berita")}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.gridIconCircle, { backgroundColor: "#f43f5e" }]}>
-                <Newspaper size={24} color="#FFFFFF" />
-              </View>
-              <Text style={styles.gridCardTitle}>Berita</Text>
-            </TouchableOpacity>
-
-            {/* 8. Guidance / Bimbingan Konseling */}
-            <TouchableOpacity
-              style={styles.gridCard}
-              onPress={() => navigation.navigate("GuidanceHome")}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.gridIconCircle, { backgroundColor: "#162E6E" }]}>
-                <Compass size={24} color="#FFFFFF" />
-              </View>
-              <Text style={styles.gridCardTitle}>Bimbingan</Text>
-            </TouchableOpacity>
-          </View>
+              {menuItems.slice(rowIdx * 4, rowIdx * 4 + 4).map((item, idx) => (
+                <TouchableOpacity
+                  key={`${rowIdx}-${idx}`}
+                  style={styles.gridCard}
+                  onPress={item.onPress}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.gridIconCircle, { backgroundColor: item.bg }]}>
+                    {item.icon}
+                    {item.badge ? (
+                      <View style={styles.soonBadge}>
+                        <Text style={styles.soonBadgeText}>{item.badge}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                  <Text style={styles.gridCardTitle} numberOfLines={2}>
+                    {item.title}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ))}
         </View>
 
         {/* ═══════════════════════════════════════════════════════
-            4. DUA KARTU FITUR UTAMA: BIMBINGAN & JADWAL MENGAJAR
+            4. DUA KARTU FITUR UTAMA: BIMBINGAN & JADWAL / SUPERVISI
         ════════════════════════════════════════════════════════ */}
         <View style={styles.dualCardContainer}>
           {/* Card Kiri: Bimbingan & Konseling (Guidance) */}
@@ -486,43 +685,82 @@ export const TeacherDashboardScreen = () => {
             </View>
           </TouchableOpacity>
 
-          {/* Card Kanan: Jadwal & Presensi Mengajar */}
-          <TouchableOpacity
-            style={styles.dualCard}
-            onPress={() => navigation.navigate("JadwalTab")}
-            activeOpacity={0.85}
-          >
-            <View style={styles.dualCardHeader}>
-              <View style={styles.dualCardTitleRow}>
-                <Calendar size={16} color="#15803d" />
-                <Text style={styles.dualCardTitle}>Jadwal Mengajar</Text>
-              </View>
-              <ChevronRight size={14} color="#94A3B8" />
-            </View>
-
-            <View style={styles.lmsClassBox}>
-              <View style={styles.lmsClassTop}>
-                <View style={[styles.lmsIconBox, { backgroundColor: "#F0FDF4" }]}>
-                  <BookOpen size={18} color="#15803d" />
+          {/* Card Kanan: Supervisi KBM (jika Pimpinan) atau Jadwal Mengajar */}
+          {isPimpinan ? (
+            <TouchableOpacity
+              style={styles.dualCard}
+              onPress={() => navigation.navigate("MonitoringKbm")}
+              activeOpacity={0.85}
+            >
+              <View style={styles.dualCardHeader}>
+                <View style={styles.dualCardTitleRow}>
+                  <BarChart3 size={16} color="#1D4ED8" />
+                  <Text style={styles.dualCardTitle}>Supervisi KBM</Text>
                 </View>
-                <View style={[styles.lmsClassBadge, { backgroundColor: "#F0FDF4" }]}>
-                  <Text style={[styles.lmsClassBadgeText, { color: "#15803d" }]}>Hari Ini</Text>
+                <ChevronRight size={14} color="#94A3B8" />
+              </View>
+
+              <View style={styles.lmsClassBox}>
+                <View style={styles.lmsClassTop}>
+                  <View style={[styles.lmsIconBox, { backgroundColor: "#EFF6FF" }]}>
+                    <Shield size={18} color="#1D4ED8" />
+                  </View>
+                  <View style={[styles.lmsClassBadge, { backgroundColor: "#EFF6FF" }]}>
+                    <Text style={[styles.lmsClassBadgeText, { color: "#1D4ED8" }]}>Eksekutif</Text>
+                  </View>
                 </View>
+
+                <Text style={styles.lmsClassName} numberOfLines={1}>
+                  Monitoring Universal
+                </Text>
+                <Text style={styles.lmsTeacherName} numberOfLines={1}>
+                  Pantau KBM & Rekap RPP
+                </Text>
+
+                <View style={[styles.progressBarBg, { marginTop: 8 }]}>
+                  <View style={[styles.progressBarFill, { width: "100%", backgroundColor: "#1D4ED8" }]} />
+                </View>
+                <Text style={styles.progressStatusText}>Buka Supervisi ›</Text>
+              </View>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.dualCard}
+              onPress={() => navigation.navigate("JadwalTab")}
+              activeOpacity={0.85}
+            >
+              <View style={styles.dualCardHeader}>
+                <View style={styles.dualCardTitleRow}>
+                  <Calendar size={16} color="#15803d" />
+                  <Text style={styles.dualCardTitle}>Jadwal Mengajar</Text>
+                </View>
+                <ChevronRight size={14} color="#94A3B8" />
               </View>
 
-              <Text style={styles.lmsClassName} numberOfLines={1}>
-                Agenda KBM & Kelas
-              </Text>
-              <Text style={styles.lmsTeacherName} numberOfLines={1}>
-                Presensi & Jurnal Mengajar
-              </Text>
+              <View style={styles.lmsClassBox}>
+                <View style={styles.lmsClassTop}>
+                  <View style={[styles.lmsIconBox, { backgroundColor: "#F0FDF4" }]}>
+                    <BookOpen size={18} color="#15803d" />
+                  </View>
+                  <View style={[styles.lmsClassBadge, { backgroundColor: "#F0FDF4" }]}>
+                    <Text style={[styles.lmsClassBadgeText, { color: "#15803d" }]}>Hari Ini</Text>
+                  </View>
+                </View>
 
-              <View style={[styles.progressBarBg, { marginTop: 8 }]}>
-                <View style={[styles.progressBarFill, { width: "100%", backgroundColor: "#15803d" }]} />
+                <Text style={styles.lmsClassName} numberOfLines={1}>
+                  Agenda KBM & Kelas
+                </Text>
+                <Text style={styles.lmsTeacherName} numberOfLines={1}>
+                  Presensi & Jurnal Mengajar
+                </Text>
+
+                <View style={[styles.progressBarBg, { marginTop: 8 }]}>
+                  <View style={[styles.progressBarFill, { width: "100%", backgroundColor: "#15803d" }]} />
+                </View>
+                <Text style={styles.progressStatusText}>Buka Jadwal KBM ›</Text>
               </View>
-              <Text style={styles.progressStatusText}>Buka Jadwal KBM ›</Text>
-            </View>
-          </TouchableOpacity>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* ═══════════════════════════════════════════════════════
@@ -845,6 +1083,37 @@ export const TeacherDashboardScreen = () => {
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 10 }}>
+              {/* Tombol Ambil Lokasi GPS Terkini */}
+              <TouchableOpacity
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  backgroundColor: "#F0FDF4",
+                  paddingVertical: 12,
+                  paddingHorizontal: 16,
+                  borderRadius: 12,
+                  marginBottom: 10,
+                  borderWidth: 1,
+                  borderColor: "#BBF7D0",
+                }}
+                onPress={async () => {
+                  await fetchCurrentLocation(true);
+                  setShowCityPickerModal(false);
+                }}
+                disabled={isLoadingGps}
+              >
+                {isLoadingGps ? (
+                  <ActivityIndicator size="small" color="#059669" />
+                ) : (
+                  <Navigation size={18} color="#059669" />
+                )}
+                <Text style={{ fontSize: 13, fontWeight: "700", color: "#059669" }}>
+                  {isLoadingGps ? "Mendeteksi Lokasi GPS..." : "Gunakan Lokasi GPS Terkini"}
+                </Text>
+              </TouchableOpacity>
+
               {INDONESIAN_CITIES.map((city) => {
                 const isSelected = city.id === selectedCity.id;
                 return (
@@ -1117,6 +1386,12 @@ export const TeacherDashboardScreen = () => {
           </View>
         </View>
       </Modal>
+
+      {/* Role Switcher Bottom Sheet */}
+      <RoleSwitcherModal
+        visible={showRoleModal}
+        onClose={() => setShowRoleModal(false)}
+      />
     </View>
   );
 };

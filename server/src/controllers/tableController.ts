@@ -209,6 +209,13 @@ const TABLE_CONFIGS: Record<string, ModelConfig> = {
       siswa: true,
     },
   },
+  'absensi-harian': {
+    model: 'absensiHarian',
+    idField: 'absensi_harian_id',
+    defaultInclude: {
+      siswa: true,
+    },
+  },
   kalender_akademik: {
     model: 'kalenderAkademik',
     idField: 'kalender_id',
@@ -712,6 +719,27 @@ export const createTableRecord = async (req: AuthRequest, res: Response, next: N
       const createdItems = [];
       for (const item of req.body) {
         const sanitized = sanitizeData(item);
+        if (
+          (tableName === 'absensi_harian' || tableName === 'absensi-harian') &&
+          sanitized.siswa_id &&
+          sanitized.tanggal
+        ) {
+          const existing = await prisma.absensiHarian.findFirst({
+            where: {
+              siswa_id: Number(sanitized.siswa_id),
+              tanggal: String(sanitized.tanggal),
+            },
+          });
+          if (existing) {
+            const updated = await prisma.absensiHarian.update({
+              where: { absensi_harian_id: existing.absensi_harian_id },
+              data: { status: String(sanitized.status || 'Hadir') },
+              ...(config.defaultInclude ? { include: config.defaultInclude } : {}),
+            });
+            createdItems.push(updated);
+            continue;
+          }
+        }
         const created = await prismaModel.create({
           data: sanitized,
           ...(config.defaultInclude ? { include: config.defaultInclude } : {}),

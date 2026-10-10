@@ -10,16 +10,22 @@ export interface LoginPayload {
   // identifier is mapped to username in the service
 }
 
+export interface UserRoleItem {
+  role_id: number;
+  nama_role: string;
+  lembaga_id?: number | null;
+  lembaga?: {
+    lembaga_id: number;
+    nama_lembaga: string;
+    singkatan?: string;
+  } | null;
+}
+
 export interface AuthUser {
   user_id: number;
   username: string;
   email: string;
-  roles: {
-    role_id: number;
-    nama_role: string;
-    lembaga_id?: number | null;
-    lembaga?: any;
-  }[];
+  roles: UserRoleItem[];
   pegawai?: {
     pegawai_id: number;
     nig?: string;

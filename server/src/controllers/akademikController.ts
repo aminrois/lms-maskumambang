@@ -85,10 +85,14 @@ export const deleteTahunAjaran = async (req: Request, res: Response, next: NextF
 // KELAS
 export const getKelass = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { lembaga_id, tahun_id } = req.query;
+    const { lembaga_id, tahun_id, wali_kelas_id } = req.query;
     const where: any = {};
     if (lembaga_id) where.lembaga_id = Number(lembaga_id);
     if (tahun_id) where.tahun_id = Number(tahun_id);
+    if (wali_kelas_id) {
+      const cleanWaliId = String(wali_kelas_id).replace(/^eq\./, '');
+      where.wali_kelas_id = Number(cleanWaliId);
+    }
 
     const list = await prisma.kelas.findMany({
       where,

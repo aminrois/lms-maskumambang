@@ -8,6 +8,7 @@ import tahfidzRoutes from './tahfidzRoutes';
 import waliRoutes from './waliRoutes';
 import keuanganRoutes from './keuanganRoutes';
 import guidanceRoutes from './guidanceRoutes';
+import doaDzikirRoutes from './doaDzikirRoutes';
 import rpcRoutes from './rpcRoutes';
 import tableRoutes from './tableRoutes';
 import { authenticate } from '../middlewares/authMiddleware';
@@ -25,6 +26,7 @@ router.use('/tahfidz', tahfidzRoutes);
 router.use('/wali', waliRoutes);
 router.use('/keuangan', keuanganRoutes);
 router.use('/guidance', guidanceRoutes);
+router.use('/doa-dzikir', doaDzikirRoutes);
 router.use('/rpc', rpcRoutes);
 
 // User Auth Management Actions

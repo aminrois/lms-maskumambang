@@ -71,7 +71,7 @@ const FormSetoranTahfidz: React.FC = () => {
   const { user } = useAuthStore();
 
   // Mode Input: Individu vs Kolosal (Kelompok Halaqoh)
-  const [modeInput, setModeInput] = useState<ModeInput>("kolosal");
+  const [modeInput, setModeInput] = useState<ModeInput>("individu");
 
   // Global Session Controls
   const [kategori, setKategori] = useState<KategoriHafalan>("Al-Quran");
@@ -484,18 +484,6 @@ const FormSetoranTahfidz: React.FC = () => {
             <div className="bg-black/30 backdrop-blur-md p-1.5 rounded-2xl flex items-center border border-white/15">
               <button
                 type="button"
-                onClick={() => setModeInput("kolosal")}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  modeInput === "kolosal"
-                    ? "bg-[#FACC15] text-[#1A365D] shadow-md shadow-yellow-900/30"
-                    : "text-blue-100 hover:text-white"
-                }`}
-              >
-                <Zap className="w-3.5 h-3.5" />
-                <span>Mode Kolosal Halaqah</span>
-              </button>
-              <button
-                type="button"
                 onClick={() => setModeInput("individu")}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   modeInput === "individu"
@@ -505,6 +493,18 @@ const FormSetoranTahfidz: React.FC = () => {
               >
                 <User className="w-3.5 h-3.5" />
                 <span>Per Santri (Individu)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setModeInput("kolosal")}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  modeInput === "kolosal"
+                    ? "bg-[#FACC15] text-[#1A365D] shadow-md shadow-yellow-900/30"
+                    : "text-blue-100 hover:text-white"
+                }`}
+              >
+                <Zap className="w-3.5 h-3.5" />
+                <span>Mode Kolosal Halaqah</span>
               </button>
             </div>
           </div>

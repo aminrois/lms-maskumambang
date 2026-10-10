@@ -15,6 +15,7 @@ import {
   Linking,
   Dimensions,
   Platform,
+  BackHandler,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
@@ -112,6 +113,42 @@ export const BeritaScreen = () => {
     Linking.openURL(url);
   };
 
+  // Navigasi kembali terpadu: jika sedang membaca artikel, kembali ke daftar artikel.
+  // Jika di daftar artikel, kembali ke halaman dashboard/sebelumnya.
+  const handleBack = useCallback(() => {
+    if (selectedArticle !== null) {
+      setSelectedArticle(null);
+    } else {
+      navigation.goBack();
+    }
+  }, [selectedArticle, navigation]);
+
+  // Nonaktifkan gesture native stack navigator saat artikel sedang dibuka
+  // sehingga swipe tidak langsung keluar dari screen
+  useEffect(() => {
+    navigation.setOptions({
+      gestureEnabled: selectedArticle === null,
+    });
+  }, [selectedArticle, navigation]);
+
+  // Handle hardware back button di Android
+  useEffect(() => {
+    const onHardwareBack = () => {
+      if (selectedArticle !== null) {
+        setSelectedArticle(null);
+        return true;
+      }
+      return false;
+    };
+
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onHardwareBack
+    );
+
+    return () => subscription.remove();
+  }, [selectedArticle]);
+
   // Filtered Posts berdasarkan Kategori & Search
   const filteredPosts = useMemo(() => {
     let result = posts;
@@ -136,7 +173,7 @@ export const BeritaScreen = () => {
   const regularPosts = filteredPosts.length > 0 ? (selectedCategory === "all" ? filteredPosts.slice(1) : filteredPosts) : [];
 
   return (
-    <SwipeBackContainer onBack={() => navigation.goBack()}>
+    <SwipeBackContainer onBack={handleBack}>
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
       {/* ═══════════════════════════════════════════════════════
           1. TOP NAVIGATION HEADER
@@ -396,93 +433,95 @@ export const BeritaScreen = () => {
         onRequestClose={() => setSelectedArticle(null)}
       >
         {selectedArticle && (
-          <SafeAreaView style={styles.readerSafeArea}>
-            {/* Reader Top Bar */}
-            <View style={styles.readerTopBar}>
-              <TouchableOpacity
-                style={styles.readerBackBtn}
-                onPress={() => setSelectedArticle(null)}
-                activeOpacity={0.8}
-              >
-                <ChevronLeft size={22} color="#0F172A" />
-              </TouchableOpacity>
-
-              <Text style={styles.readerBarTitle} numberOfLines={1}>
-                {selectedArticle.category}
-              </Text>
-
-              <View style={styles.readerRightActions}>
+          <SwipeBackContainer onBack={() => setSelectedArticle(null)}>
+            <SafeAreaView style={styles.readerSafeArea}>
+              {/* Reader Top Bar */}
+              <View style={styles.readerTopBar}>
                 <TouchableOpacity
-                  style={styles.readerActionBtn}
-                  onPress={() => handleShare(selectedArticle)}
+                  style={styles.readerBackBtn}
+                  onPress={() => setSelectedArticle(null)}
                   activeOpacity={0.8}
                 >
-                  <Share2 size={18} color="#0F172A" />
+                  <ChevronLeft size={22} color="#0F172A" />
                 </TouchableOpacity>
-              </View>
-            </View>
 
-            {/* Reader Content */}
-            <ScrollView
-              contentContainerStyle={styles.readerScrollContent}
-              showsVerticalScrollIndicator={false}
-            >
-              <View style={styles.readerCatTag}>
-                <Text style={styles.readerCatText}>{selectedArticle.category}</Text>
-              </View>
+                <Text style={styles.readerBarTitle} numberOfLines={1}>
+                  {selectedArticle.category}
+                </Text>
 
-              <Text style={styles.readerHeadline}>{selectedArticle.title}</Text>
-
-              {/* Author & Date Bar */}
-              <View style={styles.readerMetaBar}>
-                <View style={styles.readerMetaItem}>
-                  <User size={13} color="#64748B" />
-                  <Text style={styles.readerMetaText}>{selectedArticle.author}</Text>
-                </View>
-                <Text style={styles.readerMetaDivider}>•</Text>
-                <View style={styles.readerMetaItem}>
-                  <Calendar size={13} color="#64748B" />
-                  <Text style={styles.readerMetaText}>{selectedArticle.dateFormatted}</Text>
+                <View style={styles.readerRightActions}>
+                  <TouchableOpacity
+                    style={styles.readerActionBtn}
+                    onPress={() => handleShare(selectedArticle)}
+                    activeOpacity={0.8}
+                  >
+                    <Share2 size={18} color="#0F172A" />
+                  </TouchableOpacity>
                 </View>
               </View>
 
-              {/* Featured Image */}
-              <Image
-                source={{ uri: selectedArticle.imageUrl }}
-                style={styles.readerCoverImage}
-                resizeMode="cover"
-              />
-
-              {/* Body Text with distinct paragraphs */}
-              <View style={styles.articleBodyContainer}>
-                {selectedArticle.paragraphs && selectedArticle.paragraphs.length > 0 ? (
-                  selectedArticle.paragraphs.map((para, idx) => (
-                    <Text
-                      key={idx}
-                      style={[
-                        styles.articleParagraph,
-                        idx === 0 && styles.articleLeadParagraph,
-                      ]}
-                    >
-                      {para}
-                    </Text>
-                  ))
-                ) : (
-                  <Text style={styles.articleParagraph}>{selectedArticle.content}</Text>
-                )}
-              </View>
-
-              {/* Share Article Action Button */}
-              <TouchableOpacity
-                style={styles.shareArticleBtn}
-                onPress={() => handleShare(selectedArticle)}
-                activeOpacity={0.85}
+              {/* Reader Content */}
+              <ScrollView
+                contentContainerStyle={styles.readerScrollContent}
+                showsVerticalScrollIndicator={false}
               >
-                <Share2 size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
-                <Text style={styles.shareArticleBtnText}>Bagikan Berita</Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </SafeAreaView>
+                <View style={styles.readerCatTag}>
+                  <Text style={styles.readerCatText}>{selectedArticle.category}</Text>
+                </View>
+
+                <Text style={styles.readerHeadline}>{selectedArticle.title}</Text>
+
+                {/* Author & Date Bar */}
+                <View style={styles.readerMetaBar}>
+                  <View style={styles.readerMetaItem}>
+                    <User size={13} color="#64748B" />
+                    <Text style={styles.readerMetaText}>{selectedArticle.author}</Text>
+                  </View>
+                  <Text style={styles.readerMetaDivider}>•</Text>
+                  <View style={styles.readerMetaItem}>
+                    <Calendar size={13} color="#64748B" />
+                    <Text style={styles.readerMetaText}>{selectedArticle.dateFormatted}</Text>
+                  </View>
+                </View>
+
+                {/* Featured Image */}
+                <Image
+                  source={{ uri: selectedArticle.imageUrl }}
+                  style={styles.readerCoverImage}
+                  resizeMode="cover"
+                />
+
+                {/* Body Text with distinct paragraphs */}
+                <View style={styles.articleBodyContainer}>
+                  {selectedArticle.paragraphs && selectedArticle.paragraphs.length > 0 ? (
+                    selectedArticle.paragraphs.map((para, idx) => (
+                      <Text
+                        key={idx}
+                        style={[
+                          styles.articleParagraph,
+                          idx === 0 && styles.articleLeadParagraph,
+                        ]}
+                      >
+                        {para}
+                      </Text>
+                    ))
+                  ) : (
+                    <Text style={styles.articleParagraph}>{selectedArticle.content}</Text>
+                  )}
+                </View>
+
+                {/* Share Article Action Button */}
+                <TouchableOpacity
+                  style={styles.shareArticleBtn}
+                  onPress={() => handleShare(selectedArticle)}
+                  activeOpacity={0.85}
+                >
+                  <Share2 size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+                  <Text style={styles.shareArticleBtnText}>Bagikan Berita</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </SafeAreaView>
+          </SwipeBackContainer>
         )}
       </Modal>
     </SafeAreaView>

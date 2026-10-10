@@ -23,6 +23,7 @@ import {
   Calendar,
   Clock,
   Compass,
+  Navigation,
   BookMarked,
   Newspaper,
   Bell,
@@ -49,6 +50,9 @@ import {
   Lock,
 } from "lucide-react-native";
 import { useAuthStore } from "../../store/useAuthStore";
+import { useLocationStore } from "../../store/useLocationStore";
+import { RoleBadgeButton } from "../../components/RoleBadgeButton";
+import { RoleSwitcherModal } from "../../components/RoleSwitcherModal";
 import { waliService, AnakItem } from "../../api/waliService";
 import { newsService, WordPressPost } from "../../api/newsService";
 import { groupJadwalSessions, GroupedJadwalSesi } from "../../utils/jadwalHelper";
@@ -85,10 +89,20 @@ export const ParentDashboardScreen = () => {
   const { user } = useAuthStore();
   const [refreshing, setRefreshing] = useState(false);
 
-  // Lokasi & Prayer times state dinamis
-  const [selectedCity, setSelectedCity] = useState<CityLocation>(INDONESIAN_CITIES[0]);
+  // Lokasi & Prayer times state terpusat (GPS / Manual)
+  const {
+    currentLocation: selectedCity,
+    isGpsActive,
+    isLoadingGps,
+    fetchCurrentLocation,
+    setSelectedCity,
+  } = useLocationStore();
   const [deviceHeading, setDeviceHeading] = useState<number>(0);
   const [showCityPickerModal, setShowCityPickerModal] = useState(false);
+
+  useEffect(() => {
+    fetchCurrentLocation();
+  }, []);
 
   const dynamicPrayer = useMemo(() => calculatePrayerTimes(selectedCity), [selectedCity]);
   const qiblaAngle = (dynamicPrayer.qiblaBearing - deviceHeading + 360) % 360;
@@ -105,6 +119,7 @@ export const ParentDashboardScreen = () => {
   const [showLainnyaModal, setShowLainnyaModal] = useState(false);
   const [showIzinModal, setShowIzinModal] = useState(false);
   const [showKalenderModal, setShowKalenderModal] = useState(false);
+  const [showRoleModal, setShowRoleModal] = useState(false);
 
   // Wali Modals
   const [showTahfidzModal, setShowTahfidzModal] = useState(false);
@@ -264,7 +279,7 @@ export const ParentDashboardScreen = () => {
 
                 <TouchableOpacity
                   style={styles.profileBtn}
-                  onPress={() => navigation.navigate("ProfileTab")}
+                  onPress={() => setShowRoleModal(true)}
                   activeOpacity={0.8}
                 >
                   <View style={styles.avatarCircle}>
@@ -279,8 +294,8 @@ export const ParentDashboardScreen = () => {
             <View style={styles.greetingBox}>
               <Text style={styles.greetingSub}>Assalamu'alaikum Warahmatullah,</Text>
               <Text style={styles.greetingName}>{userName}</Text>
-              <View style={styles.rolePill}>
-                <Text style={styles.rolePillText}>Wali Murid Santri</Text>
+              <View style={{ marginTop: 6, flexDirection: "row", alignItems: "center" }}>
+                <RoleBadgeButton variant="dark" />
               </View>
             </View>
 
@@ -341,7 +356,9 @@ export const ParentDashboardScreen = () => {
                     onPress={() => setShowCityPickerModal(true)}
                     style={{ flexDirection: "row", alignItems: "center" }}
                   >
-                    <Text style={styles.sholatLocationText}>📍 {selectedCity.name} ▾</Text>
+                    <Text style={styles.sholatLocationText}>
+                      📍 {selectedCity.name} {isGpsActive ? "(GPS)" : ""} ▾
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -548,22 +565,22 @@ export const ParentDashboardScreen = () => {
 
           {/* Row 3: Islami & Informasi */}
           <View style={[styles.menuGridRow, { marginTop: 12 }]}>
-            {/* 9. Arah Kiblat */}
+            {/* 9. Tilawah Harian */}
             <TouchableOpacity
               style={styles.gridCard}
-              onPress={() => setShowKiblatModal(true)}
+              onPress={() => navigation.navigate("Tilawah")}
               activeOpacity={0.8}
             >
-              <View style={[styles.gridIconCircle, { backgroundColor: "#f97316" }]}>
-                <Compass size={24} color="#FFFFFF" />
+              <View style={[styles.gridIconCircle, { backgroundColor: "#7C3AED" }]}>
+                <BookOpen size={24} color="#FFFFFF" />
               </View>
-              <Text style={styles.gridCardTitle}>Arah Kiblat</Text>
+              <Text style={styles.gridCardTitle}>Tilawah Harian</Text>
             </TouchableOpacity>
 
             {/* 10. Doa & Dzikir */}
             <TouchableOpacity
               style={styles.gridCard}
-              onPress={() => setShowDoaModal(true)}
+              onPress={() => navigation.navigate("DoaDzikir")}
               activeOpacity={0.8}
             >
               <View style={[styles.gridIconCircle, { backgroundColor: "#0284c7" }]}>
@@ -967,6 +984,39 @@ export const ParentDashboardScreen = () => {
                 <X size={20} color="#64748B" />
               </TouchableOpacity>
             </View>
+
+            {/* Tombol Ambil Lokasi GPS Terkini */}
+            <TouchableOpacity
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                backgroundColor: "#F0FDF4",
+                paddingVertical: 12,
+                paddingHorizontal: 16,
+                borderRadius: 12,
+                marginHorizontal: 16,
+                marginVertical: 10,
+                borderWidth: 1,
+                borderColor: "#BBF7D0",
+              }}
+              onPress={async () => {
+                await fetchCurrentLocation(true);
+                setShowCityPickerModal(false);
+              }}
+              disabled={isLoadingGps}
+            >
+              {isLoadingGps ? (
+                <ActivityIndicator size="small" color="#162E6E" />
+              ) : (
+                <Navigation size={18} color="#162E6E" />
+              )}
+              <Text style={{ fontSize: 13, fontWeight: "700", color: "#162E6E" }}>
+                {isLoadingGps ? "Mendeteksi Lokasi GPS..." : "Gunakan Lokasi GPS Terkini"}
+              </Text>
+            </TouchableOpacity>
+
             <FlatList
               data={INDONESIAN_CITIES}
               keyExtractor={(item) => item.id}
@@ -1113,6 +1163,12 @@ export const ParentDashboardScreen = () => {
           </View>
         </View>
       </Modal>
+
+      {/* Role Switcher Bottom Sheet */}
+      <RoleSwitcherModal
+        visible={showRoleModal}
+        onClose={() => setShowRoleModal(false)}
+      />
     </View>
   );
 };

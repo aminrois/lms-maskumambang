@@ -26,6 +26,7 @@ import {
 } from "lucide-react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { guidanceService } from "../../api/guidanceService";
+import { SingleDatePickerModal } from "../../components/ui/SingleDatePickerModal";
 
 export const GuidanceCatatSesiScreen = () => {
   const route = useRoute<any>();
@@ -41,6 +42,7 @@ export const GuidanceCatatSesiScreen = () => {
 
   const todayStr = new Date().toISOString().split("T")[0];
   const [tanggalSesi, setTanggalSesi] = useState(todayStr);
+  const [showDatePickerModal, setShowDatePickerModal] = useState(false);
 
   const handleSave = async () => {
     if (!topik.trim() || !keluhan.trim()) {
@@ -140,16 +142,16 @@ export const GuidanceCatatSesiScreen = () => {
             {/* Tanggal Sesi */}
             <View style={styles.formGroup}>
               <Text style={styles.formLabel}>Tanggal Sesi Konsultasi</Text>
-              <View style={styles.dateInputWrapper}>
-                <Calendar size={16} color="#64748B" style={{ marginRight: 8 }} />
-                <TextInput
-                  style={styles.dateTextInput}
-                  value={tanggalSesi}
-                  onChangeText={setTanggalSesi}
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor="#94A3B8"
-                />
-              </View>
+              <TouchableOpacity
+                style={styles.dateInputWrapper}
+                onPress={() => setShowDatePickerModal(true)}
+                activeOpacity={0.8}
+              >
+                <Calendar size={16} color="#162E6E" style={{ marginRight: 8 }} />
+                <Text style={{ flex: 1, fontSize: 13, color: "#0F172A", fontWeight: "600" }}>
+                  {tanggalSesi || "Pilih Tanggal Sesi..."}
+                </Text>
+              </TouchableOpacity>
             </View>
 
             {/* Kategori Masalah */}
@@ -237,6 +239,15 @@ export const GuidanceCatatSesiScreen = () => {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* ─── TANGGAL PICKER MODAL (KALENDER VISUAL HP) ─── */}
+      <SingleDatePickerModal
+        visible={showDatePickerModal}
+        onClose={() => setShowDatePickerModal(false)}
+        value={tanggalSesi}
+        onSelect={(date) => setTanggalSesi(date)}
+        title="Pilih Tanggal Sesi"
+      />
     </SafeAreaView>
   );
 };

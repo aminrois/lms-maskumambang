@@ -460,14 +460,23 @@ export const updateAbsensiPelajaran = async (req: Request, res: Response, next: 
 // ABSENSI HARIAN
 export const getAbsensiHarians = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { tanggal, siswa_id } = req.query;
+    const { tanggal, siswa_id, kelas_id, tanggal_mulai, tanggal_akhir } = req.query;
     const where: any = {};
     if (tanggal) where.tanggal = String(tanggal);
+    if (tanggal_mulai || tanggal_akhir) {
+      where.tanggal = {};
+      if (tanggal_mulai) where.tanggal.gte = String(tanggal_mulai);
+      if (tanggal_akhir) where.tanggal.lte = String(tanggal_akhir);
+    }
     if (siswa_id) where.siswa_id = Number(siswa_id);
+    if (kelas_id) {
+      where.siswa = { kelas_id: Number(kelas_id) };
+    }
 
     const list = await prisma.absensiHarian.findMany({
       where,
       include: { siswa: true },
+      orderBy: { tanggal: 'desc' },
     });
     res.json(list);
   } catch (error) {
@@ -477,10 +486,44 @@ export const getAbsensiHarians = async (req: Request, res: Response, next: NextF
 
 export const createAbsensiHarian = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const data = { ...req.body };
-    data.siswa_id = Number(data.siswa_id);
-    const item = await prisma.absensiHarian.create({ data });
-    res.status(201).json(item);
+    const raw = req.body;
+    let items: any[] = [];
+
+    if (Array.isArray(raw)) {
+      items = raw;
+    } else if (raw && Array.isArray(raw.data)) {
+      items = raw.data;
+    } else if (raw) {
+      items = [raw];
+    }
+
+    const results = [];
+    for (const item of items) {
+      const siswa_id = Number(item.siswa_id);
+      const tanggal = String(item.tanggal);
+      const status = String(item.status || 'Hadir');
+
+      if (!siswa_id || !tanggal) continue;
+
+      const existing = await prisma.absensiHarian.findFirst({
+        where: { siswa_id, tanggal },
+      });
+
+      if (existing) {
+        const updated = await prisma.absensiHarian.update({
+          where: { absensi_harian_id: existing.absensi_harian_id },
+          data: { status },
+        });
+        results.push(updated);
+      } else {
+        const created = await prisma.absensiHarian.create({
+          data: { siswa_id, tanggal, status },
+        });
+        results.push(created);
+      }
+    }
+
+    res.status(201).json(Array.isArray(raw) ? results : (results[0] || { success: true }));
   } catch (error) {
     next(error);
   }
