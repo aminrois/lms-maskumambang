@@ -24,11 +24,13 @@ import {
   User
 } from "lucide-react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { guidanceService, KonselingSesi } from "../../api/guidanceService";
 
 export const WaliGuidanceScreen = () => {
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const { siswaId } = route.params || {};
 
   const [isLoading, setIsLoading] = useState(true);
@@ -83,7 +85,7 @@ export const WaliGuidanceScreen = () => {
   );
 
   return (
-    < style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
 
       {/* Header */}
@@ -288,7 +290,7 @@ export const WaliGuidanceScreen = () => {
           </View>
         </ScrollView>
       )}
-    </>
+    </View>
   );
 };
 

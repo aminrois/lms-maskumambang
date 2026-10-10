@@ -37,11 +37,13 @@ import {
   Check
 } from "lucide-react-native";
 import { useRoute, useNavigation, useFocusEffect } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { guidanceService, KonselingSesi, GuidanceDetail } from "../../api/guidanceService";
 
 export const GuidanceDetailScreen = () => {
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const { siswaId, namaSiswa } = route.params || {};
 
   const [isLoading, setIsLoading] = useState(true);
@@ -211,7 +213,7 @@ export const GuidanceDetailScreen = () => {
   const konselingList: KonselingSesi[] = siswaDetail?.konseling_sesi || [];
 
   return (
-    < style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
 
       {/* Header */}
@@ -1026,7 +1028,7 @@ export const GuidanceDetailScreen = () => {
           </View>
         </KeyboardAvoidingView>
       </Modal>
-    </>
+    </View>
   );
 };
 

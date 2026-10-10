@@ -1,5 +1,4 @@
-// mobile/src/api/notifikasiService.ts
-import { apiClient } from "./authService";
+import { apiClient } from "./client";
 
 export interface NotifikasiItem {
   id: number;

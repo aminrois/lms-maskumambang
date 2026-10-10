@@ -24,12 +24,14 @@ import {
   CheckCircle2
 } from "lucide-react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { guidanceService } from "../../api/guidanceService";
 import { SingleDatePickerModal } from "../../components/ui/SingleDatePickerModal";
 
 export const GuidanceCatatSesiScreen = () => {
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
 
   const { siswaId, namaSiswa, namaKelas, namaLembaga } = route.params || {};
 
@@ -77,7 +79,7 @@ export const GuidanceCatatSesiScreen = () => {
   };
 
   return (
-    < style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
 
       {/* Header */}
@@ -247,7 +249,7 @@ export const GuidanceCatatSesiScreen = () => {
         onSelect={(date) => setTanggalSesi(date)}
         title="Pilih Tanggal Sesi"
       />
-    </>
+    </View>
   );
 };
 

@@ -25,11 +25,13 @@ import {
   ShieldCheck
 } from "lucide-react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { guidanceService } from "../../api/guidanceService";
 
 export const WaliDetailSantriScreen = () => {
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const { siswaId } = route.params || {};
 
   const [isLoading, setIsLoading] = useState(true);
@@ -64,7 +66,7 @@ export const WaliDetailSantriScreen = () => {
   const wali = siswa?.wali_murid || {};
 
   return (
-    < style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
 
       {/* Header */}
@@ -263,7 +265,7 @@ export const WaliDetailSantriScreen = () => {
           </View>
         </ScrollView>
       )}
-    </>
+    </View>
   );
 };
 
