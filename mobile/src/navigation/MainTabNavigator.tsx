@@ -16,8 +16,8 @@ import {
 } from "lucide-react-native";
 import { TeacherDashboardScreen } from "../screens/Dashboard/TeacherDashboardScreen";
 import { ParentDashboardScreen } from "../screens/Dashboard/ParentDashboardScreen";
-import { JadwalScreen } from "../screens/Jadwal/JadwalScreen";
-import { LmsScreen } from "../screens/LMS/LmsScreen";
+import { TilawahScreen } from "../screens/Tilawah/TilawahScreen";
+import { EventScreen } from "../screens/Event/EventScreen";
 import { ProfileScreen } from "../screens/Profile/ProfileScreen";
 import { useAuthStore } from "../store/useAuthStore";
 import { isWaliMurid } from "../utils/permissions";
@@ -72,12 +72,12 @@ export const MainTabNavigator = () => {
           }}
         />
 
-        {/* 2. LMS / Tilawah */}
+        {/* 2. Tilawah */}
         <Tab.Screen
-          name="LmsTab"
-          component={LmsScreen}
+          name="TilawahTab"
+          component={TilawahScreen}
           options={{
-            tabBarLabel: "LMS",
+            tabBarLabel: "Tilawah",
             tabBarIcon: ({ color }) => <BookOpen size={22} color={color} />,
           }}
         />
@@ -109,10 +109,10 @@ export const MainTabNavigator = () => {
           }}
         />
 
-        {/* 4. Event Mendatang */}
+        {/* 4. Event */}
         <Tab.Screen
-          name="JadwalTab"
-          component={JadwalScreen}
+          name="EventTab"
+          component={EventScreen}
           options={{
             tabBarLabel: "Event",
             tabBarIcon: ({ color }) => <CalendarDays size={22} color={color} />,

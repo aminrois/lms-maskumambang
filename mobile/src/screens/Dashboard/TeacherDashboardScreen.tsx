@@ -165,13 +165,13 @@ export const TeacherDashboardScreen = () => {
           title: "Presensi Guru",
           icon: <CheckCircle2 size={24} color="#FFFFFF" />,
           bg: "#8b5cf6",
-          onPress: () => navigation.navigate("JadwalTab"),
+          onPress: () => navigation.navigate("Jadwal"),
         },
         {
           title: "Jadwal Pelajaran",
           icon: <Calendar size={24} color="#FFFFFF" />,
           bg: "#059669",
-          onPress: () => navigation.navigate("JadwalTab"),
+          onPress: () => navigation.navigate("Jadwal"),
         },
         {
           title: "Tilawah Harian",
@@ -224,7 +224,7 @@ export const TeacherDashboardScreen = () => {
           title: "Presensi Guru",
           icon: <CheckCircle2 size={24} color="#FFFFFF" />,
           bg: "#8b5cf6",
-          onPress: () => navigation.navigate("JadwalTab"),
+          onPress: () => navigation.navigate("Jadwal"),
         },
         {
           title: "Bimbingan",
@@ -248,7 +248,7 @@ export const TeacherDashboardScreen = () => {
           title: "Jadwal",
           icon: <Calendar size={24} color="#FFFFFF" />,
           bg: "#0284c7",
-          onPress: () => navigation.navigate("JadwalTab"),
+          onPress: () => navigation.navigate("Jadwal"),
         },
       ];
     }
@@ -345,19 +345,19 @@ export const TeacherDashboardScreen = () => {
         title: "LMS Guru",
         icon: <GraduationCap size={24} color="#FFFFFF" />,
         bg: "#10b981",
-        onPress: () => navigation.navigate("LmsTab"),
+        onPress: () => navigation.navigate("Lms"),
       },
       {
         title: "Jadwal Mengajar",
         icon: <Calendar size={24} color="#FFFFFF" />,
         bg: "#059669",
-        onPress: () => navigation.navigate("JadwalTab"),
+        onPress: () => navigation.navigate("Jadwal"),
       },
       {
         title: "Presensi Guru",
         icon: <CheckCircle2 size={24} color="#FFFFFF" />,
         bg: "#8b5cf6",
-        onPress: () => navigation.navigate("JadwalTab"),
+        onPress: () => navigation.navigate("Jadwal"),
       },
       {
         title: "Al-Qur'an",
@@ -763,7 +763,7 @@ export const TeacherDashboardScreen = () => {
           ) : (
             <TouchableOpacity
               style={styles.dualCard}
-              onPress={() => navigation.navigate("JadwalTab")}
+              onPress={() => navigation.navigate("Jadwal")}
               activeOpacity={0.85}
             >
               <View style={styles.dualCardHeader}>
