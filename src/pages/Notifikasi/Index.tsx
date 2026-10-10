@@ -1,5 +1,4 @@
-// src/pages/Notifikasi/Index.tsx
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Bell,
   Plus,
@@ -12,11 +11,7 @@ import {
   CheckCircle2,
   XCircle,
   Users,
-  Megaphone,
   AlertTriangle,
-  BookOpen,
-  Home,
-  Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import { apiClient } from "../../lib/api/axios";
