@@ -1,6 +1,6 @@
 // server/src/controllers/notifikasiController.ts
 import { Request, Response } from 'express';
-import prisma from '../lib/prisma';
+import prisma from '../config/prisma';
 
 /** GET /api/v1/notifikasi — ambil semua notifikasi aktif (semua role bisa akses) */
 export const getAll = async (req: Request, res: Response) => {
@@ -8,7 +8,7 @@ export const getAll = async (req: Request, res: Response) => {
     const { limit = '20', offset = '0', kategori } = req.query;
 
     const where: any = { is_active: true };
-    if (kategori && kategori !== 'Semua') where.kategori = kategori;
+    if (kategori && kategori !== 'Semua') where.kategori = kategori as string;
 
     const [data, total] = await Promise.all([
       prisma.notifikasi.findMany({
