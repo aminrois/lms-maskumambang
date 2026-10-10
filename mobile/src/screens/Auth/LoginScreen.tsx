@@ -143,8 +143,8 @@ export const LoginScreen = () => {
                 resizeMode="contain"
               />
             </View>
-            <Text style={styles.appName}>MASDICO</Text>
-            <Text style={styles.schoolName}>Maskumambang Digital Ecosystem</Text>
+            <Text style={styles.appName}>SIMAS</Text>
+            <Text style={styles.schoolName}>Sistem Informasi Maskumambang</Text>
             <View style={styles.taglineBadge}>
               <Text style={styles.taglineText}>Satu Aplikasi, Banyak Manfaat untuk Masa Depan</Text>
             </View>

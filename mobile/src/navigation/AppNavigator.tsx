@@ -1,6 +1,6 @@
 // mobile/src/navigation/AppNavigator.tsx
 import React, { useEffect } from "react";
-import { View, ActivityIndicator, StyleSheet, Image, StatusBar } from "react-native";
+import { View, ActivityIndicator, StyleSheet, Image, StatusBar, AppState, Alert } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { LoginScreen } from "../screens/Auth/LoginScreen";
@@ -25,11 +25,74 @@ import { Colors } from "../constants/colors";
 const Stack = createNativeStackNavigator();
 
 export const AppNavigator = () => {
-  const { isAuthenticated, isLoading, restoreSession } = useAuthStore();
+  const {
+    isAuthenticated,
+    isLoading,
+    restoreSession,
+    checkSessionExpiry,
+    updateLastActiveTime,
+    wasAutoLoggedOut,
+    resetAutoLogoutFlag,
+    autoLogoutMinutes,
+  } = useAuthStore();
 
   useEffect(() => {
     restoreSession();
   }, [restoreSession]);
+
+  // Handle Inactivity & Background Auto Logout
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const handleAppStateChange = async (nextAppState: string) => {
+      if (nextAppState === "active") {
+        // App kembali ke layar utama: periksa apakah sudah melebihi batas waktu
+        const isExpired = await checkSessionExpiry();
+        if (isExpired) {
+          Alert.alert(
+            "Sesi Kedaluwarsa",
+            `Aplikasi telah otomatis logout karena tidak digunakan selama lebih dari ${autoLogoutMinutes} menit demi keamanan data Anda.`,
+            [{ text: "OK" }]
+          );
+        } else {
+          updateLastActiveTime();
+        }
+      } else if (nextAppState === "background" || nextAppState === "inactive") {
+        // App diminimize / layar dimatikan: catat waktu aktivitas terakhir
+        updateLastActiveTime();
+      }
+    };
+
+    const subscription = AppState.addEventListener("change", handleAppStateChange);
+
+    // Pengecekan berkala jika aplikasi dibiarkan terbuka tanpa disentuh
+    const interval = setInterval(async () => {
+      const isExpired = await checkSessionExpiry();
+      if (isExpired) {
+        Alert.alert(
+          "Sesi Kedaluwarsa",
+          `Aplikasi telah otomatis logout karena tidak ada aktivitas selama ${autoLogoutMinutes} menit demi keamanan data Anda.`,
+          [{ text: "OK" }]
+        );
+      }
+    }, 30000); // Cek setiap 30 detik
+
+    return () => {
+      subscription.remove();
+      clearInterval(interval);
+    };
+  }, [isAuthenticated, checkSessionExpiry, updateLastActiveTime, autoLogoutMinutes]);
+
+  // Notifikasi jika sesi kedaluwarsa saat pertama kali membuka aplikasi
+  useEffect(() => {
+    if (!isAuthenticated && !isLoading && wasAutoLoggedOut) {
+      Alert.alert(
+        "Sesi Kedaluwarsa",
+        "Sesi login Anda telah berakhir demi keamanan. Silakan login kembali untuk melanjutkan.",
+        [{ text: "Mengerti", onPress: () => resetAutoLogoutFlag() }]
+      );
+    }
+  }, [isAuthenticated, isLoading, wasAutoLoggedOut, resetAutoLogoutFlag]);
 
   if (isLoading) {
     return (

@@ -5,6 +5,8 @@ export const DEFAULT_API_BASE_URL = "https://lms2.maskumambang.ac.id/api/v1";
 export const PROD_API_BASE_URL = "https://lms2.maskumambang.ac.id/api/v1";
 export const LOCAL_API_BASE_URL = "http://10.10.10.207:5001/api/v1"; // Local Dev (IP aktif komputer saat ini)
 
+export const DEFAULT_AUTO_LOGOUT_MINUTES = 15; // 15 menit default
+
 export const STORAGE_KEYS = {
   AUTH_TOKEN: "@lms_auth_token",
   USER_DATA: "@lms_user_data",
@@ -12,10 +14,13 @@ export const STORAGE_KEYS = {
   BIOMETRIC_ENABLED: "@lms_biometric_enabled",
   BIOMETRIC_CREDENTIALS: "lms_biometric_creds",
   BIOMETRIC_USER: "@lms_biometric_user",
+  LAST_ACTIVE_TIME: "@simas_last_active_time",
+  AUTO_LOGOUT_TIMEOUT: "@simas_auto_logout_minutes",
 };
 
 export const APP_CONFIG = {
-  appName: "LMS Maskumambang",
+  appName: "SIMAS",
+  appFullName: "Sistem Informasi Maskumambang",
   appVersion: "1.0.0",
   schoolName: "Pondok Pesantren Maskumambang",
 };

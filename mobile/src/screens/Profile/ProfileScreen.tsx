@@ -24,6 +24,7 @@ import {
   FingerprintPattern,
   ScanFace,
   Lock,
+  Clock,
 } from "lucide-react-native";
 import { Header } from "../../components/ui/Header";
 import { Card } from "../../components/ui/Card";
@@ -43,6 +44,8 @@ export const ProfileScreen = () => {
     checkBiometricStatus,
     enableBiometric,
     disableBiometric,
+    autoLogoutMinutes,
+    setAutoLogoutMinutes,
   } = useAuthStore();
 
   const [showServerModal, setShowServerModal] = useState(false);
@@ -66,6 +69,20 @@ export const ProfileScreen = () => {
         },
       },
     ]);
+  };
+
+  const handleSelectAutoLogout = () => {
+    Alert.alert(
+      "Auto Logout Keamanan",
+      "Pilih durasi waktu tidak aktif sebelum aplikasi keluar otomatis demi keamanan akun Anda:",
+      [
+        { text: "5 Menit", onPress: () => setAutoLogoutMinutes(5) },
+        { text: "15 Menit (Standar)", onPress: () => setAutoLogoutMinutes(15) },
+        { text: "30 Menit", onPress: () => setAutoLogoutMinutes(30) },
+        { text: "60 Menit", onPress: () => setAutoLogoutMinutes(60) },
+        { text: "Batal", style: "cancel" },
+      ]
+    );
   };
 
   const handleToggleBiometric = async (value: boolean) => {
@@ -215,6 +232,25 @@ export const ProfileScreen = () => {
               thumbColor={biometricStatus?.isEnabled ? "#15803d" : "#f8fafc"}
             />
           </View>
+
+          <View style={{ height: 1, backgroundColor: "#f1f5f9", marginHorizontal: 16 }} />
+
+          <TouchableOpacity
+            style={styles.clickableMenuItem}
+            onPress={handleSelectAutoLogout}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.iconCircle, { backgroundColor: "#eff6ff" }]}>
+              <Clock size={18} color="#2563eb" />
+            </View>
+            <View style={styles.menuText}>
+              <Text style={styles.menuLabel}>Auto Logout Keamanan</Text>
+              <Text style={styles.menuSubLabel}>
+                Keluar otomatis setelah {autoLogoutMinutes || 15} menit tidak aktif
+              </Text>
+            </View>
+            <ChevronRight size={18} color={Colors.textMuted} />
+          </TouchableOpacity>
         </Card>
 
         {/* App & Server Settings */}
@@ -242,9 +278,9 @@ export const ProfileScreen = () => {
               <Info size={18} color={Colors.primary} />
             </View>
             <View style={styles.menuText}>
-              <Text style={styles.menuLabel}>Versi Aplikasi</Text>
+              <Text style={styles.menuLabel}>Aplikasi</Text>
               <Text style={styles.menuValue}>
-                {APP_CONFIG.appVersion} • {APP_CONFIG.schoolName}
+                {APP_CONFIG.appName} v{APP_CONFIG.appVersion} • {APP_CONFIG.schoolName}
               </Text>
             </View>
           </View>

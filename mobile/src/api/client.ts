@@ -9,7 +9,7 @@ export const apiClient = axios.create({
   headers: {
     "Content-Type": "application/json",
     "X-Client-Platform": "mobile",
-    "X-Client-App": "masdico-mobile",
+    "X-Client-App": "simas-mobile",
   },
 });
 
@@ -27,6 +27,8 @@ apiClient.interceptors.request.use(
       const token = await AsyncStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
+        // Perbarui aktivitas sesi aktif
+        AsyncStorage.setItem(STORAGE_KEYS.LAST_ACTIVE_TIME, String(Date.now())).catch(() => {});
       }
     } catch (e) {
       console.warn("Error reading storage in API interceptor:", e);

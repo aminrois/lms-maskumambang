@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "LMS Maskumambang",
-    "slug": "lms-maskumambang",
+    "name": "SIMAS",
+    "slug": "simas",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -20,7 +20,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#4318FF",
+        "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/android-icon-foreground.png"
       },
       "package": "com.maskumambang.simas",
@@ -40,7 +40,7 @@
       [
         "expo-local-authentication",
         {
-          "faceIDPermission": "Izinkan LMS Maskumambang menggunakan Face ID untuk login cepat."
+          "faceIDPermission": "Izinkan SIMAS menggunakan Face ID untuk login cepat."
         }
       ]
     ],
