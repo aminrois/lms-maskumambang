@@ -14,9 +14,7 @@ import {
   RefreshCw,
   BookOpen,
   SunMedium,
-  Check,
   X,
-  Copy,
 } from "lucide-react";
 import { toast } from "sonner";
 import { apiClient } from "../../lib/api/axios";
