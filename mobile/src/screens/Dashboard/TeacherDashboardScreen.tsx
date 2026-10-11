@@ -53,6 +53,11 @@ import {
   Eye,
   Users,
   CalendarDays,
+  CheckCheck,
+  ClipboardList,
+  Layers,
+  FileCheck2,
+  TrendingUp,
 } from "lucide-react-native";
 import { Colors } from "../../constants/colors";
 import { useAuthStore } from "../../store/useAuthStore";
@@ -339,24 +344,36 @@ export const TeacherDashboardScreen = () => {
       ];
     }
 
-    // Default Guru Mapel
+    // Default Guru Mapel (12 Menu Items)
     return [
       {
-        title: "LMS Guru",
-        icon: <GraduationCap size={24} color="#FFFFFF" />,
-        bg: "#10b981",
-        onPress: () => navigation.navigate("Lms"),
+        title: "Absensi Mapel",
+        icon: <CheckCheck size={24} color="#FFFFFF" />,
+        bg: "#2563EB",
+        onPress: () => navigation.navigate("AbsensiMapel"),
       },
       {
-        title: "Jadwal Mengajar",
+        title: "Jurnal Mengajar",
+        icon: <ClipboardList size={24} color="#FFFFFF" />,
+        bg: "#7C3AED",
+        onPress: () => navigation.navigate("Lms", { tab: "jurnal" }),
+      },
+      {
+        title: "Lesson Plan",
+        icon: <FileCheck2 size={24} color="#FFFFFF" />,
+        bg: "#D97706",
+        onPress: () => navigation.navigate("Lms", { tab: "rpp" }),
+      },
+      {
+        title: "Rekap Absensi",
+        icon: <Layers size={24} color="#FFFFFF" />,
+        bg: "#0284C7",
+        onPress: () => navigation.navigate("Lms", { tab: "rekap" }),
+      },
+      {
+        title: "Jadwal Guru",
         icon: <Calendar size={24} color="#FFFFFF" />,
         bg: "#059669",
-        onPress: () => navigation.navigate("Jadwal"),
-      },
-      {
-        title: "Presensi Guru",
-        icon: <CheckCircle2 size={24} color="#FFFFFF" />,
-        bg: "#8b5cf6",
         onPress: () => navigation.navigate("Jadwal"),
       },
       {
@@ -368,26 +385,49 @@ export const TeacherDashboardScreen = () => {
       {
         title: "Doa & Dzikir",
         icon: <BookMarked size={24} color="#FFFFFF" />,
-        bg: "#0284c7",
+        bg: "#0284C7",
         onPress: () => navigation.navigate("DoaDzikir"),
-      },
-      {
-        title: "Arah Kiblat",
-        icon: <Compass size={24} color="#FFFFFF" />,
-        bg: "#162E6E",
-        onPress: () => navigation.navigate("ArahKiblat"),
       },
       {
         title: "Berita",
         icon: <Newspaper size={24} color="#FFFFFF" />,
-        bg: "#f43f5e",
+        bg: "#F43F5E",
         onPress: () => navigation.navigate("Berita"),
       },
       {
-        title: "Setoran Hafalan",
-        icon: <ScrollText size={24} color="#FFFFFF" />,
-        bg: "#3b82f6",
-        onPress: () => navigation.navigate("TahfidzSetoran"),
+        title: "Arah Kiblat",
+        icon: <Compass size={24} color="#FFFFFF" />,
+        bg: "#0D9488",
+        onPress: () => navigation.navigate("ArahKiblat"),
+      },
+      {
+        title: "Alarm",
+        icon: <Bell size={24} color="#FFFFFF" />,
+        bg: "#EA580C",
+        badge: "SOON",
+        onPress: () =>
+          Alert.alert(
+            "Fitur Segera Hadir",
+            "Fitur Alarm Pengingat sedang dalam tahap pengembangan dan akan segera tersedia."
+          ),
+      },
+      {
+        title: "Performa",
+        icon: <TrendingUp size={24} color="#FFFFFF" />,
+        bg: "#8B5CF6",
+        badge: "SOON",
+        onPress: () =>
+          Alert.alert(
+            "Fitur Segera Hadir",
+            "Fitur Evaluasi & Performa Guru sedang dalam tahap pengembangan dan akan segera tersedia."
+          ),
+      },
+      {
+        title: "Kalender",
+        icon: <CalendarDays size={24} color="#FFFFFF" />,
+        bg: "#4F46E5",
+        badge: "SOON",
+        onPress: () => navigation.navigate("Event"),
       },
     ];
   }, [isPimpinan, isTahfidz, isWaliKls]);
@@ -644,48 +684,87 @@ export const TeacherDashboardScreen = () => {
         </View>
 
         {/* ═══════════════════════════════════════════════════════
-            4. DUA KARTU FITUR UTAMA: BIMBINGAN & JADWAL / SUPERVISI
+            4. DUA KARTU FITUR UTAMA: LESSON PLAN / BIMBINGAN & JADWAL / SUPERVISI
         ════════════════════════════════════════════════════════ */}
         <View style={styles.dualCardContainer}>
-          {/* Card Kiri: Bimbingan & Konseling (Guidance) */}
-          <TouchableOpacity
-            style={styles.dualCard}
-            onPress={() => navigation.navigate("GuidanceHome")}
-            activeOpacity={0.85}
-          >
-            <View style={styles.dualCardHeader}>
-              <View style={styles.dualCardTitleRow}>
-                <Compass size={16} color="#162E6E" />
-                <Text style={styles.dualCardTitle}>Bimbingan Santri</Text>
-              </View>
-              <ChevronRight size={14} color="#94A3B8" />
-            </View>
-
-            <View style={styles.lmsClassBox}>
-              <View style={styles.lmsClassTop}>
-                <View style={[styles.lmsIconBox, { backgroundColor: "#EFF6FF" }]}>
-                  <Sparkles size={18} color="#162E6E" />
+          {/* Card Kiri: Lesson Plan (Guru) / Bimbingan Santri (Wali Kelas & Pimpinan) */}
+          {!isWaliKls && !isPimpinan ? (
+            <TouchableOpacity
+              style={styles.dualCard}
+              onPress={() => navigation.navigate("Lms", { tab: "rpp" })}
+              activeOpacity={0.85}
+            >
+              <View style={styles.dualCardHeader}>
+                <View style={styles.dualCardTitleRow}>
+                  <FileCheck2 size={16} color="#D97706" />
+                  <Text style={styles.dualCardTitle}>Lesson Plan</Text>
                 </View>
-                <View style={[styles.lmsClassBadge, { backgroundColor: "#EFF6FF" }]}>
-                  <Text style={[styles.lmsClassBadgeText, { color: "#1D4ED8" }]}>Profil 360°</Text>
+                <ChevronRight size={14} color="#94A3B8" />
+              </View>
+
+              <View style={styles.lmsClassBox}>
+                <View style={styles.lmsClassTop}>
+                  <View style={[styles.lmsIconBox, { backgroundColor: "#FFFBEB" }]}>
+                    <FileCheck2 size={18} color="#D97706" />
+                  </View>
+                  <View style={[styles.lmsClassBadge, { backgroundColor: "#FFFBEB" }]}>
+                    <Text style={[styles.lmsClassBadgeText, { color: "#D97706" }]}>RPP Aktif</Text>
+                  </View>
                 </View>
+
+                <Text style={styles.lmsClassName} numberOfLines={1}>
+                  Perangkat Ajar
+                </Text>
+                <Text style={styles.lmsTeacherName} numberOfLines={1}>
+                  RPP & Modul Pembelajaran
+                </Text>
+
+                <View style={[styles.progressBarBg, { marginTop: 8 }]}>
+                  <View style={[styles.progressBarFill, { width: "100%", backgroundColor: "#D97706" }]} />
+                </View>
+                <Text style={[styles.progressStatusText, { color: "#D97706" }]}>Buka Lesson Plan ›</Text>
+              </View>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.dualCard}
+              onPress={() => navigation.navigate("GuidanceHome")}
+              activeOpacity={0.85}
+            >
+              <View style={styles.dualCardHeader}>
+                <View style={styles.dualCardTitleRow}>
+                  <Compass size={16} color="#162E6E" />
+                  <Text style={styles.dualCardTitle}>Bimbingan Santri</Text>
+                </View>
+                <ChevronRight size={14} color="#94A3B8" />
               </View>
 
-              <Text style={styles.lmsClassName} numberOfLines={1}>
-                9 Aspek Fundamental
-              </Text>
-              <Text style={styles.lmsTeacherName} numberOfLines={1}>
-                Pemantauan & Sesi Konseling
-              </Text>
+              <View style={styles.lmsClassBox}>
+                <View style={styles.lmsClassTop}>
+                  <View style={[styles.lmsIconBox, { backgroundColor: "#EFF6FF" }]}>
+                    <Sparkles size={18} color="#162E6E" />
+                  </View>
+                  <View style={[styles.lmsClassBadge, { backgroundColor: "#EFF6FF" }]}>
+                    <Text style={[styles.lmsClassBadgeText, { color: "#1D4ED8" }]}>Profil 360°</Text>
+                  </View>
+                </View>
 
-              <View style={[styles.progressBarBg, { marginTop: 8 }]}>
-                <View style={[styles.progressBarFill, { width: "80%", backgroundColor: "#162E6E" }]} />
+                <Text style={styles.lmsClassName} numberOfLines={1}>
+                  9 Aspek Fundamental
+                </Text>
+                <Text style={styles.lmsTeacherName} numberOfLines={1}>
+                  Pemantauan & Sesi Konseling
+                </Text>
+
+                <View style={[styles.progressBarBg, { marginTop: 8 }]}>
+                  <View style={[styles.progressBarFill, { width: "80%", backgroundColor: "#162E6E" }]} />
+                </View>
+                <Text style={styles.progressStatusText}>Pantau Santri Binaan ›</Text>
               </View>
-              <Text style={styles.progressStatusText}>Pantau Santri Binaan ›</Text>
-            </View>
-          </TouchableOpacity>
+            </TouchableOpacity>
+          )}
 
-          {/* Card Kanan: Supervisi KBM (Pimpinan) / Jadwal Kelas (WaliKls) / Jadwal Mengajar (Guru) */}
+          {/* Card Kanan: Supervisi KBM (Pimpinan) / Jadwal Kelas (WaliKls) / Jadwal Guru (Guru) */}
           {isPimpinan ? (
             <TouchableOpacity
               style={styles.dualCard}
@@ -769,7 +848,7 @@ export const TeacherDashboardScreen = () => {
               <View style={styles.dualCardHeader}>
                 <View style={styles.dualCardTitleRow}>
                   <Calendar size={16} color="#15803d" />
-                  <Text style={styles.dualCardTitle}>Jadwal Mengajar</Text>
+                  <Text style={styles.dualCardTitle}>Jadwal Guru</Text>
                 </View>
                 <ChevronRight size={14} color="#94A3B8" />
               </View>
@@ -794,7 +873,7 @@ export const TeacherDashboardScreen = () => {
                 <View style={[styles.progressBarBg, { marginTop: 8 }]}>
                   <View style={[styles.progressBarFill, { width: "100%", backgroundColor: "#15803d" }]} />
                 </View>
-                <Text style={styles.progressStatusText}>Buka Jadwal KBM ›</Text>
+                <Text style={styles.progressStatusText}>Buka Jadwal Guru ›</Text>
               </View>
             </TouchableOpacity>
           )}

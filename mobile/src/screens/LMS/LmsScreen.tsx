@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useNavigation, useIsFocused } from "@react-navigation/native";
+import { useNavigation, useIsFocused, useRoute } from "@react-navigation/native";
 import {
   Calendar,
   FileSpreadsheet,
@@ -42,13 +42,21 @@ type TabType = "jadwal" | "jurnal" | "rpp" | "rekap";
 
 export const LmsScreen = () => {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const isFocused = useIsFocused();
   const { user } = useAuthStore();
 
-  const [activeTab, setActiveTab] = useState<TabType>("jadwal");
+  const initialTab = (route.params?.tab as TabType) || "jadwal";
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab);
   const [activeDay, setActiveDay] = useState<string>("Senin");
   const [loading, setLoading] = useState<boolean>(false);
   const [refreshing, setRefreshing] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (route.params?.tab) {
+      setActiveTab(route.params.tab as TabType);
+    }
+  }, [route.params?.tab]);
 
   // Data states
   const [jadwalList, setJadwalList] = useState<JadwalItem[]>([]);

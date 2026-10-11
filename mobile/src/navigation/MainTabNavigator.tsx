@@ -13,14 +13,16 @@ import {
   ScanLine,
   BookMarked,
   CalendarDays,
+  CheckCheck,
 } from "lucide-react-native";
 import { TeacherDashboardScreen } from "../screens/Dashboard/TeacherDashboardScreen";
 import { ParentDashboardScreen } from "../screens/Dashboard/ParentDashboardScreen";
 import { TilawahScreen } from "../screens/Tilawah/TilawahScreen";
+import { AbsensiMapelScreen } from "../screens/Absensi/AbsensiMapelScreen";
 import { EventScreen } from "../screens/Event/EventScreen";
 import { ProfileScreen } from "../screens/Profile/ProfileScreen";
 import { useAuthStore } from "../store/useAuthStore";
-import { isWaliMurid } from "../utils/permissions";
+import { isWaliMurid, isWaliKelasRole } from "../utils/permissions";
 import { Colors } from "../constants/colors";
 
 const Tab = createBottomTabNavigator();
@@ -31,6 +33,7 @@ export const MainTabNavigator = () => {
   const insets = useSafeAreaInsets();
 
   const isWali = isWaliMurid(activeRole || user);
+  const isWaliKls = isWaliKelasRole(activeRole || user);
   const DashboardComponent = isWali ? ParentDashboardScreen : TeacherDashboardScreen;
 
   // Dynamic bottom padding: accounts for Android gesture nav bar
@@ -72,15 +75,26 @@ export const MainTabNavigator = () => {
           }}
         />
 
-        {/* 2. Tilawah */}
-        <Tab.Screen
-          name="TilawahTab"
-          component={TilawahScreen}
-          options={{
-            tabBarLabel: "Tilawah",
-            tabBarIcon: ({ color }) => <BookOpen size={22} color={color} />,
-          }}
-        />
+        {/* 2. Absensi (Role Guru) / Tilawah (Wali Kelas & Wali Murid) */}
+        {isWaliKls || isWali ? (
+          <Tab.Screen
+            name="TilawahTab"
+            component={TilawahScreen}
+            options={{
+              tabBarLabel: "Tilawah",
+              tabBarIcon: ({ color }) => <BookOpen size={22} color={color} />,
+            }}
+          />
+        ) : (
+          <Tab.Screen
+            name="AbsensiTab"
+            component={AbsensiMapelScreen}
+            options={{
+              tabBarLabel: "Absensi",
+              tabBarIcon: ({ color }) => <CheckCheck size={22} color={color} />,
+            }}
+          />
+        )}
 
         {/* 3. Scan (Center Elevated - DISABLED, dalam pengembangan) */}
         <Tab.Screen
