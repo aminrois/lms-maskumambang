@@ -13,6 +13,7 @@ import {
   Dimensions,
   Platform,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
@@ -539,14 +540,22 @@ export const ParentDashboardScreen = () => {
               <Text style={styles.gridCardTitle}>Detail Santri</Text>
             </TouchableOpacity>
 
-            {/* 8. Izin Santri */}
+            {/* 8. Izin Santri (SOON) */}
             <TouchableOpacity
               style={styles.gridCard}
-              onPress={() => setShowIzinModal(true)}
+              onPress={() =>
+                Alert.alert(
+                  "Fitur Segera Hadir",
+                  "Fitur Pengajuan Izin Santri sedang dalam tahap pengembangan dan akan segera tersedia pada pembaruan mendatang."
+                )
+              }
               activeOpacity={0.8}
             >
               <View style={[styles.gridIconCircle, { backgroundColor: "#EA580C" }]}>
                 <FileText size={24} color="#FFFFFF" />
+                <View style={styles.soonBadge}>
+                  <Text style={styles.soonBadgeText}>SOON</Text>
+                </View>
               </View>
               <Text style={styles.gridCardTitle}>Izin Santri</Text>
             </TouchableOpacity>

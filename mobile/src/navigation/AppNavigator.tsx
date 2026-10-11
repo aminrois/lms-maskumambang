@@ -118,8 +118,8 @@ export const AppNavigator = () => {
         <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
         <Image
           source={require("../../assets/splash.png")}
-          style={StyleSheet.absoluteFill}
-          resizeMode="cover"
+          style={styles.splashImage}
+          resizeMode="contain"
         />
         <View style={styles.splashLoader}>
           <ActivityIndicator size="small" color="#162E6E" />
@@ -355,6 +355,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
+  },
+  splashImage: {
+    width: "100%",
+    height: "100%",
   },
   splashLoader: {
     position: "absolute",
