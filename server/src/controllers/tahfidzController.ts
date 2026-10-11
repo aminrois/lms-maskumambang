@@ -546,6 +546,9 @@ export const getSantriTahfidz = async (req: Request, res: Response, next: NextFu
 
     if (targetKelasIds.length > 0) {
       whereSiswa.kelas_id = { in: targetKelasIds };
+      if (lembaga_id) {
+        whereSiswa.kelas = { lembaga_id: Number(lembaga_id) };
+      }
     } else if (lembaga_id) {
       whereSiswa.kelas = { lembaga_id: Number(lembaga_id) };
     } else if (userLembagaIds.length > 0) {

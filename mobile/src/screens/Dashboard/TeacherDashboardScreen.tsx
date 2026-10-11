@@ -234,45 +234,22 @@ export const TeacherDashboardScreen = () => {
           onPress: () => navigation.navigate("TahfidzTarget"),
         },
         {
-          title: "Alarm",
-          icon: <Bell size={24} color="#FFFFFF" />,
-          bg: "#EA580C",
-          badge: "SOON",
-          onPress: () =>
-            Alert.alert(
-              "Fitur Segera Hadir",
-              "Fitur Alarm Pengingat sedang dalam tahap pengembangan dan akan segera tersedia."
-            ),
-        },
-        {
           title: "Al-Qur'an",
           icon: <BookOpen size={24} color="#FFFFFF" />,
           bg: "#059669",
           onPress: () => navigation.navigate("Quran"),
         },
         {
-          title: "Performa",
-          icon: <TrendingUp size={24} color="#FFFFFF" />,
-          bg: "#8B5CF6",
-          badge: "SOON",
-          onPress: () =>
-            Alert.alert(
-              "Fitur Segera Hadir",
-              "Fitur Evaluasi & Performa Guru sedang dalam tahap pengembangan dan akan segera tersedia."
-            ),
-        },
-        {
-          title: "Kalender",
-          icon: <CalendarDays size={24} color="#FFFFFF" />,
-          bg: "#4F46E5",
-          badge: "SOON",
-          onPress: () => navigation.navigate("Event"),
-        },
-        {
           title: "Doa & Dzikir",
           icon: <BookMarked size={24} color="#FFFFFF" />,
           bg: "#0284C7",
           onPress: () => navigation.navigate("DoaDzikir"),
+        },
+        {
+          title: "Jadwal",
+          icon: <Calendar size={24} color="#FFFFFF" />,
+          bg: "#0284C7",
+          onPress: () => navigation.navigate("Jadwal"),
         },
         {
           title: "Berita",
@@ -287,10 +264,33 @@ export const TeacherDashboardScreen = () => {
           onPress: () => navigation.navigate("ArahKiblat"),
         },
         {
-          title: "Jadwal",
-          icon: <Calendar size={24} color="#FFFFFF" />,
-          bg: "#0284C7",
-          onPress: () => navigation.navigate("Jadwal"),
+          title: "Performa",
+          icon: <TrendingUp size={24} color="#FFFFFF" />,
+          bg: "#8B5CF6",
+          badge: "SOON",
+          onPress: () =>
+            Alert.alert(
+              "Fitur Segera Hadir",
+              "Fitur Evaluasi & Performa Guru sedang dalam tahap pengembangan dan akan segera tersedia."
+            ),
+        },
+        {
+          title: "Alarm",
+          icon: <Bell size={24} color="#FFFFFF" />,
+          bg: "#EA580C",
+          badge: "SOON",
+          onPress: () =>
+            Alert.alert(
+              "Fitur Segera Hadir",
+              "Fitur Alarm Pengingat sedang dalam tahap pengembangan dan akan segera tersedia."
+            ),
+        },
+        {
+          title: "Kalender",
+          icon: <CalendarDays size={24} color="#FFFFFF" />,
+          bg: "#4F46E5",
+          badge: "SOON",
+          onPress: () => navigation.navigate("Event"),
         },
       ];
     }

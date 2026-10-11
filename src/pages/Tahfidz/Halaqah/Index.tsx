@@ -8,6 +8,7 @@ import {
 import { toast } from "sonner";
 import { tahfidzService, type HalaqahItem } from "../../../lib/api/services/tahfidzService";
 import { apiClient } from "../../../lib/api/axios";
+import { useAuthStore } from "../../../store/useAuthStore";
 
 const getInitials = (name: string) =>
   name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
@@ -27,6 +28,9 @@ function Badge({ label, color }: { label: string; color: string }) {
 
 const KelompokHalaqahPage: React.FC = () => {
   const queryClient = useQueryClient();
+  const { user, role, roles, lembaga_id: activeLembagaId } = useAuthStore();
+  const isGuruTahfidz = role === "Guru Tahfidz";
+
   const [lembagaId, setLembagaId] = useState<string>("");
   const [tahunId, setTahunId] = useState<string>("");
   const [search, setSearch] = useState<string>("");
@@ -62,10 +66,21 @@ const KelompokHalaqahPage: React.FC = () => {
     return active?.tahun_id?.toString() || "";
   }, [tahunList]);
 
-  const { data: guruList = [] } = useQuery<any[]>({
-    queryKey: ["guru-tahfidz-list", lembagaId],
-    queryFn: () => tahfidzService.getGuruTahfidzList(lembagaId ? { lembaga_id: Number(lembagaId) } : undefined),
-    staleTime: 30000,
+  // Query penugasan pengampu untuk guru tahfidz
+  const { data: pengampuList = [] } = useQuery<any[]>({
+    queryKey: ["pengampu-list", user?.pegawai_id],
+    queryFn: () =>
+      user?.pegawai_id
+        ? tahfidzService.getPengampu({ pegawai_id: user.pegawai_id })
+        : tahfidzService.getPengampu(),
+    enabled: !!user?.pegawai_id,
+    staleTime: 60000,
+  });
+
+  const { data: allGuruList = [] } = useQuery<any[]>({
+    queryKey: ["all-guru-tahfidz-list"],
+    queryFn: () => tahfidzService.getGuruTahfidzList(),
+    staleTime: 60000,
   });
 
   const { data: santriAll = [] } = useQuery<any[]>({
@@ -83,6 +98,82 @@ const KelompokHalaqahPage: React.FC = () => {
     }),
     staleTime: 15000,
   });
+
+  // Filter daftar lembaga yang diampu khusus guru tahfidz
+  const guruLembagaList = useMemo(() => {
+    if (!isGuruTahfidz) {
+      return lembagaList;
+    }
+
+    const map = new Map<number, { lembaga_id: number; nama_lembaga: string; nama?: string }>();
+
+    // 1. Dari activeRole lembaga_id
+    if (activeLembagaId) {
+      const activeObj = (roles || []).find((r: any) => Number(r.lembaga_id) === Number(activeLembagaId));
+      const master = (lembagaList as any[]).find((l: any) => Number(l.lembaga_id) === Number(activeLembagaId));
+      const name = master?.nama_lembaga || master?.nama || activeObj?.lembaga_name;
+      if (name) map.set(Number(activeLembagaId), { lembaga_id: Number(activeLembagaId), nama_lembaga: name, nama: name });
+    }
+
+    // 2. Dari tahfidz_pengampu
+    (pengampuList as any[]).forEach((p) => {
+      const lid = Number(p.lembaga_id || p.lembaga?.lembaga_id || p.kelas?.lembaga_id);
+      const master = (lembagaList as any[]).find((l: any) => Number(l.lembaga_id) === lid);
+      const name =
+        master?.nama_lembaga ||
+        master?.nama ||
+        p.lembaga?.nama_lembaga ||
+        p.lembaga?.nama ||
+        p.kelas?.lembaga?.nama_lembaga;
+      if (lid && name) map.set(lid, { lembaga_id: lid, nama_lembaga: name, nama: name });
+    });
+
+    // 3. Dari roles user
+    (roles || []).forEach((r: any) => {
+      if (
+        r.lembaga_id &&
+        (r.role?.toLowerCase().includes("tahfidz") || r.role?.toLowerCase().includes("guru"))
+      ) {
+        const lid = Number(r.lembaga_id);
+        const master = (lembagaList as any[]).find((l: any) => Number(l.lembaga_id) === lid);
+        const name = master?.nama_lembaga || master?.nama || r.lembaga_name;
+        if (name) map.set(lid, { lembaga_id: lid, nama_lembaga: name, nama: name });
+      }
+    });
+
+    // 4. Dari halaqah list
+    (halaqahList as any[]).forEach((h) => {
+      const lid = Number(h.lembaga?.lembaga_id || h.lembaga_id);
+      const master = (lembagaList as any[]).find((l: any) => Number(l.lembaga_id) === lid);
+      const name = master?.nama_lembaga || master?.nama || h.lembaga?.nama_lembaga || h.lembaga?.nama;
+      if (lid && name) map.set(lid, { lembaga_id: lid, nama_lembaga: name, nama: name });
+    });
+
+    // 5. Dari santri binaan
+    (santriAll as any[]).forEach((s) => {
+      const lid = Number(s.kelas?.lembaga?.lembaga_id || s.kelas?.lembaga_id);
+      const master = (lembagaList as any[]).find((l: any) => Number(l.lembaga_id) === lid);
+      const name = master?.nama_lembaga || master?.nama || s.kelas?.lembaga?.nama_lembaga;
+      if (lid && name) map.set(lid, { lembaga_id: lid, nama_lembaga: name, nama: name });
+    });
+
+    if (map.size > 0) {
+      return Array.from(map.values());
+    }
+
+    return lembagaList;
+  }, [isGuruTahfidz, activeLembagaId, roles, pengampuList, halaqahList, santriAll, lembagaList]);
+
+  // Set default lembagaId di toolbar jika guru tahfidz
+  React.useEffect(() => {
+    if (isGuruTahfidz && !lembagaId) {
+      if (activeLembagaId) {
+        setLembagaId(activeLembagaId.toString());
+      } else if (guruLembagaList.length > 0) {
+        setLembagaId(guruLembagaList[0].lembaga_id.toString());
+      }
+    }
+  }, [isGuruTahfidz, activeLembagaId, guruLembagaList, lembagaId]);
 
   const filteredList = useMemo(() => {
     if (!search.trim()) return halaqahList;
@@ -130,8 +221,8 @@ const KelompokHalaqahPage: React.FC = () => {
         <div className="flex flex-wrap gap-2 flex-1">
           <select value={lembagaId} onChange={(e) => setLembagaId(e.target.value)}
             className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 min-w-[130px]">
-            <option value="">Semua Lembaga</option>
-            {(lembagaList as any[]).map((l) => <option key={l.lembaga_id} value={l.lembaga_id}>{l.nama_lembaga || l.nama}</option>)}
+            <option value="">{isGuruTahfidz ? "Semua Lembaga Diampu" : "Semua Lembaga"}</option>
+            {(guruLembagaList as any[]).map((l) => <option key={l.lembaga_id} value={l.lembaga_id}>{l.nama_lembaga || l.nama}</option>)}
           </select>
           <select value={tahunId} onChange={(e) => setTahunId(e.target.value)}
             className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 min-w-[130px]">
@@ -193,17 +284,28 @@ const KelompokHalaqahPage: React.FC = () => {
       )}
 
       {showFormModal && (
-        <HalaqahFormModal initial={editTarget} guruList={guruList as any[]} lembagaList={lembagaList as any[]}
+        <HalaqahFormModal
+          initial={editTarget}
+          guruList={allGuruList as any[]}
+          lembagaList={guruLembagaList as any[]}
           santriAll={santriAll as any[]}
+          activeLembagaId={lembagaId || (activeLembagaId ? activeLembagaId.toString() : "")}
           onClose={() => { setShowFormModal(false); setEditTarget(null); }}
-          onSuccess={() => { setShowFormModal(false); setEditTarget(null); queryClient.invalidateQueries({ queryKey: ["halaqah-list"] }); }} />
+          onSuccess={() => { setShowFormModal(false); setEditTarget(null); queryClient.invalidateQueries({ queryKey: ["halaqah-list"] }); }}
+        />
       )}
 
       {showKolosalModal && (
-        <KolosalModal guruList={guruList as any[]} lembagaList={lembagaList as any[]} tahunList={tahunList as any[]}
-          santriAll={santriAll as any[]} activeLembagaId={lembagaId} activeTahunId={tahunId || activeTahunId}
+        <KolosalModal
+          guruList={allGuruList as any[]}
+          lembagaList={guruLembagaList as any[]}
+          tahunList={tahunList as any[]}
+          santriAll={santriAll as any[]}
+          activeLembagaId={lembagaId || (activeLembagaId ? activeLembagaId.toString() : "")}
+          activeTahunId={tahunId || activeTahunId}
           onClose={() => setShowKolosalModal(false)}
-          onSuccess={() => { setShowKolosalModal(false); queryClient.invalidateQueries({ queryKey: ["halaqah-list"] }); }} />
+          onSuccess={() => { setShowKolosalModal(false); queryClient.invalidateQueries({ queryKey: ["halaqah-list"] }); }}
+        />
       )}
 
       {showDetailDrawer && detailTarget && (
@@ -298,46 +400,128 @@ function HalaqahCard({ halaqah, onView, onEdit, onDelete }: { halaqah: HalaqahIt
   );
 }
 
-function HalaqahFormModal({ initial, guruList, lembagaList, santriAll, onClose, onSuccess }: {
-  initial: HalaqahItem | null; guruList: any[]; lembagaList: any[]; santriAll: any[]; onClose: () => void; onSuccess: () => void;
+function HalaqahFormModal({
+  initial,
+  guruList,
+  lembagaList,
+  santriAll,
+  activeLembagaId,
+  onClose,
+  onSuccess,
+}: {
+  initial: HalaqahItem | null;
+  guruList: any[];
+  lembagaList: any[];
+  santriAll: any[];
+  activeLembagaId?: string;
+  onClose: () => void;
+  onSuccess: () => void;
 }) {
+  const { user, role } = useAuthStore();
+  const isGuruTahfidz = role === "Guru Tahfidz";
+  const teacherPegawaiId = user?.pegawai_id;
+
   const isEdit = !!initial;
   const [nama, setNama] = useState(initial?.nama_halaqah || "");
-  const [lembagaId, setLembagaId] = useState(initial?.lembaga_id?.toString() || "");
-  const [pegawaiId, setPegawaiId] = useState(initial?.pegawai_id?.toString() || "");
+
+  const defaultLembaga =
+    initial?.lembaga_id?.toString() ||
+    (activeLembagaId || (lembagaList[0]?.lembaga_id?.toString() || ""));
+  const [lembagaId, setLembagaId] = useState(defaultLembaga);
+
+  const defaultPegawai =
+    initial?.pegawai_id?.toString() ||
+    (isGuruTahfidz && teacherPegawaiId ? teacherPegawaiId.toString() : "");
+  const [pegawaiId, setPegawaiId] = useState(defaultPegawai);
+
   const [deskripsi, setDeskripsi] = useState(initial?.deskripsi || "");
   const [status, setStatus] = useState(initial?.status || "Aktif");
-  const [selectedSiswaIds, setSelectedSiswaIds] = useState<number[]>(initial?.anggota?.map((a) => a.siswa_id) || []);
+  const [selectedSiswaIds, setSelectedSiswaIds] = useState<number[]>(
+    initial?.anggota?.map((a) => a.siswa_id) || []
+  );
   const [santriSearch, setSantriSearch] = useState("");
 
+  // Ambil santri untuk lembaga yang dipilih di form
+  const { data: modalSantri = [] } = useQuery<any[]>({
+    queryKey: ["santri-form-halaqah", lembagaId],
+    queryFn: () =>
+      tahfidzService.getSantriTahfidz(
+        lembagaId ? { lembaga_id: Number(lembagaId) } : undefined
+      ),
+    enabled: !!lembagaId,
+    staleTime: 30000,
+  });
+
+  const currentTeacherName = useMemo(() => {
+    if (initial?.pegawai?.nama) return initial.pegawai.nama;
+    const found = guruList.find(
+      (g) => Number(g.pegawai_id) === Number(teacherPegawaiId)
+    );
+    return found?.nama || user?.username || "Ustadz Pengampu";
+  }, [initial, guruList, teacherPegawaiId, user]);
+
   const filteredSantri = useMemo(() => {
+    const sourceList =
+      modalSantri && modalSantri.length > 0 ? modalSantri : santriAll;
     const list = lembagaId
-      ? santriAll.filter((s: any) => s.kelas?.lembaga?.lembaga_id === Number(lembagaId) || s.kelas?.lembaga_id === Number(lembagaId))
-      : santriAll;
+      ? sourceList.filter(
+          (s: any) =>
+            s.kelas?.lembaga?.lembaga_id === Number(lembagaId) ||
+            s.kelas?.lembaga_id === Number(lembagaId)
+        )
+      : sourceList;
     const q = santriSearch.toLowerCase().trim();
     if (!q) return list;
-    return list.filter((s: any) => s.nama?.toLowerCase().includes(q) || s.nis?.toLowerCase().includes(q) || s.nisn?.toLowerCase().includes(q));
-  }, [santriAll, santriSearch, lembagaId]);
+    return list.filter(
+      (s: any) =>
+        s.nama?.toLowerCase().includes(q) ||
+        s.nis?.toLowerCase().includes(q) ||
+        s.nisn?.toLowerCase().includes(q) ||
+        s.kelas?.nama_kelas?.toLowerCase().includes(q)
+    );
+  }, [modalSantri, santriAll, santriSearch, lembagaId]);
 
   const toggleSiswa = (siswa_id: number) =>
-    setSelectedSiswaIds((prev) => prev.includes(siswa_id) ? prev.filter((id) => id !== siswa_id) : [...prev, siswa_id]);
+    setSelectedSiswaIds((prev) =>
+      prev.includes(siswa_id)
+        ? prev.filter((id) => id !== siswa_id)
+        : [...prev, siswa_id]
+    );
+
+  const finalPegawaiId = isGuruTahfidz
+    ? teacherPegawaiId || pegawaiId
+    : pegawaiId;
 
   const mutation = useMutation({
     mutationFn: async () => {
-      if (!nama.trim() || !lembagaId || !pegawaiId) throw new Error("Nama kelompok, lembaga, dan ustadz pengampu wajib diisi");
+      if (!nama.trim() || !lembagaId || !finalPegawaiId)
+        throw new Error(
+          "Nama kelompok, lembaga, dan ustadz pengampu wajib diisi"
+        );
       const payload = {
         nama_halaqah: nama.trim(),
         lembaga_id: Number(lembagaId),
-        pegawai_id: Number(pegawaiId),
+        pegawai_id: Number(finalPegawaiId),
         deskripsi: deskripsi.trim() || undefined,
         status,
         siswa_ids: selectedSiswaIds,
       };
-      if (isEdit && initial) return tahfidzService.updateHalaqah(initial.halaqah_id, payload);
+      if (isEdit && initial)
+        return tahfidzService.updateHalaqah(initial.halaqah_id, payload);
       return tahfidzService.createHalaqah(payload);
     },
-    onSuccess: () => { toast.success(isEdit ? "Kelompok halaqoh berhasil diperbarui" : "Kelompok halaqoh berhasil dibuat"); onSuccess(); },
-    onError: (err: any) => toast.error(err.response?.data?.message || err.message || "Gagal menyimpan"),
+    onSuccess: () => {
+      toast.success(
+        isEdit
+          ? "Kelompok halaqoh berhasil diperbarui"
+          : "Kelompok halaqoh berhasil dibuat"
+      );
+      onSuccess();
+    },
+    onError: (err: any) =>
+      toast.error(
+        err.response?.data?.message || err.message || "Gagal menyimpan"
+      ),
   });
 
   return (
@@ -345,84 +529,261 @@ function HalaqahFormModal({ initial, guruList, lembagaList, santriAll, onClose, 
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="flex items-center justify-between p-6 border-b border-slate-100">
           <div>
-            <h2 className="font-black text-slate-800">{isEdit ? "Edit Kelompok Halaqoh" : "Tambah Kelompok Halaqoh"}</h2>
-            <p className="text-xs text-slate-500">Isi informasi kelompok dan pilih anggota santri</p>
+            <h2 className="font-black text-slate-800">
+              {isEdit ? "Edit Kelompok Halaqoh" : "Tambah Kelompok Halaqoh"}
+            </h2>
+            <p className="text-xs text-slate-500">
+              Isi informasi kelompok dan pilih anggota santri
+            </p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl hover:bg-slate-100 transition-colors text-slate-500"><X className="w-5 h-5" /></button>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-xl hover:bg-slate-100 transition-colors text-slate-500 cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
         <div className="overflow-y-auto p-6 space-y-4 flex-1">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-slate-600 mb-1.5">Nama Kelompok *</label>
-              <input value={nama} onChange={(e) => setNama(e.target.value)} placeholder="misal: Halaqah Al-Fatih..."
-                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-blue-500/20 bg-slate-50" />
+              <label className="block text-xs font-bold text-slate-600 mb-1.5">
+                Nama Kelompok *
+              </label>
+              <input
+                value={nama}
+                onChange={(e) => setNama(e.target.value)}
+                placeholder="misal: Halaqah Abu Bakar As-Siddiq..."
+                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-blue-500/20 bg-slate-50"
+              />
             </div>
+
+            {/* Lembaga */}
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1.5">Lembaga *</label>
-              <select value={lembagaId} onChange={(e) => setLembagaId(e.target.value)} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 bg-slate-50">
-                <option value="">-- Pilih Lembaga --</option>
-                {lembagaList.map((l) => <option key={l.lembaga_id} value={l.lembaga_id}>{l.nama_lembaga || l.nama}</option>)}
-              </select>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-bold text-slate-600">
+                  Lembaga *
+                </label>
+                {isGuruTahfidz && (
+                  <span className="text-[10px] font-semibold text-blue-600">
+                    {lembagaList.length} lembaga diampu
+                  </span>
+                )}
+              </div>
+              {isGuruTahfidz && lembagaList.length === 1 ? (
+                <div className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm bg-slate-100 flex items-center justify-between text-slate-800">
+                  <span className="font-semibold text-slate-700">
+                    {lembagaList[0]?.nama_lembaga ||
+                      lembagaList[0]?.nama ||
+                      "Lembaga"}
+                  </span>
+                  <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md">
+                    Diampu
+                  </span>
+                </div>
+              ) : (
+                <select
+                  value={lembagaId}
+                  onChange={(e) => {
+                    setLembagaId(e.target.value);
+                    setSelectedSiswaIds([]);
+                  }}
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 bg-slate-50"
+                >
+                  <option value="">-- Pilih Lembaga --</option>
+                  {lembagaList.map((l: any) => (
+                    <option key={l.lembaga_id} value={l.lembaga_id}>
+                      {l.nama_lembaga || l.nama}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
+
+            {/* Ustadz Pengampu */}
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1.5">Ustadz Pengampu *</label>
-              <select value={pegawaiId} onChange={(e) => setPegawaiId(e.target.value)} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 bg-slate-50">
-                <option value="">-- Pilih Ustadz --</option>
-                {guruList.map((g) => <option key={g.pegawai_id} value={g.pegawai_id}>{g.nama}</option>)}
-              </select>
+              <label className="block text-xs font-bold text-slate-600 mb-1.5">
+                Ustadz Pengampu *
+              </label>
+              {isGuruTahfidz ? (
+                <div className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm bg-slate-100 flex items-center justify-between text-slate-800">
+                  <span className="font-semibold text-slate-700">
+                    {currentTeacherName}
+                  </span>
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                    Auto
+                  </span>
+                </div>
+              ) : (
+                <select
+                  value={pegawaiId}
+                  onChange={(e) => setPegawaiId(e.target.value)}
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 bg-slate-50"
+                >
+                  <option value="">-- Pilih Ustadz --</option>
+                  {guruList.map((g: any) => (
+                    <option key={g.pegawai_id} value={g.pegawai_id}>
+                      {g.nama}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
+
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1.5">Status</label>
-              <select value={status} onChange={(e) => setStatus(e.target.value as "Aktif" | "Tidak Aktif")} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 bg-slate-50">
+              <label className="block text-xs font-bold text-slate-600 mb-1.5">
+                Status
+              </label>
+              <select
+                value={status}
+                onChange={(e) =>
+                  setStatus(e.target.value as "Aktif" | "Tidak Aktif")
+                }
+                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 bg-slate-50"
+              >
                 <option value="Aktif">Aktif</option>
                 <option value="Tidak Aktif">Tidak Aktif</option>
               </select>
             </div>
+
             <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-slate-600 mb-1.5">Deskripsi (Opsional)</label>
-              <textarea rows={2} value={deskripsi} onChange={(e) => setDeskripsi(e.target.value)} placeholder="Catatan tentang kelompok ini..."
-                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-blue-500/20 bg-slate-50 resize-none" />
+              <label className="block text-xs font-bold text-slate-600 mb-1.5">
+                Deskripsi (Opsional)
+              </label>
+              <textarea
+                rows={2}
+                value={deskripsi}
+                onChange={(e) => setDeskripsi(e.target.value)}
+                placeholder="Catatan tentang kelompok ini..."
+                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-blue-500/20 bg-slate-50 resize-none"
+              />
             </div>
           </div>
+
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-bold text-slate-600">Pilih Anggota Santri</label>
-              <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-lg">{selectedSiswaIds.length} terpilih</span>
+              <label className="text-xs font-bold text-slate-600">
+                Pilih Anggota Santri
+              </label>
+              <div className="flex items-center gap-2">
+                {filteredSantri.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const allIds = filteredSantri.map((s: any) => s.siswa_id);
+                      const allSelected = allIds.every((id: number) =>
+                        selectedSiswaIds.includes(id)
+                      );
+                      if (allSelected) {
+                        setSelectedSiswaIds((prev) =>
+                          prev.filter((id) => !allIds.includes(id))
+                        );
+                      } else {
+                        setSelectedSiswaIds((prev) =>
+                          Array.from(new Set([...prev, ...allIds]))
+                        );
+                      }
+                    }}
+                    className="text-[11px] font-bold text-blue-600 hover:underline cursor-pointer"
+                  >
+                    {filteredSantri.every((s: any) =>
+                      selectedSiswaIds.includes(s.siswa_id)
+                    )
+                      ? "Batalkan Semua"
+                      : "Pilih Semua"}
+                  </button>
+                )}
+                <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-lg">
+                  {selectedSiswaIds.length} terpilih
+                </span>
+              </div>
             </div>
             <div className="relative mb-2">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-              <input type="text" placeholder="Cari santri..." value={santriSearch} onChange={(e) => setSantriSearch(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20" />
+              <input
+                type="text"
+                placeholder="Cari santri, kelas, atau NIS..."
+                value={santriSearch}
+                onChange={(e) => setSantriSearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20"
+              />
             </div>
             <div className="border border-slate-200 rounded-2xl overflow-hidden max-h-48 overflow-y-auto">
               {filteredSantri.length === 0 ? (
-                <div className="py-6 text-center text-xs text-slate-400">Tidak ada santri ditemukan</div>
-              ) : filteredSantri.map((s: any) => {
-                const isSelected = selectedSiswaIds.includes(s.siswa_id);
-                return (
-                  <button key={s.siswa_id} type="button" onClick={() => toggleSiswa(s.siswa_id)}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors border-b border-slate-100 last:border-b-0 cursor-pointer ${isSelected ? "bg-blue-50" : "hover:bg-slate-50"}`}>
-                    <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors ${isSelected ? "bg-blue-600 border-blue-600" : "border-slate-300"}`}>
-                      {isSelected && <CheckCircle2 className="w-3 h-3 text-white" />}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold text-slate-800 truncate">{s.nama}</p>
-                      <p className="text-[10px] text-slate-400">{s.kelas?.nama_kelas || "-"} • {s.nisn || "-"}</p>
-                    </div>
-                  </button>
-                );
-              })}
+                <div className="py-6 text-center text-xs text-slate-400">
+                  {lembagaId
+                    ? "Tidak ada santri ditemukan pada lembaga ini"
+                    : "Pilih lembaga terlebih dahulu"}
+                </div>
+              ) : (
+                filteredSantri.map((s: any) => {
+                  const isSelected = selectedSiswaIds.includes(s.siswa_id);
+                  return (
+                    <button
+                      key={s.siswa_id}
+                      type="button"
+                      onClick={() => toggleSiswa(s.siswa_id)}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors border-b border-slate-100 last:border-b-0 cursor-pointer ${
+                        isSelected ? "bg-blue-50" : "hover:bg-slate-50"
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors ${
+                          isSelected
+                            ? "bg-blue-600 border-blue-600"
+                            : "border-slate-300"
+                        }`}
+                      >
+                        {isSelected && (
+                          <CheckCircle2 className="w-3 h-3 text-white" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold text-slate-800 truncate">
+                          {s.nama}
+                        </p>
+                        <p className="text-[10px] text-slate-400">
+                          {s.kelas?.nama_kelas || "-"} • NIS:{" "}
+                          {s.nis || s.nisn || "-"}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })
+              )}
             </div>
             {selectedSiswaIds.length > 0 && (
-              <button type="button" onClick={() => setSelectedSiswaIds([])} className="mt-2 text-[11px] text-red-500 font-semibold hover:underline cursor-pointer">Hapus semua pilihan</button>
+              <button
+                type="button"
+                onClick={() => setSelectedSiswaIds([])}
+                className="mt-2 text-[11px] text-red-500 font-semibold hover:underline cursor-pointer"
+              >
+                Hapus semua pilihan
+              </button>
             )}
           </div>
         </div>
         <div className="flex gap-3 p-6 border-t border-slate-100">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition-colors cursor-pointer">Batal</button>
-          <button onClick={() => mutation.mutate()} disabled={mutation.isPending || !nama.trim() || !lembagaId || !pegawaiId}
-            className="flex-1 py-2.5 rounded-xl bg-[#1A365D] hover:bg-[#2B6CB0] text-white font-bold text-sm transition-colors disabled:opacity-50 cursor-pointer">
-            {mutation.isPending ? "Menyimpan..." : isEdit ? "Simpan Perubahan" : "Buat Kelompok"}
+          <button
+            onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition-colors cursor-pointer"
+          >
+            Batal
+          </button>
+          <button
+            onClick={() => mutation.mutate()}
+            disabled={
+              mutation.isPending ||
+              !nama.trim() ||
+              !lembagaId ||
+              !finalPegawaiId
+            }
+            className="flex-1 py-2.5 rounded-xl bg-[#1A365D] hover:bg-[#2B6CB0] text-white font-bold text-sm transition-colors disabled:opacity-50 cursor-pointer"
+          >
+            {mutation.isPending
+              ? "Menyimpan..."
+              : isEdit
+              ? "Simpan Perubahan"
+              : "Buat Kelompok"}
           </button>
         </div>
       </div>

@@ -126,7 +126,12 @@ export interface TahfidzTargetItem {
 
 export const tahfidzService = {
   // Ambil santri binaan
-  getSantriTahfidz: async (params?: { kelas_id?: number; pegawai_id?: number; halaqah_id?: number }) => {
+  getSantriTahfidz: async (params?: {
+    kelas_id?: number;
+    pegawai_id?: number;
+    halaqah_id?: number;
+    lembaga_id?: number;
+  }) => {
     const res = await apiClient.get("/tahfidz/santri", { params });
     return res.data?.data || [];
   },
@@ -174,7 +179,7 @@ export const tahfidzService = {
   // Tambah halaqoh baru
   createHalaqah: async (payload: {
     nama_halaqah: string;
-    lembaga_id?: number;
+    lembaga_id: number;
     pegawai_id: number;
     tahun_id?: number;
     deskripsi?: string;
@@ -190,6 +195,7 @@ export const tahfidzService = {
     id: number,
     payload: Partial<{
       nama_halaqah: string;
+      lembaga_id: number;
       pegawai_id: number;
       tahun_id: number;
       deskripsi: string;
@@ -205,6 +211,28 @@ export const tahfidzService = {
   deleteHalaqah: async (id: number) => {
     const res = await apiClient.delete(`/tahfidz/halaqah/${id}`);
     return res.data;
+  },
+
+  // Ambil daftar lembaga
+  getLembagaList: async () => {
+    const res = await apiClient.get("/lembaga");
+    return Array.isArray(res.data) ? res.data : res.data?.data || [];
+  },
+
+  // Ambil daftar tahun ajaran
+  getTahunAjaranList: async () => {
+    const res = await apiClient.get("/tahun-ajaran");
+    return Array.isArray(res.data) ? res.data : res.data?.data || [];
+  },
+
+  // Ambil penugasan guru tahfidz (pengampu kelas/lembaga)
+  getPengampu: async (params?: {
+    lembaga_id?: number;
+    pegawai_id?: number;
+    tahun_id?: number;
+  }) => {
+    const res = await apiClient.get("/tahfidz/pengampu", { params });
+    return res.data?.data || [];
   },
 
   // Ambil daftar guru tahfidz
