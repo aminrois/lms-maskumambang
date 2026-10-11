@@ -234,10 +234,15 @@ export const TeacherDashboardScreen = () => {
           onPress: () => navigation.navigate("TahfidzTarget"),
         },
         {
-          title: "Tilawah Harian",
-          icon: <BookOpen size={24} color="#FFFFFF" />,
-          bg: "#7C3AED",
-          onPress: () => navigation.navigate("Tilawah"),
+          title: "Alarm",
+          icon: <Bell size={24} color="#FFFFFF" />,
+          bg: "#EA580C",
+          badge: "SOON",
+          onPress: () =>
+            Alert.alert(
+              "Fitur Segera Hadir",
+              "Fitur Alarm Pengingat sedang dalam tahap pengembangan dan akan segera tersedia."
+            ),
         },
         {
           title: "Al-Qur'an",
@@ -246,16 +251,22 @@ export const TeacherDashboardScreen = () => {
           onPress: () => navigation.navigate("Quran"),
         },
         {
-          title: "Presensi Guru",
-          icon: <CheckCircle2 size={24} color="#FFFFFF" />,
+          title: "Performa",
+          icon: <TrendingUp size={24} color="#FFFFFF" />,
           bg: "#8B5CF6",
-          onPress: () => navigation.navigate("Jadwal"),
+          badge: "SOON",
+          onPress: () =>
+            Alert.alert(
+              "Fitur Segera Hadir",
+              "Fitur Evaluasi & Performa Guru sedang dalam tahap pengembangan dan akan segera tersedia."
+            ),
         },
         {
-          title: "Bimbingan",
-          icon: <Compass size={24} color="#FFFFFF" />,
-          bg: "#162E6E",
-          onPress: () => navigation.navigate("GuidanceHome"),
+          title: "Kalender",
+          icon: <CalendarDays size={24} color="#FFFFFF" />,
+          bg: "#4F46E5",
+          badge: "SOON",
+          onPress: () => navigation.navigate("Event"),
         },
         {
           title: "Doa & Dzikir",

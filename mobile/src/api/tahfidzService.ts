@@ -110,6 +110,20 @@ export interface HalaqahItem {
   };
 }
 
+export interface TahfidzTargetItem {
+  target_id: number;
+  siswa_id: number;
+  kategori: "Al-Quran" | "Hadits" | "Matan Ilmu";
+  target_deskripsi: string;
+  target_nominal: number;
+  satuan: string;
+  tanggal_mulai: string;
+  tanggal_target?: string;
+  status: "Aktif" | "Tercapai" | "Ditunda";
+  created_at?: string;
+  updated_at?: string;
+}
+
 export const tahfidzService = {
   // Ambil santri binaan
   getSantriTahfidz: async (params?: { kelas_id?: number; pegawai_id?: number; halaqah_id?: number }) => {
@@ -218,14 +232,7 @@ export const tahfidzService = {
   },
 
   // Tambah target hafalan santri
-  createTarget: async (payload: {
-    siswa_id: number;
-    kategori: "Al-Quran" | "Hadits" | "Matan Ilmu";
-    target_nominal: number;
-    target_deskripsi?: string;
-    tahun_id?: number;
-    status?: string;
-  }) => {
+  createTarget: async (payload: Partial<TahfidzTargetItem>) => {
     const res = await apiClient.post("/tahfidz/target", payload);
     return res.data;
   },
@@ -233,12 +240,7 @@ export const tahfidzService = {
   // Update target hafalan santri
   updateTarget: async (
     target_id: number,
-    payload: Partial<{
-      kategori: "Al-Quran" | "Hadits" | "Matan Ilmu";
-      target_nominal: number;
-      target_deskripsi?: string;
-      status?: string;
-    }>
+    payload: Partial<TahfidzTargetItem>
   ) => {
     const res = await apiClient.patch(`/tahfidz/target/${target_id}`, payload);
     return res.data;

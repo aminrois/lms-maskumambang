@@ -87,10 +87,10 @@ interface SantriKolosalState {
 interface TargetItemData {
   target_id: number;
   siswa_id: number;
-  kategori: string;
+  kategori: "Al-Quran" | "Hadits" | "Matan Ilmu";
   target_nominal: number;
   target_deskripsi?: string;
-  status: string;
+  status: "Aktif" | "Tercapai" | "Ditunda";
   created_at?: string;
 }
 
@@ -139,7 +139,7 @@ export const TahfidzSetoranScreen = () => {
   // Master Data
   const [santriList, setSantriList] = useState<TahfidzSiswaItem[]>([]);
   const [halaqahList, setHalaqahList] = useState<HalaqahItem[]>([]);
-  const [selectedHalaqahId, setSelectedHalaqahId] = useState<number | "ALL">("ALL");
+  const [selectedHalaqahId, setSelectedHalaqahId] = useState<number | null>(null);
 
   // Mode Individu State
   const [selectedSiswaId, setSelectedSiswaId] = useState<number | null>(null);
@@ -176,7 +176,7 @@ export const TahfidzSetoranScreen = () => {
   const [targetFormKategori, setTargetFormKategori] = useState<"Al-Quran" | "Hadits" | "Matan Ilmu">("Al-Quran");
   const [targetFormNominal, setTargetFormNominal] = useState("30");
   const [targetFormDeskripsi, setTargetFormDeskripsi] = useState("Khatam 30 Juz");
-  const [targetFormStatus, setTargetFormStatus] = useState("Aktif");
+  const [targetFormStatus, setTargetFormStatus] = useState<"Aktif" | "Tercapai" | "Ditunda">("Aktif");
   const [savingTarget, setSavingTarget] = useState(false);
 
   // Common UI State
@@ -384,11 +384,11 @@ export const TahfidzSetoranScreen = () => {
     return santriList.find((s) => s.siswa_id === selectedSiswaId) || null;
   }, [santriList, selectedSiswaId]);
 
-  // Kolosal filtered cards based on halaqah
+  // Kolosal filtered cards based on halaqah (Default kosong agar ringan)
   const displayedKolosalCards = useMemo(() => {
-    if (selectedHalaqahId === "ALL") return kolosalCards;
+    if (!selectedHalaqahId) return [];
     const targetHalaqah = halaqahList.find((h) => h.halaqah_id === selectedHalaqahId);
-    if (!targetHalaqah) return kolosalCards;
+    if (!targetHalaqah) return [];
 
     // Get all member IDs of this halaqah
     const allowedSiswaIds = new Set(targetHalaqah.anggota?.map((a) => a.siswa_id) || []);
@@ -1063,23 +1063,6 @@ export const TahfidzSetoranScreen = () => {
                       </View>
 
                       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.halaqahPills}>
-                        <TouchableOpacity
-                          style={[
-                            styles.halaqahPill,
-                            selectedHalaqahId === "ALL" && styles.halaqahPillActive,
-                          ]}
-                          onPress={() => setSelectedHalaqahId("ALL")}
-                        >
-                          <Text
-                            style={[
-                              styles.halaqahPillText,
-                              selectedHalaqahId === "ALL" && styles.halaqahPillTextActive,
-                            ]}
-                          >
-                            Semua Santri ({santriList.length})
-                          </Text>
-                        </TouchableOpacity>
-
                         {halaqahList.map((h) => {
                           const count = h.anggota?.length || h._count?.anggota || 0;
                           return (
@@ -1104,33 +1087,43 @@ export const TahfidzSetoranScreen = () => {
                         })}
                       </ScrollView>
 
-                      {/* Checkbox Select All / Deselect All */}
-                      <View style={styles.selectionRow}>
-                        <TouchableOpacity
-                          style={styles.selectionBtn}
-                          onPress={() => toggleSelectAll(true)}
-                        >
-                          <CheckCircle size={14} color="#1D4ED8" />
-                          <Text style={styles.selectionBtnText}>Pilih Semua</Text>
-                        </TouchableOpacity>
+                      {/* Checkbox Select All / Deselect All (Hanya tampil saat kelompok dipilih) */}
+                      {selectedHalaqahId && displayedKolosalCards.length > 0 && (
+                        <View style={styles.selectionRow}>
+                          <TouchableOpacity
+                            style={styles.selectionBtn}
+                            onPress={() => toggleSelectAll(true)}
+                          >
+                            <CheckCircle size={14} color="#1D4ED8" />
+                            <Text style={styles.selectionBtnText}>Pilih Semua</Text>
+                          </TouchableOpacity>
 
-                        <TouchableOpacity
-                          style={styles.selectionBtn}
-                          onPress={() => toggleSelectAll(false)}
-                        >
-                          <X size={14} color="#ef4444" />
-                          <Text style={[styles.selectionBtnText, { color: "#ef4444" }]}>
-                            Hapus Pilihan
+                          <TouchableOpacity
+                            style={styles.selectionBtn}
+                            onPress={() => toggleSelectAll(false)}
+                          >
+                            <X size={14} color="#ef4444" />
+                            <Text style={[styles.selectionBtnText, { color: "#ef4444" }]}>
+                              Hapus Pilihan
+                            </Text>
+                          </TouchableOpacity>
+
+                          <Text style={styles.selectedCountText}>
+                            {displayedKolosalCards.filter((c) => c.selected).length} Santri Aktif
                           </Text>
-                        </TouchableOpacity>
-
-                        <Text style={styles.selectedCountText}>
-                          {displayedKolosalCards.filter((c) => c.selected).length} Santri Aktif
-                        </Text>
-                      </View>
+                        </View>
+                      )}
                     </Card>
 
-                    {displayedKolosalCards.length === 0 ? (
+                    {!selectedHalaqahId ? (
+                      <View style={styles.emptyBox}>
+                        <Users size={34} color="#3B82F6" />
+                        <Text style={styles.emptyTitle}>Pilih Kelompok Halaqoh</Text>
+                        <Text style={styles.emptySubtitle}>
+                          Silakan pilih salah satu kelompok halaqoh di atas untuk menampilkan daftar santri binaan.
+                        </Text>
+                      </View>
+                    ) : displayedKolosalCards.length === 0 ? (
                       <View style={styles.emptyBox}>
                         <Users size={32} color="#94a3b8" />
                         <Text style={styles.emptyTitle}>Belum Ada Santri di Kelompok Ini</Text>

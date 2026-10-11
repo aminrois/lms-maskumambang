@@ -27,6 +27,7 @@ import {
   ScrollText,
   Bookmark,
   TrendingUp,
+  Calendar,
 } from "lucide-react-native";
 import { Header } from "../../components/ui/Header";
 import { Card } from "../../components/ui/Card";
@@ -36,16 +37,8 @@ import { useAuthStore } from "../../store/useAuthStore";
 import {
   tahfidzService,
   TahfidzSiswaItem,
+  TahfidzTargetItem,
 } from "../../api/tahfidzService";
-
-interface TargetItemData {
-  target_id: number;
-  siswa_id: number;
-  kategori: "Al-Quran" | "Hadits" | "Matan Ilmu";
-  target_nominal: number;
-  target_deskripsi?: string;
-  status: "Aktif" | "Tercapai" | "Ditunda";
-}
 
 export const TahfidzTargetScreen = () => {
   const navigation = useNavigation<any>();
@@ -55,7 +48,7 @@ export const TahfidzTargetScreen = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [santriList, setSantriList] = useState<TahfidzSiswaItem[]>([]);
-  const [targetsMap, setTargetsMap] = useState<Record<number, TargetItemData[]>>({});
+  const [targetsMap, setTargetsMap] = useState<Record<number, TahfidzTargetItem[]>>({});
   const [searchQuery, setSearchQuery] = useState<string>("");
 
   // Modal Form (Tambah / Edit Target)
@@ -64,10 +57,13 @@ export const TahfidzTargetScreen = () => {
   const [editTargetId, setEditTargetId] = useState<number | null>(null);
   const [selectedSiswa, setSelectedSiswa] = useState<TahfidzSiswaItem | null>(null);
 
-  // Form Fields
+  // Form Fields - Sesuai Web (TargetSantri.tsx)
   const [formKategori, setFormKategori] = useState<"Al-Quran" | "Hadits" | "Matan Ilmu">("Al-Quran");
-  const [formNominal, setFormNominal] = useState<string>("1");
   const [formDeskripsi, setFormDeskripsi] = useState<string>("");
+  const [formNominal, setFormNominal] = useState<string>("5");
+  const [formSatuan, setFormSatuan] = useState<string>("Juz");
+  const [formTanggalMulai, setFormTanggalMulai] = useState<string>(new Date().toISOString().split("T")[0]);
+  const [formTanggalTarget, setFormTanggalTarget] = useState<string>("");
   const [formStatus, setFormStatus] = useState<"Aktif" | "Tercapai" | "Ditunda">("Aktif");
   const [submitting, setSubmitting] = useState<boolean>(false);
 
@@ -81,7 +77,7 @@ export const TahfidzTargetScreen = () => {
       setSantriList(santriArr);
 
       // Fetch targets for all students
-      const map: Record<number, TargetItemData[]> = {};
+      const map: Record<number, TahfidzTargetItem[]> = {};
       await Promise.allSettled(
         santriArr.map(async (s) => {
           try {
@@ -112,26 +108,53 @@ export const TahfidzTargetScreen = () => {
     fetchData();
   };
 
+  // Change Kategori (Sync satuan & default nominal like web)
+  const handleKategoriChange = (cat: "Al-Quran" | "Hadits" | "Matan Ilmu") => {
+    setFormKategori(cat);
+    if (cat === "Al-Quran") {
+      setFormSatuan("Juz");
+      if (formNominal === "40" || formNominal === "50" || !formNominal) setFormNominal("5");
+    } else if (cat === "Hadits") {
+      setFormSatuan("Hadits");
+      if (formNominal === "5" || !formNominal) setFormNominal("40");
+    } else {
+      setFormSatuan("Bait");
+      if (formNominal === "5" || !formNominal) setFormNominal("50");
+    }
+  };
+
   // Open Form for Add
   const handleOpenAdd = (siswa: TahfidzSiswaItem) => {
     setIsEditing(false);
     setEditTargetId(null);
     setSelectedSiswa(siswa);
     setFormKategori("Al-Quran");
-    setFormNominal("1");
     setFormDeskripsi("");
+    setFormNominal("5");
+    setFormSatuan("Juz");
+    setFormTanggalMulai(new Date().toISOString().split("T")[0]);
+    setFormTanggalTarget("");
     setFormStatus("Aktif");
     setShowModal(true);
   };
 
   // Open Form for Edit
-  const handleOpenEdit = (siswa: TahfidzSiswaItem, target: TargetItemData) => {
+  const handleOpenEdit = (siswa: TahfidzSiswaItem, target: TahfidzTargetItem) => {
     setIsEditing(true);
     setEditTargetId(target.target_id);
     setSelectedSiswa(siswa);
     setFormKategori(target.kategori);
-    setFormNominal(String(target.target_nominal || 1));
     setFormDeskripsi(target.target_deskripsi || "");
+    setFormNominal(String(target.target_nominal || 1));
+    setFormSatuan(
+      target.kategori === "Al-Quran"
+        ? "Juz"
+        : target.satuan || (target.kategori === "Hadits" ? "Hadits" : "Bait")
+    );
+    setFormTanggalMulai(
+      target.tanggal_mulai ? target.tanggal_mulai.split("T")[0] : new Date().toISOString().split("T")[0]
+    );
+    setFormTanggalTarget(target.tanggal_target ? target.tanggal_target.split("T")[0] : "");
     setFormStatus(target.status || "Aktif");
     setShowModal(true);
   };
@@ -144,31 +167,39 @@ export const TahfidzTargetScreen = () => {
       Alert.alert("Peringatan", "Target nominal harus berupa angka lebih dari 0.");
       return;
     }
+    if (formKategori === "Al-Quran" && nominalNum > 30) {
+      Alert.alert("Peringatan", "Target Juz Al-Qur'an maksimal 30 Juz.");
+      return;
+    }
+    if (!formDeskripsi.trim()) {
+      Alert.alert("Peringatan", "Deskripsi target hafalan wajib diisi.");
+      return;
+    }
 
     try {
       setSubmitting(true);
+      const payload: Partial<TahfidzTargetItem> = {
+        siswa_id: selectedSiswa.siswa_id,
+        kategori: formKategori,
+        target_deskripsi: formDeskripsi.trim(),
+        target_nominal: nominalNum,
+        satuan: formSatuan,
+        tanggal_mulai: formTanggalMulai,
+        tanggal_target: formTanggalTarget.trim() ? formTanggalTarget.trim() : undefined,
+        status: formStatus,
+      };
+
       if (isEditing && editTargetId) {
-        await tahfidzService.updateTarget(editTargetId, {
-          kategori: formKategori,
-          target_nominal: nominalNum,
-          target_deskripsi: formDeskripsi.trim(),
-          status: formStatus,
-        });
+        await tahfidzService.updateTarget(editTargetId, payload);
         Alert.alert("Berhasil", "Target hafalan berhasil diperbarui.");
       } else {
-        await tahfidzService.createTarget({
-          siswa_id: selectedSiswa.siswa_id,
-          kategori: formKategori,
-          target_nominal: nominalNum,
-          target_deskripsi: formDeskripsi.trim(),
-          status: formStatus,
-        });
+        await tahfidzService.createTarget(payload);
         Alert.alert("Berhasil", "Target hafalan baru berhasil ditambahkan.");
       }
       setShowModal(false);
       fetchData();
     } catch (err: any) {
-      const msg = err.response?.data?.message || "Gagal menyimpan target hafalan.";
+      const msg = err.response?.data?.message || err.message || "Gagal menyimpan target hafalan.";
       Alert.alert("Gagal", msg);
     } finally {
       setSubmitting(false);
@@ -310,11 +341,12 @@ export const TahfidzTargetScreen = () => {
 
                           <Text style={styles.targetNominalText}>
                             Target: {t.target_nominal}{" "}
-                            {t.kategori === "Al-Quran"
-                              ? "Juz"
-                              : t.kategori === "Hadits"
-                              ? "Hadits"
-                              : "Bait"}
+                            {t.satuan ||
+                              (t.kategori === "Al-Quran"
+                                ? "Juz"
+                                : t.kategori === "Hadits"
+                                ? "Hadits"
+                                : "Bait")}
                           </Text>
 
                           {t.target_deskripsi ? (
@@ -322,6 +354,18 @@ export const TahfidzTargetScreen = () => {
                               "{t.target_deskripsi}"
                             </Text>
                           ) : null}
+
+                          {(t.tanggal_mulai || t.tanggal_target) && (
+                            <View style={styles.targetDatesRow}>
+                              <Calendar size={12} color="#64748B" />
+                              <Text style={styles.targetDatesText}>
+                                Mulai: {t.tanggal_mulai ? t.tanggal_mulai.split("T")[0] : "-"}
+                                {t.tanggal_target
+                                  ? ` • Selesai: ${t.tanggal_target.split("T")[0]}`
+                                  : ""}
+                              </Text>
+                            </View>
+                          )}
 
                           {/* Action Buttons */}
                           <View style={styles.targetActionsRow}>
@@ -353,104 +397,170 @@ export const TahfidzTargetScreen = () => {
       </ScrollView>
 
       {/* ══════════════════════════════════════════════════════════
-          MODAL FORM: SET / EDIT TARGET
+          MODAL FORM: SET / EDIT TARGET (MATCHING WEB TARGETSANTRI)
       ═══════════════════════════════════════════════════════════ */}
       <Modal visible={showModal} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
-              <View>
-                <Text style={styles.modalTitle}>
-                  {isEditing ? "Edit Target Santri" : "Tambah Target Baru"}
-                </Text>
-                <Text style={styles.modalSub}>Santri: {selectedSiswa?.nama}</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <View style={styles.targetIconWrap}>
+                  <Target size={18} color="#FFFFFF" />
+                </View>
+                <View>
+                  <Text style={styles.modalTitle}>
+                    {isEditing ? "Edit Target Hafalan" : "Target Hafalan Baru"}
+                  </Text>
+                  <Text style={styles.modalSub}>Santri: {selectedSiswa?.nama}</Text>
+                </View>
               </View>
-              <TouchableOpacity onPress={() => setShowModal(false)}>
+              <TouchableOpacity onPress={() => setShowModal(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <X size={20} color="#64748B" />
               </TouchableOpacity>
             </View>
 
             <ScrollView contentContainerStyle={styles.modalScroll}>
-              {/* Kategori */}
+              {/* Kategori Hafalan */}
               <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>Kategori Hafalan</Text>
                 <View style={styles.kategoriRow}>
-                  {(["Al-Quran", "Hadits", "Matan Ilmu"] as const).map((k) => (
+                  {(
+                    [
+                      { key: "Al-Quran", label: "Al-Qur'an (Juz)" },
+                      { key: "Hadits", label: "Hadits" },
+                      { key: "Matan Ilmu", label: "Matan (Bait)" },
+                    ] as const
+                  ).map((item) => (
                     <TouchableOpacity
-                      key={k}
+                      key={item.key}
                       style={[
                         styles.kategoriBtn,
-                        formKategori === k && styles.kategoriBtnActive,
+                        formKategori === item.key && styles.kategoriBtnActive,
                       ]}
-                      onPress={() => setFormKategori(k)}
+                      onPress={() => handleKategoriChange(item.key)}
                     >
                       <Text
                         style={[
                           styles.kategoriBtnText,
-                          formKategori === k && styles.kategoriBtnTextActive,
+                          formKategori === item.key && styles.kategoriBtnTextActive,
                         ]}
                       >
-                        {k}
+                        {item.label}
                       </Text>
                     </TouchableOpacity>
                   ))}
                 </View>
               </View>
 
-              {/* Target Nominal */}
+              {/* Deskripsi Target */}
               <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>
-                  Target Jumlah (
-                  {formKategori === "Al-Quran"
-                    ? "Juz"
-                    : formKategori === "Hadits"
-                    ? "Hadits"
-                    : "Bait"}
-                  ) *
+                  Deskripsi Target <Text style={{ color: "#EF4444" }}>*</Text>
                 </Text>
                 <TextInput
                   style={styles.formInput}
-                  placeholder="Misal: 2"
-                  placeholderTextColor="#94A3B8"
-                  keyboardType="numeric"
-                  value={formNominal}
-                  onChangeText={setFormNominal}
-                />
-              </View>
-
-              {/* Deskripsi */}
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Keterangan / Rincian Target</Text>
-                <TextInput
-                  style={[styles.formInput, { height: 60 }]}
-                  placeholder="Misal: Target Juz 30 & 29 s/d Akhir Semester"
+                  placeholder={
+                    formKategori === "Al-Quran"
+                      ? "Contoh: Target 5 Juz (Juz 1 s/d 5) atau Target Juz 30"
+                      : "Deskripsi target hafalan"
+                  }
                   placeholderTextColor="#94A3B8"
                   value={formDeskripsi}
                   onChangeText={setFormDeskripsi}
-                  multiline
                 />
               </View>
 
-              {/* Status */}
+              {/* Target Nominal & Satuan Parameter (2 Kolom) */}
+              <View style={styles.twoColRow}>
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Text style={styles.formLabel}>
+                    Jumlah Target ({formSatuan}) <Text style={{ color: "#EF4444" }}>*</Text>
+                  </Text>
+                  <TextInput
+                    style={styles.formInput}
+                    placeholder={formKategori === "Al-Quran" ? "Contoh: 5" : "Jumlah target"}
+                    placeholderTextColor="#94A3B8"
+                    keyboardType="numeric"
+                    value={formNominal}
+                    onChangeText={setFormNominal}
+                  />
+                  {formKategori === "Al-Quran" && (
+                    <Text style={styles.helperText}>Rentang 1 s/d 30 Juz</Text>
+                  )}
+                </View>
+
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Text style={styles.formLabel}>Satuan Parameter</Text>
+                  <View style={styles.fixedUnitBox}>
+                    <Text style={styles.fixedUnitText}>{formSatuan}</Text>
+                    <View style={styles.fixedBadge}>
+                      <Text style={styles.fixedBadgeText}>Fixed</Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+
+              {/* Tanggal Mulai & Tanggal Target Selesai (2 Kolom) */}
+              <View style={styles.twoColRow}>
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Text style={styles.formLabel}>
+                    Tanggal Mulai <Text style={{ color: "#EF4444" }}>*</Text>
+                  </Text>
+                  <TextInput
+                    style={styles.formInput}
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor="#94A3B8"
+                    value={formTanggalMulai}
+                    onChangeText={setFormTanggalMulai}
+                  />
+                </View>
+
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Text style={styles.formLabel}>Target Selesai (Opsional)</Text>
+                  <TextInput
+                    style={styles.formInput}
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor="#94A3B8"
+                    value={formTanggalTarget}
+                    onChangeText={setFormTanggalTarget}
+                  />
+                </View>
+              </View>
+
+              {/* Status Target */}
               <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>Status Target</Text>
-                <View style={styles.statusRow}>
-                  {(["Aktif", "Tercapai", "Ditunda"] as const).map((st) => (
+                <View style={styles.statusCol}>
+                  {(
+                    [
+                      { key: "Aktif", label: "Aktif (Sedang Berjalan)" },
+                      { key: "Tercapai", label: "Tercapai (Selesai)" },
+                      { key: "Ditunda", label: "Ditunda" },
+                    ] as const
+                  ).map((st) => (
                     <TouchableOpacity
-                      key={st}
+                      key={st.key}
                       style={[
-                        styles.statusBtn,
-                        formStatus === st && styles.statusBtnActive,
+                        styles.statusSelectBtn,
+                        formStatus === st.key && styles.statusSelectBtnActive,
                       ]}
-                      onPress={() => setFormStatus(st)}
+                      onPress={() => setFormStatus(st.key)}
                     >
-                      <Text
+                      <View
                         style={[
-                          styles.statusBtnText,
-                          formStatus === st && styles.statusBtnTextActive,
+                          styles.radioCircle,
+                          formStatus === st.key && styles.radioCircleActive,
                         ]}
                       >
-                        {st}
+                        {formStatus === st.key && <View style={styles.radioDot} />}
+                      </View>
+                      <Text
+                        style={[
+                          styles.statusSelectBtnText,
+                          formStatus === st.key && styles.statusSelectBtnTextActive,
+                        ]}
+                      >
+                        {st.label}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -777,8 +887,105 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#64748B",
   },
-  statusBtnTextActive: {
-    color: "#FFFFFF",
+  targetDatesRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    marginTop: 4,
+  },
+  targetDatesText: {
+    fontSize: 11,
+    color: "#64748B",
+    fontWeight: "500",
+  },
+  targetIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: "#2563EB",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  twoColRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  helperText: {
+    fontSize: 10,
+    color: "#94A3B8",
+    marginTop: 2,
+  },
+  fixedUnitBox: {
+    backgroundColor: "#F1F5F9",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  fixedUnitText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#334155",
+  },
+  fixedBadge: {
+    backgroundColor: "#DBEAFE",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  fixedBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#1D4ED8",
+  },
+  statusCol: {
+    gap: 8,
+  },
+  statusSelectBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  statusSelectBtnActive: {
+    backgroundColor: "#EFF6FF",
+    borderColor: "#93C5FD",
+  },
+  radioCircle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: "#94A3B8",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  radioCircleActive: {
+    borderColor: "#2563EB",
+  },
+  radioDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+    backgroundColor: "#2563EB",
+  },
+  statusSelectBtnText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#475569",
+  },
+  statusSelectBtnTextActive: {
+    color: "#1D4ED8",
+    fontWeight: "700",
   },
   modalFooter: {
     flexDirection: "row",
