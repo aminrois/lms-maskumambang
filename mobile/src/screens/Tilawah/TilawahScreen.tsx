@@ -18,7 +18,7 @@ import {
   Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import {
   ArrowLeft,
   BookOpen,
@@ -39,9 +39,11 @@ import {
   Check,
   Bookmark,
   Sparkles,
+  Lock,
 } from "lucide-react-native";
 import { useAuthStore } from "../../store/useAuthStore";
 import { apiClient } from "../../api/client";
+import { waliService } from "../../api/waliService";
 import {
   isWaliKelasRole,
   isWaliMuridRole,
@@ -109,11 +111,14 @@ const todayISO = () => new Date().toISOString().split("T")[0];
 
 export const TilawahScreen = () => {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const { user, activeRole } = useAuthStore();
 
   const isWaliKls = isWaliKelasRole(activeRole || user);
   const isWaliSantri = isWaliMuridRole(activeRole || user);
   const canInput = isWaliKls || isWaliSantri || canInputTahfidz(activeRole || user);
+
+  const initialSiswaId = route.params?.siswaId ? Number(route.params.siswaId) : null;
 
   // Main list state
   const [activeTab, setActiveTab] = useState<"riwayat" | "input">(() => (canInput ? "input" : "riwayat"));
@@ -130,7 +135,7 @@ export const TilawahScreen = () => {
   const [modeInput, setModeInput] = useState<"individu" | "kelas">("individu");
   const [formTanggal, setFormTanggal] = useState(todayISO());
   const [selectedKelasId, setSelectedKelasId] = useState<number | null>(null);
-  const [selectedSiswaId, setSelectedSiswaId] = useState<number | null>(null);
+  const [selectedSiswaId, setSelectedSiswaId] = useState<number | null>(initialSiswaId);
   const [selectedSiswaIds, setSelectedSiswaIds] = useState<number[]>([]);
 
   // Coordinates
@@ -169,6 +174,30 @@ export const TilawahScreen = () => {
   // Load classes and santri
   const loadMasterData = useCallback(async () => {
     try {
+      if (isWaliSantri) {
+        // Khusus Wali Santri: langsung ambil daftar anak sendiri
+        try {
+          const anakList = await waliService.getDaftarAnak();
+          if (Array.isArray(anakList) && anakList.length > 0) {
+            const mappedSantri: SantriItem[] = anakList.map((a) => ({
+              siswa_id: a.siswa_id,
+              nama: a.nama,
+              nis: a.nis,
+              kelas_id: a.kelas?.kelas_id,
+              kelas: a.kelas ? { nama_kelas: a.kelas.nama_kelas } : undefined,
+            }));
+            setSantriList(mappedSantri);
+            const targetId = initialSiswaId || (selectedSiswaId || mappedSantri[0].siswa_id);
+            const found = mappedSantri.find((s) => s.siswa_id === targetId) || mappedSantri[0];
+            setSelectedSiswaId(found.siswa_id);
+            if (found.kelas_id) setSelectedKelasId(found.kelas_id);
+          }
+        } catch (e) {
+          console.warn("loadMasterData wali anak err:", e);
+        }
+        return;
+      }
+
       // 1. Fetch kelas
       try {
         const kRes = await apiClient.get("/tahfidz/tilawah/kelas");
@@ -210,13 +239,17 @@ export const TilawahScreen = () => {
     } catch (e) {
       console.warn("loadMasterData err:", e);
     }
-  }, [selectedKelasId, selectedSiswaId]);
+  }, [isWaliSantri, initialSiswaId, selectedKelasId, selectedSiswaId]);
 
   // Fetch riwayat tilawah
   const fetchRecords = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await apiClient.get("/tahfidz/tilawah?limit=50");
+      const targetSiswaId = isWaliSantri ? (selectedSiswaId || initialSiswaId) : null;
+      const url = targetSiswaId
+        ? `/tahfidz/tilawah?siswa_id=${targetSiswaId}&limit=50`
+        : "/tahfidz/tilawah?limit=50";
+      const res = await apiClient.get(url);
       const data = res.data?.data || res.data || [];
       if (Array.isArray(data)) {
         setRecords(data);
@@ -226,7 +259,7 @@ export const TilawahScreen = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isWaliSantri, selectedSiswaId, initialSiswaId]);
 
   useEffect(() => {
     loadMasterData();
@@ -491,28 +524,30 @@ export const TilawahScreen = () => {
       {/* ─── TAB 2: FORM CATAT TILAWAH (Identik dengan Web) ─── */}
       {activeTab === "input" && (
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 60 }}>
-          {/* Mode Switcher */}
-          <View style={styles.modeToggle}>
-            <TouchableOpacity
-              style={[styles.modeToggleBtn, modeInput === "individu" && styles.modeToggleBtnActive]}
-              onPress={() => setModeInput("individu")}
-            >
-              <User size={14} color={modeInput === "individu" ? "#FFFFFF" : "#475569"} />
-              <Text style={[styles.modeToggleText, modeInput === "individu" && styles.modeToggleTextActive]}>
-                Per Santri (Individu)
-              </Text>
-            </TouchableOpacity>
+          {/* Mode Switcher (Disembunyikan untuk Wali Murid karena hanya mencatat untuk anaknya sendiri) */}
+          {!isWaliSantri && (
+            <View style={styles.modeToggle}>
+              <TouchableOpacity
+                style={[styles.modeToggleBtn, modeInput === "individu" && styles.modeToggleBtnActive]}
+                onPress={() => setModeInput("individu")}
+              >
+                <User size={14} color={modeInput === "individu" ? "#FFFFFF" : "#475569"} />
+                <Text style={[styles.modeToggleText, modeInput === "individu" && styles.modeToggleTextActive]}>
+                  Per Santri (Individu)
+                </Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.modeToggleBtn, modeInput === "kelas" && styles.modeToggleBtnActive]}
-              onPress={() => setModeInput("kelas")}
-            >
-              <Users size={14} color={modeInput === "kelas" ? "#FFFFFF" : "#475569"} />
-              <Text style={[styles.modeToggleText, modeInput === "kelas" && styles.modeToggleTextActive]}>
-                Mode Kelas (Kolektif)
-              </Text>
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity
+                style={[styles.modeToggleBtn, modeInput === "kelas" && styles.modeToggleBtnActive]}
+                onPress={() => setModeInput("kelas")}
+              >
+                <Users size={14} color={modeInput === "kelas" ? "#FFFFFF" : "#475569"} />
+                <Text style={[styles.modeToggleText, modeInput === "kelas" && styles.modeToggleTextActive]}>
+                  Mode Kelas (Kolektif)
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Form Card: Santri & Tanggal */}
           <View style={styles.formCard}>
@@ -535,21 +570,47 @@ export const TilawahScreen = () => {
             {modeInput === "individu" ? (
               <View style={{ marginTop: 12 }}>
                 <Text style={styles.fieldLabel}>Pilih Santri</Text>
-                <TouchableOpacity
-                  style={styles.pickerSelector}
-                  onPress={() => setShowSantriModal(true)}
-                  activeOpacity={0.8}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.pickerSelectorVal}>
-                      {currentSelectedSantri ? currentSelectedSantri.nama : "Pilih Santri..."}
-                    </Text>
-                    {currentSelectedSantri?.nis && (
-                      <Text style={styles.pickerSelectorSub}>NIS: {currentSelectedSantri.nis}</Text>
-                    )}
+                {isWaliSantri ? (
+                  <View style={[styles.pickerSelector, styles.pickerSelectorLocked]}>
+                    <View style={{ flex: 1, flexDirection: "row", alignItems: "center" }}>
+                      <View style={styles.lockedSantriIconCircle}>
+                        <User size={16} color="#162E6E" />
+                      </View>
+                      <View style={{ flex: 1, marginLeft: 10 }}>
+                        <Text style={[styles.pickerSelectorVal, { fontWeight: "700", color: "#0F172A" }]}>
+                          {currentSelectedSantri ? currentSelectedSantri.nama : "Santri Anda"}
+                        </Text>
+                        <Text style={styles.pickerSelectorSub}>
+                          {currentSelectedSantri?.kelas?.nama_kelas
+                            ? `Kelas: ${currentSelectedSantri.kelas.nama_kelas}`
+                            : currentSelectedSantri?.nis
+                            ? `NIS: ${currentSelectedSantri.nis}`
+                            : "Santri Anda"}
+                        </Text>
+                      </View>
+                      <View style={styles.lockedAutoBadge}>
+                        <Lock size={12} color="#1D4ED8" style={{ marginRight: 4 }} />
+                        <Text style={styles.lockedAutoBadgeText}>Santri Anda</Text>
+                      </View>
+                    </View>
                   </View>
-                  <ChevronDown size={18} color="#64748B" />
-                </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.pickerSelector}
+                    onPress={() => setShowSantriModal(true)}
+                    activeOpacity={0.8}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.pickerSelectorVal}>
+                        {currentSelectedSantri ? currentSelectedSantri.nama : "Pilih Santri..."}
+                      </Text>
+                      {currentSelectedSantri?.nis && (
+                        <Text style={styles.pickerSelectorSub}>NIS: {currentSelectedSantri.nis}</Text>
+                      )}
+                    </View>
+                    <ChevronDown size={18} color="#64748B" />
+                  </TouchableOpacity>
+                )}
               </View>
             ) : (
               /* Mode Kelas: Checklist Santri */
@@ -1104,6 +1165,33 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#64748B",
     marginTop: 2,
+  },
+  pickerSelectorLocked: {
+    backgroundColor: "#F1F5F9",
+    borderColor: "#CBD5E1",
+  },
+  lockedSantriIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#EFF6FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  lockedAutoBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#EFF6FF",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+  },
+  lockedAutoBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#1D4ED8",
   },
   calcStatsBox: {
     backgroundColor: "#EEF2FF",

@@ -270,22 +270,11 @@ export const ParentDashboardScreen = () => {
               <View style={styles.topRightActions}>
                 <TouchableOpacity
                   style={styles.headerIconBtn}
-                  onPress={() => setShowBeritaModal(true)}
+                  onPress={() => navigation.navigate("Notifikasi")}
                   activeOpacity={0.8}
                 >
                   <Bell size={20} color="#FFFFFF" />
                   <View style={styles.unreadDot} />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.profileBtn}
-                  onPress={() => setShowRoleModal(true)}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.avatarCircle}>
-                    <Text style={styles.avatarText}>{userName.charAt(0)}</Text>
-                  </View>
-                  <ChevronDown size={14} color="#FFFFFF" style={{ marginLeft: 4 }} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -461,18 +450,18 @@ export const ParentDashboardScreen = () => {
             3. QUICK ACTION 12-GRID MENU WALI SANTRI
         ════════════════════════════════════════════════════════ */}
         <View style={styles.menuGridContainer}>
-          {/* Row 1: Akademik & Hafalan */}
+          {/* Row 1: Tilawah Harian, Laporan Hafalan, Presensi Santri, Jadwal Pelajaran */}
           <View style={styles.menuGridRow}>
-            {/* 1. LMS Santri */}
+            {/* 1. Tilawah Harian */}
             <TouchableOpacity
               style={styles.gridCard}
-              onPress={() => navigation.navigate("WaliLms", { siswaId: selectedSiswaId })}
+              onPress={() => navigation.navigate("Tilawah", { siswaId: selectedSiswaId })}
               activeOpacity={0.8}
             >
-              <View style={[styles.gridIconCircle, { backgroundColor: "#10b981" }]}>
-                <GraduationCap size={24} color="#FFFFFF" />
+              <View style={[styles.gridIconCircle, { backgroundColor: "#7C3AED" }]}>
+                <BookOpen size={24} color="#FFFFFF" />
               </View>
-              <Text style={styles.gridCardTitle}>LMS Santri</Text>
+              <Text style={styles.gridCardTitle}>Tilawah Harian</Text>
             </TouchableOpacity>
 
             {/* 2. Laporan Hafalan */}
@@ -481,7 +470,7 @@ export const ParentDashboardScreen = () => {
               onPress={() => navigation.navigate("WaliLaporanHafalan", { siswaId: selectedSiswaId })}
               activeOpacity={0.8}
             >
-              <View style={[styles.gridIconCircle, { backgroundColor: "#3b82f6" }]}>
+              <View style={[styles.gridIconCircle, { backgroundColor: "#3B82F6" }]}>
                 <ScrollText size={24} color="#FFFFFF" />
               </View>
               <Text style={styles.gridCardTitle}>Laporan Hafalan</Text>
@@ -493,7 +482,7 @@ export const ParentDashboardScreen = () => {
               onPress={() => navigation.navigate("WaliPresensi", { siswaId: selectedSiswaId })}
               activeOpacity={0.8}
             >
-              <View style={[styles.gridIconCircle, { backgroundColor: "#8b5cf6" }]}>
+              <View style={[styles.gridIconCircle, { backgroundColor: "#8B5CF6" }]}>
                 <CheckCircle2 size={24} color="#FFFFFF" />
               </View>
               <Text style={styles.gridCardTitle}>Presensi Santri</Text>
@@ -512,9 +501,9 @@ export const ParentDashboardScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {/* Row 2: Bimbingan, Keuangan & Profil Santri */}
+          {/* Row 2: Bimbingan, Keuangan, Detail Santri, Izin Santri */}
           <View style={[styles.menuGridRow, { marginTop: 12 }]}>
-            {/* 5. Bimbingan & Karakter Santri (Guidance) */}
+            {/* 5. Bimbingan */}
             <TouchableOpacity
               style={styles.gridCard}
               onPress={() => navigation.navigate("WaliGuidance", { siswaId: selectedSiswaId })}
@@ -526,82 +515,58 @@ export const ParentDashboardScreen = () => {
               <Text style={styles.gridCardTitle}>Bimbingan</Text>
             </TouchableOpacity>
 
-            {/* 6. Keuangan & Tagihan SPP */}
+            {/* 6. Keuangan */}
             <TouchableOpacity
               style={styles.gridCard}
               onPress={() => navigation.navigate("WaliKeuangan", { siswaId: selectedSiswaId })}
               activeOpacity={0.8}
             >
-              <View style={[styles.gridIconCircle, { backgroundColor: "#6366f1" }]}>
+              <View style={[styles.gridIconCircle, { backgroundColor: "#6366F1" }]}>
                 <Wallet size={24} color="#FFFFFF" />
               </View>
               <Text style={styles.gridCardTitle}>Keuangan</Text>
             </TouchableOpacity>
 
-            {/* 7. Detail Santri (Biodata & Foto Lengkap) */}
+            {/* 7. Detail Santri */}
             <TouchableOpacity
               style={styles.gridCard}
               onPress={() => navigation.navigate("WaliDetailSantri", { siswaId: selectedSiswaId })}
               activeOpacity={0.8}
             >
-              <View style={[styles.gridIconCircle, { backgroundColor: "#0891b2" }]}>
+              <View style={[styles.gridIconCircle, { backgroundColor: "#0891B2" }]}>
                 <User size={24} color="#FFFFFF" />
               </View>
               <Text style={styles.gridCardTitle}>Detail Santri</Text>
             </TouchableOpacity>
 
-            {/* 8. Izin Santri (Perizinan & Pulang) */}
+            {/* 8. Izin Santri */}
             <TouchableOpacity
               style={styles.gridCard}
               onPress={() => setShowIzinModal(true)}
               activeOpacity={0.8}
             >
-              <View style={[styles.gridIconCircle, { backgroundColor: "#ea580c" }]}>
+              <View style={[styles.gridIconCircle, { backgroundColor: "#EA580C" }]}>
                 <FileText size={24} color="#FFFFFF" />
               </View>
               <Text style={styles.gridCardTitle}>Izin Santri</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Row 3: Islami & Informasi */}
+          {/* Row 3: Berita, Al-Qur'an, Do'a & Dzikir, Arah Kiblat */}
           <View style={[styles.menuGridRow, { marginTop: 12 }]}>
-            {/* 9. Tilawah Harian */}
-            <TouchableOpacity
-              style={styles.gridCard}
-              onPress={() => navigation.navigate("Tilawah")}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.gridIconCircle, { backgroundColor: "#7C3AED" }]}>
-                <BookOpen size={24} color="#FFFFFF" />
-              </View>
-              <Text style={styles.gridCardTitle}>Tilawah Harian</Text>
-            </TouchableOpacity>
-
-            {/* 10. Doa & Dzikir */}
-            <TouchableOpacity
-              style={styles.gridCard}
-              onPress={() => navigation.navigate("DoaDzikir")}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.gridIconCircle, { backgroundColor: "#0284c7" }]}>
-                <BookMarked size={24} color="#FFFFFF" />
-              </View>
-              <Text style={styles.gridCardTitle}>Doa & Dzikir</Text>
-            </TouchableOpacity>
-
-            {/* 11. Berita Pesantren */}
+            {/* 9. Berita */}
             <TouchableOpacity
               style={styles.gridCard}
               onPress={() => navigation.navigate("Berita")}
               activeOpacity={0.8}
             >
-              <View style={[styles.gridIconCircle, { backgroundColor: "#f43f5e" }]}>
+              <View style={[styles.gridIconCircle, { backgroundColor: "#F43F5E" }]}>
                 <Newspaper size={24} color="#FFFFFF" />
               </View>
               <Text style={styles.gridCardTitle}>Berita</Text>
             </TouchableOpacity>
 
-            {/* 12. Al-Qur'an Digital (mushaf.maskumambang.net) */}
+            {/* 10. Al-Qur'an */}
             <TouchableOpacity
               style={styles.gridCard}
               onPress={() => navigation.navigate("Quran")}
@@ -611,6 +576,30 @@ export const ParentDashboardScreen = () => {
                 <BookOpen size={24} color="#FFFFFF" />
               </View>
               <Text style={styles.gridCardTitle}>Al-Qur'an</Text>
+            </TouchableOpacity>
+
+            {/* 11. Do'a & Dzikir */}
+            <TouchableOpacity
+              style={styles.gridCard}
+              onPress={() => navigation.navigate("DoaDzikir")}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.gridIconCircle, { backgroundColor: "#0284C7" }]}>
+                <BookMarked size={24} color="#FFFFFF" />
+              </View>
+              <Text style={styles.gridCardTitle}>Doa & Dzikir</Text>
+            </TouchableOpacity>
+
+            {/* 12. Arah Kiblat */}
+            <TouchableOpacity
+              style={styles.gridCard}
+              onPress={() => navigation.navigate("ArahKiblat")}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.gridIconCircle, { backgroundColor: "#0D9488" }]}>
+                <Compass size={24} color="#FFFFFF" />
+              </View>
+              <Text style={styles.gridCardTitle}>Arah Kiblat</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -803,56 +792,6 @@ export const ParentDashboardScreen = () => {
             </View>
           </View>
 
-          {/* Informasi & Berita Website Card */}
-          <View style={styles.infoPentingCard}>
-            <View style={styles.infoPentingHeader}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                <Newspaper size={16} color="#162E6E" />
-                <Text style={styles.infoPentingTitle}>Kabar & Berita Pesantren</Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => navigation.navigate("Berita")}
-                style={{ flexDirection: "row", alignItems: "center" }}
-              >
-                <Text style={{ fontSize: 11, color: "#2563EB", fontWeight: "700" }}>Lihat Semua ›</Text>
-              </TouchableOpacity>
-            </View>
-
-            {isLoadingNews ? (
-              <View style={{ paddingVertical: 14, alignItems: "center" }}>
-                <ActivityIndicator size="small" color="#162E6E" />
-                <Text style={{ fontSize: 11, color: "#64748B", marginTop: 4 }}>Memuat berita terkini...</Text>
-              </View>
-            ) : newsPosts.length > 0 ? (
-              newsPosts.slice(0, 3).map((post, idx) => (
-                <TouchableOpacity
-                  key={post.id || idx}
-                  style={[
-                    styles.infoItem,
-                    idx === Math.min(newsPosts.length, 3) - 1 && { borderBottomWidth: 0 },
-                  ]}
-                  onPress={() => navigation.navigate("Berita")}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.infoItemIcon}>
-                    <Sparkles size={14} color="#1D4ED8" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.infoItemTitle} numberOfLines={1}>
-                      {post.title}
-                    </Text>
-                    <Text style={styles.infoItemMeta}>
-                      {post.dateFormatted || "Berita Terkini"} • {post.category || "Berita Pesantren"}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              ))
-            ) : (
-              <View style={{ paddingVertical: 10, alignItems: "center" }}>
-                <Text style={{ fontSize: 11, color: "#94A3B8" }}>Belum ada kabar berita terbaru.</Text>
-              </View>
-            )}
-          </View>
         </View>
 
         <View style={{ height: 40 }} />
