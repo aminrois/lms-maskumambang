@@ -24,11 +24,14 @@ import { DoaDzikirScreen } from "../screens/Quran/DoaDzikirScreen";
 import { NotifikasiScreen } from "../screens/Notifikasi/NotifikasiScreen";
 import { TilawahScreen } from "../screens/Tilawah/TilawahScreen";
 import { LmsScreen } from "../screens/LMS/LmsScreen";
+import { LessonPlanScreen } from "../screens/LMS/LessonPlanScreen";
+import { JurnalMengajarScreen } from "../screens/LMS/JurnalMengajarScreen";
 import { JadwalScreen } from "../screens/Jadwal/JadwalScreen";
 import { EventScreen } from "../screens/Event/EventScreen";
 import { MonitoringKbmScreen } from "../screens/Monitoring/MonitoringKbmScreen";
 import { JadwalKelasScreen } from "../screens/Jadwal/JadwalKelasScreen";
 import { RekapAbsensiHarianScreen } from "../screens/Absensi/RekapAbsensiHarianScreen";
+import { RekapAbsensiMapelScreen } from "../screens/Absensi/RekapAbsensiMapelScreen";
 import { DaftarSiswaKelasScreen } from "../screens/Siswa/DaftarSiswaKelasScreen";
 import { MainTabNavigator } from "./MainTabNavigator";
 import { useAuthStore } from "../store/useAuthStore";
@@ -288,6 +291,21 @@ export const AppNavigator = () => {
             <Stack.Screen
               name="Lms"
               component={LmsScreen}
+              options={{ animation: "slide_from_right" }}
+            />
+            <Stack.Screen
+              name="LessonPlan"
+              component={LessonPlanScreen}
+              options={{ animation: "slide_from_right" }}
+            />
+            <Stack.Screen
+              name="RekapAbsensiMapel"
+              component={RekapAbsensiMapelScreen}
+              options={{ animation: "slide_from_right" }}
+            />
+            <Stack.Screen
+              name="JurnalMengajar"
+              component={JurnalMengajarScreen}
               options={{ animation: "slide_from_right" }}
             />
             <Stack.Screen

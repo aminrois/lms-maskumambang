@@ -356,19 +356,19 @@ export const TeacherDashboardScreen = () => {
         title: "Jurnal Mengajar",
         icon: <ClipboardList size={24} color="#FFFFFF" />,
         bg: "#7C3AED",
-        onPress: () => navigation.navigate("Lms", { tab: "jurnal" }),
+        onPress: () => navigation.navigate("JurnalMengajar"),
       },
       {
         title: "Lesson Plan",
         icon: <FileCheck2 size={24} color="#FFFFFF" />,
         bg: "#D97706",
-        onPress: () => navigation.navigate("Lms", { tab: "rpp" }),
+        onPress: () => navigation.navigate("LessonPlan"),
       },
       {
         title: "Rekap Absensi",
         icon: <Layers size={24} color="#FFFFFF" />,
         bg: "#0284C7",
-        onPress: () => navigation.navigate("Lms", { tab: "rekap" }),
+        onPress: () => navigation.navigate("RekapAbsensiMapel"),
       },
       {
         title: "Jadwal Guru",
@@ -691,7 +691,7 @@ export const TeacherDashboardScreen = () => {
           {!isWaliKls && !isPimpinan ? (
             <TouchableOpacity
               style={styles.dualCard}
-              onPress={() => navigation.navigate("Lms", { tab: "rpp" })}
+              onPress={() => navigation.navigate("LessonPlan")}
               activeOpacity={0.85}
             >
               <View style={styles.dualCardHeader}>
