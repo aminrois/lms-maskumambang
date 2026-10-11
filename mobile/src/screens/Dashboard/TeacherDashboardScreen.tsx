@@ -58,6 +58,8 @@ import {
   Layers,
   FileCheck2,
   TrendingUp,
+  History,
+  Target,
 } from "lucide-react-native";
 import { Colors } from "../../constants/colors";
 import { useAuthStore } from "../../store/useAuthStore";
@@ -210,8 +212,26 @@ export const TeacherDashboardScreen = () => {
         {
           title: "Setoran Hafalan",
           icon: <ScrollText size={24} color="#FFFFFF" />,
-          bg: "#3b82f6",
+          bg: "#3B82F6",
           onPress: () => navigation.navigate("TahfidzSetoran"),
+        },
+        {
+          title: "Riwayat Hafalan",
+          icon: <History size={24} color="#FFFFFF" />,
+          bg: "#0284C7",
+          onPress: () => navigation.navigate("TahfidzRiwayat"),
+        },
+        {
+          title: "Halaqoh",
+          icon: <Users size={24} color="#FFFFFF" />,
+          bg: "#10B981",
+          onPress: () => navigation.navigate("TahfidzHalaqah"),
+        },
+        {
+          title: "Target Santri",
+          icon: <Target size={24} color="#FFFFFF" />,
+          bg: "#D97706",
+          onPress: () => navigation.navigate("TahfidzTarget"),
         },
         {
           title: "Tilawah Harian",
@@ -228,7 +248,7 @@ export const TeacherDashboardScreen = () => {
         {
           title: "Presensi Guru",
           icon: <CheckCircle2 size={24} color="#FFFFFF" />,
-          bg: "#8b5cf6",
+          bg: "#8B5CF6",
           onPress: () => navigation.navigate("Jadwal"),
         },
         {
@@ -240,19 +260,25 @@ export const TeacherDashboardScreen = () => {
         {
           title: "Doa & Dzikir",
           icon: <BookMarked size={24} color="#FFFFFF" />,
-          bg: "#0284c7",
+          bg: "#0284C7",
           onPress: () => navigation.navigate("DoaDzikir"),
         },
         {
           title: "Berita",
           icon: <Newspaper size={24} color="#FFFFFF" />,
-          bg: "#f43f5e",
+          bg: "#F43F5E",
           onPress: () => navigation.navigate("Berita"),
+        },
+        {
+          title: "Arah Kiblat",
+          icon: <Compass size={24} color="#FFFFFF" />,
+          bg: "#0D9488",
+          onPress: () => navigation.navigate("ArahKiblat"),
         },
         {
           title: "Jadwal",
           icon: <Calendar size={24} color="#FFFFFF" />,
-          bg: "#0284c7",
+          bg: "#0284C7",
           onPress: () => navigation.navigate("Jadwal"),
         },
       ];

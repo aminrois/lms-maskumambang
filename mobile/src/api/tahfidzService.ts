@@ -132,6 +132,7 @@ export const tahfidzService = {
   // Ambil riwayat setoran
   getSetoranList: async (params?: {
     siswa_id?: number;
+    pegawai_id?: number;
     kategori?: string;
     jenis_hafalan?: string;
     kelancaran?: string;
@@ -145,8 +146,56 @@ export const tahfidzService = {
   },
 
   // Ambil daftar halaqoh
-  getHalaqahList: async (params?: { lembaga_id?: number; status?: string }) => {
+  getHalaqahList: async (params?: { lembaga_id?: number; status?: string; search?: string }) => {
     const res = await apiClient.get("/tahfidz/halaqah", { params });
+    return res.data?.data || [];
+  },
+
+  // Ambil detail halaqoh
+  getHalaqahDetail: async (id: number) => {
+    const res = await apiClient.get(`/tahfidz/halaqah/${id}`);
+    return res.data?.data;
+  },
+
+  // Tambah halaqoh baru
+  createHalaqah: async (payload: {
+    nama_halaqah: string;
+    lembaga_id?: number;
+    pegawai_id: number;
+    tahun_id?: number;
+    deskripsi?: string;
+    status?: string;
+    siswa_ids?: number[];
+  }) => {
+    const res = await apiClient.post("/tahfidz/halaqah", payload);
+    return res.data;
+  },
+
+  // Update halaqoh
+  updateHalaqah: async (
+    id: number,
+    payload: Partial<{
+      nama_halaqah: string;
+      pegawai_id: number;
+      tahun_id: number;
+      deskripsi: string;
+      status: string;
+      siswa_ids: number[];
+    }>
+  ) => {
+    const res = await apiClient.patch(`/tahfidz/halaqah/${id}`, payload);
+    return res.data;
+  },
+
+  // Hapus halaqoh
+  deleteHalaqah: async (id: number) => {
+    const res = await apiClient.delete(`/tahfidz/halaqah/${id}`);
+    return res.data;
+  },
+
+  // Ambil daftar guru tahfidz
+  getGuruTahfidzList: async (params?: { lembaga_id?: number }) => {
+    const res = await apiClient.get("/tahfidz/guru", { params });
     return res.data?.data || [];
   },
 

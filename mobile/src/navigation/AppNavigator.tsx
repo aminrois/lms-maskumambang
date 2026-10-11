@@ -6,8 +6,11 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { LoginScreen } from "../screens/Auth/LoginScreen";
 import { AbsensiMapelScreen } from "../screens/Absensi/AbsensiMapelScreen";
 import { AbsensiHarianScreen } from "../screens/Absensi/AbsensiHarianScreen";
-import { TahfidzSetoranScreen } from "../screens/Tahfidz/TahfidzSetoranScreen";
 import { BeritaScreen } from "../screens/Berita/BeritaScreen";
+import { TahfidzSetoranScreen } from "../screens/Tahfidz/TahfidzSetoranScreen";
+import { TahfidzRiwayatScreen } from "../screens/Tahfidz/TahfidzRiwayatScreen";
+import { TahfidzHalaqahScreen } from "../screens/Tahfidz/TahfidzHalaqahScreen";
+import { TahfidzTargetScreen } from "../screens/Tahfidz/TahfidzTargetScreen";
 import { WaliLaporanHafalanScreen } from "../screens/Wali/WaliLaporanHafalanScreen";
 import { WaliPresensiScreen } from "../screens/Wali/WaliPresensiScreen";
 import { WaliJadwalScreen } from "../screens/Wali/WaliJadwalScreen";
@@ -151,6 +154,27 @@ export const AppNavigator = () => {
             <Stack.Screen
               name="TahfidzSetoran"
               component={TahfidzSetoranScreen}
+              options={{
+                animation: "slide_from_right",
+              }}
+            />
+            <Stack.Screen
+              name="TahfidzRiwayat"
+              component={TahfidzRiwayatScreen}
+              options={{
+                animation: "slide_from_right",
+              }}
+            />
+            <Stack.Screen
+              name="TahfidzHalaqah"
+              component={TahfidzHalaqahScreen}
+              options={{
+                animation: "slide_from_right",
+              }}
+            />
+            <Stack.Screen
+              name="TahfidzTarget"
+              component={TahfidzTargetScreen}
               options={{
                 animation: "slide_from_right",
               }}

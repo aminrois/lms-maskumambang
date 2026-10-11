@@ -102,9 +102,14 @@ export const TahfidzSetoranScreen = () => {
   const isMonitoring = route.params?.mode === "monitoring" || isWaliKls || !canInputTahfidz(activeRole || user);
   const hasInputPermission = !isMonitoring && canInputTahfidz(activeRole || user);
 
-  // Main navigation tab
-  const [activeTab, setActiveTab] = useState<ActiveTab>(() => (hasInputPermission ? "input" : "riwayat"));
+  // Mode Input
   const [modeInput, setModeInput] = useState<ModeInput>("individu");
+
+  useEffect(() => {
+    if (isMonitoring) {
+      navigation.replace("TahfidzRiwayat");
+    }
+  }, [isMonitoring, navigation]);
 
   // Wali Kelas specific state
   const [waliKelasName, setWaliKelasName] = useState<string>("");
@@ -357,23 +362,9 @@ export const TahfidzSetoranScreen = () => {
     }
   }, []);
 
-  useEffect(() => {
-    if (activeTab === "riwayat") {
-      fetchRiwayat();
-    } else if (activeTab === "target") {
-      fetchTargetData();
-    }
-  }, [activeTab, fetchRiwayat, fetchTargetData]);
-
   const onRefresh = async () => {
     setRefreshing(true);
-    if (activeTab === "input" || activeTab === "halaqah") {
-      await fetchData();
-    } else if (activeTab === "riwayat") {
-      await fetchRiwayat();
-    } else if (activeTab === "target") {
-      await fetchTargetData();
-    }
+    await fetchData();
     setRefreshing(false);
   };
 
@@ -709,59 +700,7 @@ export const TahfidzSetoranScreen = () => {
         </SafeAreaView>
       </View>
 
-      {/* ─── TOP TABS NAVIGATION ─── */}
-      <View style={styles.tabBar}>
-        {!isMonitoring && (
-          <TouchableOpacity
-            style={[styles.tabItem, activeTab === "input" && styles.tabItemActive]}
-            onPress={() => {
-              if (!hasInputPermission) {
-                Alert.alert(
-                  "Akses Dibatasi",
-                  "Fitur input setoran hanya dapat diakses oleh Guru Tahfidz dan Administrator."
-                );
-                return;
-              }
-              setActiveTab("input");
-            }}
-          >
-            <BookOpen size={15} color={activeTab === "input" ? "#FFFFFF" : "#64748B"} />
-            <Text style={[styles.tabText, activeTab === "input" && styles.tabTextActive]}>
-              Setoran
-            </Text>
-          </TouchableOpacity>
-        )}
 
-        <TouchableOpacity
-          style={[styles.tabItem, activeTab === "riwayat" && styles.tabItemActive]}
-          onPress={() => setActiveTab("riwayat")}
-        >
-          <History size={15} color={activeTab === "riwayat" ? "#FFFFFF" : "#64748B"} />
-          <Text style={[styles.tabText, activeTab === "riwayat" && styles.tabTextActive]}>
-            Riwayat
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.tabItem, activeTab === "halaqah" && styles.tabItemActive]}
-          onPress={() => setActiveTab("halaqah")}
-        >
-          <Users size={15} color={activeTab === "halaqah" ? "#FFFFFF" : "#64748B"} />
-          <Text style={[styles.tabText, activeTab === "halaqah" && styles.tabTextActive]}>
-            Halaqoh
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.tabItem, activeTab === "target" && styles.tabItemActive]}
-          onPress={() => setActiveTab("target")}
-        >
-          <Target size={15} color={activeTab === "target" ? "#FFFFFF" : "#64748B"} />
-          <Text style={[styles.tabText, activeTab === "target" && styles.tabTextActive]}>
-            Target
-          </Text>
-        </TouchableOpacity>
-      </View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
@@ -774,11 +713,7 @@ export const TahfidzSetoranScreen = () => {
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#162E6E"]} />}
         >
-          {/* ═══════════════════════════════════════════════════════════════════
-              TAB 1: INPUT SETORAN (INDIVIDU & KOLOSAL)
-          ═══════════════════════════════════════════════════════════════════ */}
-          {activeTab === "input" && (
-            !hasInputPermission ? (
+          {!hasInputPermission ? (
               <Card style={styles.emptyBox}>
                 <Lock size={36} color="#94a3b8" />
                 <Text style={styles.emptyTitle}>Akses Khusus Guru Tahfidz</Text>
@@ -1438,238 +1373,7 @@ export const TahfidzSetoranScreen = () => {
                 )}
               </View>
             )
-          )}
-
-          {/* ═══════════════════════════════════════════════════════════════════
-              TAB 2: RIWAYAT SETORAN
-          ═══════════════════════════════════════════════════════════════════ */}
-          {activeTab === "riwayat" && (
-            <View style={styles.tabContent}>
-              {/* Filter Card */}
-              <Card style={styles.card}>
-                <View style={styles.searchBar}>
-                  <Search size={16} color="#64748b" />
-                  <TextInput
-                    style={styles.searchInput}
-                    placeholder="Cari nama santri, surat, hadits..."
-                    value={riwayatSearch}
-                    onChangeText={setRiwayatSearch}
-                  />
-                  {riwayatSearch ? (
-                    <TouchableOpacity onPress={() => setRiwayatSearch("")}>
-                      <X size={16} color="#64748b" />
-                    </TouchableOpacity>
-                  ) : null}
-                </View>
-
-                <View style={styles.filterPillsRow}>
-                  {["ALL", "Setoran Baru", "Setoran Ulang", "Ujian"].map((j) => (
-                    <TouchableOpacity
-                      key={j}
-                      style={[
-                        styles.filterPill,
-                        riwayatJenisFilter === j && styles.filterPillActive,
-                      ]}
-                      onPress={() => setRiwayatJenisFilter(j)}
-                    >
-                      <Text
-                        style={[
-                          styles.filterPillText,
-                          riwayatJenisFilter === j && styles.filterPillTextActive,
-                        ]}
-                      >
-                        {j === "ALL" ? "Semua" : j}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </Card>
-
-              {riwayatLoading ? (
-                <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 20 }} />
-              ) : filteredRiwayat.length === 0 ? (
-                <View style={styles.emptyBox}>
-                  <History size={36} color="#94a3b8" />
-                  <Text style={styles.emptyTitle}>Belum Ada Riwayat Setoran</Text>
-                  <Text style={styles.emptySubtitle}>Data setoran hafalan akan tercatat di sini.</Text>
-                </View>
-              ) : (
-                filteredRiwayat.map((item: any) => (
-                  <Card key={item.setoran_id} style={styles.riwayatCard}>
-                    <View style={styles.riwayatHeader}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.riwayatSantriName}>{item.siswa?.nama || "Santri"}</Text>
-                        <Text style={styles.riwayatDate}>
-                          📅 {item.tanggal} • {item.pegawai?.nama || "Ustadz"}
-                        </Text>
-                      </View>
-                      <View
-                        style={[
-                          styles.jenisBadge,
-                          item.jenis_hafalan === "Setoran Baru"
-                            ? styles.badgeBaru
-                            : item.jenis_hafalan === "Setoran Ulang"
-                            ? styles.badgeUlang
-                            : styles.badgeUjian,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.jenisBadgeText,
-                            item.jenis_hafalan === "Setoran Baru"
-                              ? styles.badgeBaruText
-                              : item.jenis_hafalan === "Setoran Ulang"
-                              ? styles.badgeUlangText
-                              : styles.badgeUjianText,
-                          ]}
-                        >
-                          {item.jenis_hafalan}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View style={styles.riwayatDetailBox}>
-                      <Text style={styles.riwayatDetailText}>
-                        {item.kategori === "Al-Quran"
-                          ? `📖 ${item.surat_mulai_nama || "Surat"} (${item.ayat_mulai}) s/d ${item.surat_selesai_nama || "Surat"} (${item.ayat_selesai}) • ${item.total_ayat || 0} Ayat`
-                          : item.kategori === "Hadits"
-                          ? `📜 ${item.kitab_hadits} • No. ${item.hadits_no_mulai} - ${item.hadits_no_selesai}`
-                          : `🔖 ${item.nama_matan} • Bait ${item.bait_mulai} - ${item.bait_selesai}`}
-                      </Text>
-                      <View style={styles.riwayatMetaRow}>
-                        <Text style={styles.riwayatKelancaran}>
-                          Kelancaran: <Text style={{ fontWeight: "700" }}>{item.kelancaran}</Text>
-                        </Text>
-                        {item.catatan_guru ? (
-                          <Text style={styles.riwayatCatatan}>"{item.catatan_guru}"</Text>
-                        ) : null}
-                      </View>
-                    </View>
-                  </Card>
-                ))
-              )}
-            </View>
-          )}
-
-          {/* ═══════════════════════════════════════════════════════════════════
-              TAB 3: KELOMPOK HALAQOH
-          ═══════════════════════════════════════════════════════════════════ */}
-          {activeTab === "halaqah" && (
-            <View style={styles.tabContent}>
-              <View style={styles.halaqahHeaderBox}>
-                <Text style={styles.halaqahHeaderTitle}>Kelompok Halaqoh Binaan</Text>
-                <Text style={styles.halaqahHeaderDesc}>
-                  Daftar kelompok halaqah tahfidz dan santri yang diampu
-                </Text>
-              </View>
-
-              {halaqahList.length === 0 ? (
-                <View style={styles.emptyBox}>
-                  <Users size={36} color="#94a3b8" />
-                  <Text style={styles.emptyTitle}>Belum Ada Kelompok Halaqoh</Text>
-                  <Text style={styles.emptySubtitle}>Kelompok halaqah binaan belum dibuat.</Text>
-                </View>
-              ) : (
-                halaqahList.map((h) => (
-                  <Card key={h.halaqah_id} style={styles.halaqahCard}>
-                    <View style={styles.halaqahCardHeader}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.halaqahName}>{h.nama_halaqah}</Text>
-                        <Text style={styles.halaqahMeta}>
-                          {h.lembaga?.nama || "Lembaga"} • {h.status}
-                        </Text>
-                      </View>
-                      <View style={styles.santriCountBadge}>
-                        <Users size={12} color="#1D4ED8" />
-                        <Text style={styles.santriCountText}>
-                          {h.anggota?.length || h._count?.anggota || 0} Santri
-                        </Text>
-                      </View>
-                    </View>
-
-                    {h.anggota && h.anggota.length > 0 && (
-                      <View style={styles.anggotaList}>
-                        <Text style={styles.anggotaHeading}>Daftar Santri Anggota:</Text>
-                        {h.anggota.map((ang, i) => (
-                          <View key={ang.id} style={styles.anggotaItem}>
-                            <Text style={styles.anggotaNumber}>{i + 1}.</Text>
-                            <Text style={styles.anggotaName}>{ang.siswa?.nama || "Santri"}</Text>
-                            <Text style={styles.anggotaKelas}>
-                              {ang.siswa?.kelas?.nama_kelas || "-"}
-                            </Text>
-                          </View>
-                        ))}
-                      </View>
-                    )}
-                  </Card>
-                ))
-              )}
-            </View>
-          )}
-
-          {/* ═══════════════════════════════════════════════════════════════════
-              TAB 4: TARGET & CAPAIAN SANTRI (WITH CREATE & EDIT TARGET)
-          ═══════════════════════════════════════════════════════════════════ */}
-          {activeTab === "target" && (
-            <View style={styles.tabContent}>
-              {/* Summary Stats Grid */}
-              <View style={styles.statsGrid}>
-                <View style={[styles.statBox, { backgroundColor: "#eff6ff", borderColor: "#bfdbfe" }]}>
-                  <BookOpen size={20} color="#1D4ED8" />
-                  <Text style={styles.statNumber}>
-                    {santriList.length}
-                  </Text>
-                  <Text style={styles.statLabel}>Total Santri Binaan</Text>
-                </View>
-
-                <View style={[styles.statBox, { backgroundColor: "#f0f9ff", borderColor: "#bae6fd" }]}>
-                  <TrendingUp size={20} color="#0284c7" />
-                  <Text style={styles.statNumber}>
-                    {halaqahList.length}
-                  </Text>
-                  <Text style={styles.statLabel}>Kelompok Halaqoh</Text>
-                </View>
-              </View>
-
-              <Text style={styles.targetSectionHeading}>Kelola Target Hafalan Santri Binaan</Text>
-
-              {santriList.map((s) => (
-                <Card key={s.siswa_id} style={styles.targetSantriCard}>
-                  <View style={styles.targetCardHeader}>
-                    <View style={styles.avatarCircle}>
-                      <Text style={styles.avatarText}>{s.nama.charAt(0)}</Text>
-                    </View>
-                    <View style={{ flex: 1, marginLeft: 10 }}>
-                      <Text style={styles.targetSantriName}>{s.nama}</Text>
-                      <Text style={styles.targetSantriMeta}>
-                        {s.kelas?.nama_kelas || "Santri"} • NISN: {s.nisn || "-"}
-                      </Text>
-                    </View>
-
-                    {hasInputPermission && (
-                      <TouchableOpacity
-                        style={styles.addTargetBtn}
-                        onPress={() => handleOpenTargetModal(s.siswa_id)}
-                      >
-                        <Plus size={13} color="#1D4ED8" />
-                        <Text style={styles.addTargetText}>Set Target</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-
-                  <View style={styles.progressContainer}>
-                    <View style={styles.progressHeader}>
-                      <Text style={styles.progressLabel}>Target Al-Qur'an (30 Juz)</Text>
-                      <Text style={styles.progressValue}>Status: Aktif</Text>
-                    </View>
-                    <View style={styles.progressBar}>
-                      <View style={[styles.progressFill, { width: "35%" }]} />
-                    </View>
-                  </View>
-                </Card>
-              ))}
-            </View>
-          )}
+          }
         </ScrollView>
       )}
 
@@ -1832,111 +1536,7 @@ export const TahfidzSetoranScreen = () => {
         </SafeAreaView>
       </Modal>
 
-      {/* ─── MODAL 5: TAMBAH / EDIT TARGET HAFALAN ─── */}
-      <Modal visible={isTargetModalOpen} animationType="slide" transparent>
-        <SafeAreaView style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {targetFormEditingId ? "Edit Target Hafalan" : "Tambah Target Hafalan"}
-              </Text>
-              <TouchableOpacity onPress={() => setIsTargetModalOpen(false)}>
-                <X size={20} color="#64748b" />
-              </TouchableOpacity>
-            </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {/* Kategori Target */}
-              <Text style={styles.fieldLabel}>Kategori</Text>
-              <View style={styles.kategoriGrid}>
-                {(["Al-Quran", "Hadits", "Matan Ilmu"] as KategoriHafalan[]).map((kat) => (
-                  <TouchableOpacity
-                    key={kat}
-                    style={[
-                      styles.kategoriBtn,
-                      targetFormKategori === kat && styles.kategoriBtnActive,
-                    ]}
-                    onPress={() => {
-                      setTargetFormKategori(kat);
-                      if (kat === "Al-Quran") {
-                        setTargetFormNominal("30");
-                        setTargetFormDeskripsi("Khatam 30 Juz Al-Qur'an");
-                      } else if (kat === "Hadits") {
-                        setTargetFormNominal("42");
-                        setTargetFormDeskripsi("Hadits Arbain An-Nawawi");
-                      } else {
-                        setTargetFormNominal("61");
-                        setTargetFormDeskripsi("Matan Tuhfatul Athfal");
-                      }
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.kategoriBtnText,
-                        targetFormKategori === kat && styles.kategoriBtnTextActive,
-                      ]}
-                    >
-                      {kat}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              {/* Target Nominal */}
-              <Text style={styles.fieldLabel}>
-                Target Nominal ({targetFormKategori === "Al-Quran" ? "Juz" : targetFormKategori === "Hadits" ? "Hadits" : "Bait"})
-              </Text>
-              <TextInput
-                style={styles.textInputFull}
-                value={targetFormNominal}
-                onChangeText={setTargetFormNominal}
-                keyboardType="numeric"
-                placeholder="Misal: 30"
-              />
-
-              {/* Deskripsi Target */}
-              <Text style={styles.fieldLabel}>Deskripsi / Judul Target</Text>
-              <TextInput
-                style={styles.textInputFull}
-                value={targetFormDeskripsi}
-                onChangeText={setTargetFormDeskripsi}
-                placeholder="Misal: Khatam 30 Juz Al-Qur'an"
-              />
-
-              {/* Status Target */}
-              <Text style={styles.fieldLabel}>Status</Text>
-              <View style={styles.kategoriGrid}>
-                {["Aktif", "Selesai", "Dibatalkan"].map((st) => (
-                  <TouchableOpacity
-                    key={st}
-                    style={[
-                      styles.kategoriBtn,
-                      targetFormStatus === st && styles.kategoriBtnActive,
-                    ]}
-                    onPress={() => setTargetFormStatus(st)}
-                  >
-                    <Text
-                      style={[
-                        styles.kategoriBtnText,
-                        targetFormStatus === st && styles.kategoriBtnTextActive,
-                      ]}
-                    >
-                      {st}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <Button
-                title={savingTarget ? "Menyimpan..." : "Simpan Target"}
-                onPress={handleSaveTarget}
-                loading={savingTarget}
-                style={{ marginTop: 14 }}
-              />
-            </ScrollView>
-          </View>
-        </SafeAreaView>
-      </Modal>
 
       {/* ─── TANGGAL PICKER MODAL (KALENDER VISUAL HP) ─── */}
       <SingleDatePickerModal
