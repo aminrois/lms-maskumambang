@@ -24,6 +24,7 @@
         "foregroundImage": "./assets/android-icon-foreground.png"
       },
       "package": "com.maskumambang.simas",
+      "googleServicesFile": "./google-services.json",
       "versionCode": 1,
       "predictiveBackGestureEnabled": false,
       "permissions": [
