@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, Suspense } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, LogOut, ChevronLeft, KeyRound, Loader2, ShieldOff, RefreshCw, Eye, EyeOff, ChevronDown } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
@@ -544,7 +544,16 @@ const MainLayout: React.FC = () => {
               </div>
             ) : (
               <ErrorBoundary>
-                <Outlet />
+                <Suspense
+                  fallback={
+                    <div className="flex flex-col items-center justify-center min-h-[350px] h-full gap-3 py-16">
+                      <div className="w-9 h-9 rounded-full border-4 border-[#1e2f65] border-t-[#FACC15] animate-spin" />
+                      <span className="text-xs text-[#1e2f65] font-bold tracking-wide">Memuat halaman...</span>
+                    </div>
+                  }
+                >
+                  <Outlet />
+                </Suspense>
               </ErrorBoundary>
             )}
           </div>

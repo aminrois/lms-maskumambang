@@ -31,11 +31,19 @@ export const apiClient = axios.create({
 export const restClient = apiClient;
 export const functionClient = apiClient;
 
-// Request Interceptor: Sisipkan JWT token dari localStorage
+// Request Interceptor: Sisipkan JWT token dari localStorage serta context active role & lembaga
 apiClient.interceptors.request.use((config) => {
     const token = useAuthStore.getState().token;
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
+    }
+    const currentRole = useAuthStore.getState().role;
+    if (currentRole) {
+        config.headers['x-active-role'] = currentRole;
+    }
+    const currentLembaga = useAuthStore.getState().lembaga_id;
+    if (currentLembaga) {
+        config.headers['x-active-lembaga-id'] = String(currentLembaga);
     }
     return config;
 });

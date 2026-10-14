@@ -16,6 +16,7 @@ import {
   Users,
   GraduationCap,
   Calendar,
+  CalendarDays,
   Clock,
   CheckCircle2,
   AlertTriangle,
@@ -41,6 +42,7 @@ import {
   SiswaItem,
   JurnalMengajarItem,
 } from "../../api/absensiService";
+import { DateRangePickerModal } from "../../components/ui/DateRangePickerModal";
 
 interface KelasOption {
   kelas_id: number;
@@ -68,10 +70,22 @@ export const RekapAbsensiMapelScreen = () => {
   );
   const formatDateStr = (d: Date) => d.toISOString().split("T")[0];
 
+  const formatDateId = (dateStr: string) => {
+    if (!dateStr) return "-";
+    const [y, m, d] = dateStr.split("-");
+    if (!y || !m || !d) return dateStr;
+    const months = [
+      "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
+      "Jul", "Agu", "Sep", "Okt", "Nov", "Des"
+    ];
+    return `${parseInt(d, 10)} ${months[parseInt(m, 10) - 1]} ${y}`;
+  };
+
   const [tanggalMulai, setTanggalMulai] = useState<string>(formatDateStr(firstDayOfMonth));
   const [tanggalAkhir, setTanggalAkhir] = useState<string>(formatDateStr(today));
   const [selectedMapelId, setSelectedMapelId] = useState<number | null>(null);
-  const [periodPreset, setPeriodPreset] = useState<"month" | "all">("month");
+  const [periodPreset, setPeriodPreset] = useState<"month" | "custom" | "all">("month");
+  const [showDateModal, setShowDateModal] = useState<boolean>(false);
 
   // Search in student list
   const [searchStudent, setSearchStudent] = useState<string>("");
@@ -209,8 +223,8 @@ export const RekapAbsensiMapelScreen = () => {
       if (selectedMapelId && j.jadwal?.mapel?.mapel_id !== selectedMapelId) {
         return false;
       }
-      // Date filter (if month preset)
-      if (periodPreset === "month") {
+      // Date filter (for month preset and custom date range)
+      if (periodPreset === "month" || periodPreset === "custom") {
         const itemDate = (j.tanggal || "").split("T")[0];
         if (tanggalMulai && itemDate < tanggalMulai) return false;
         if (tanggalAkhir && itemDate > tanggalAkhir) return false;
@@ -488,17 +502,31 @@ export const RekapAbsensiMapelScreen = () => {
               </View>
             )}
 
-            {/* Periode Preset Buttons */}
+            {/* Periode Preset Buttons & Date Picker Trigger */}
             <View style={styles.filterGroup}>
               <View style={styles.filterHeaderRow}>
                 <Text style={styles.filterGroupTitle}>Rentang Periode:</Text>
                 <View style={styles.presetButtonsRow}>
                   <TouchableOpacity
                     style={[styles.presetBtn, periodPreset === "month" && styles.presetBtnActive]}
-                    onPress={() => setPeriodPreset("month")}
+                    onPress={() => {
+                      setPeriodPreset("month");
+                      setTanggalMulai(formatDateStr(firstDayOfMonth));
+                      setTanggalAkhir(formatDateStr(today));
+                    }}
                   >
                     <Text style={[styles.presetBtnText, periodPreset === "month" && styles.presetBtnTextActive]}>
                       Bulan Ini
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.presetBtn, periodPreset === "custom" && styles.presetBtnActive]}
+                    onPress={() => {
+                      setShowDateModal(true);
+                    }}
+                  >
+                    <Text style={[styles.presetBtnText, periodPreset === "custom" && styles.presetBtnTextActive]}>
+                      Pilih Tanggal
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -512,14 +540,21 @@ export const RekapAbsensiMapelScreen = () => {
                 </View>
               </View>
 
-              <View style={styles.dateRangeBox}>
-                <Calendar size={14} color="#64748B" />
+              <TouchableOpacity
+                style={styles.dateRangeBox}
+                onPress={() => setShowDateModal(true)}
+                activeOpacity={0.8}
+              >
+                <CalendarDays size={15} color="#2563EB" />
                 <Text style={styles.dateRangeText}>
-                  {periodPreset === "month"
-                    ? `${tanggalMulai} s/d ${tanggalAkhir}`
-                    : "Semua riwayat KBM semester ini"}
+                  {periodPreset === "all"
+                    ? "Semua riwayat KBM semester ini"
+                    : `${formatDateId(tanggalMulai)} — ${formatDateId(tanggalAkhir)}`}
                 </Text>
-              </View>
+                <View style={styles.ubahDateBadge}>
+                  <Text style={styles.ubahDateBadgeText}>Ubah</Text>
+                </View>
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -775,6 +810,20 @@ export const RekapAbsensiMapelScreen = () => {
           </View>
         </ScrollView>
       )}
+
+      {/* Date Range Picker Modal */}
+      <DateRangePickerModal
+        visible={showDateModal}
+        onClose={() => setShowDateModal(false)}
+        startDate={tanggalMulai}
+        endDate={tanggalAkhir}
+        onApply={(start, end) => {
+          setTanggalMulai(start);
+          setTanggalAkhir(end);
+          setPeriodPreset("custom");
+          setShowDateModal(false);
+        }}
+      />
     </SafeAreaView>
   );
 };
@@ -1002,18 +1051,33 @@ const styles = StyleSheet.create({
   dateRangeBox: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F8FAFC",
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    gap: 6,
+    justifyContent: "space-between",
+    backgroundColor: "#F1F5F9",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 8,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: "#CBD5E1",
   },
   dateRangeText: {
-    fontSize: 11,
-    color: "#475569",
-    fontWeight: "500",
+    flex: 1,
+    fontSize: 11.5,
+    color: "#1E293B",
+    fontWeight: "600",
+  },
+  ubahDateBadge: {
+    backgroundColor: "#EFF6FF",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+  },
+  ubahDateBadgeText: {
+    fontSize: 10.5,
+    fontWeight: "700",
+    color: "#1D4ED8",
   },
   metricsContainer: {
     marginBottom: 14,

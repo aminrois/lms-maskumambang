@@ -29,8 +29,6 @@ import { Badge } from "../../components/ui/Badge";
 import { Colors } from "../../constants/colors";
 import { useAuthStore } from "../../store/useAuthStore";
 import { jadwalService, JadwalItem } from "../../api/jadwalService";
-import { absensiService, LessonPlanItem } from "../../api/absensiService";
-import { isLessonPlanApproved } from "../../utils/jadwalHelper";
 
 const DAYS = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Ahad"];
 
@@ -45,7 +43,6 @@ export const JadwalScreen = () => {
   });
 
   const [jadwalList, setJadwalList] = useState<JadwalItem[]>([]);
-  const [lessonPlans, setLessonPlans] = useState<LessonPlanItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -56,14 +53,10 @@ export const JadwalScreen = () => {
     if (!teacherPegawaiId) return;
     try {
       setLoading(true);
-      const [jadwalData, lpData] = await Promise.all([
-        jadwalService.getJadwalPelajaran({ pegawai_id: teacherPegawaiId }),
-        absensiService.getLessonPlans({ pegawai_id: teacherPegawaiId }).catch(() => []),
-      ]);
+      const jadwalData = await jadwalService.getJadwalPelajaran({ pegawai_id: teacherPegawaiId });
       setJadwalList(jadwalData);
-      setLessonPlans(lpData);
     } catch (err: any) {
-      console.warn("Error fetching jadwal / lesson plans:", err.message);
+      console.warn("Error fetching jadwal:", err.message);
     } finally {
       setLoading(false);
     }
@@ -78,18 +71,6 @@ export const JadwalScreen = () => {
     await fetchData();
     setRefreshing(false);
   };
-
-  // Map of unverified Lesson Plans
-  const unverifiedCount = useMemo(() => {
-    let count = 0;
-    jadwalList.forEach((j) => {
-      const matched = lessonPlans.find((lp) => lp.jadwal_id === j.jadwal_id);
-      if (!matched || !isLessonPlanApproved(matched)) {
-        count++;
-      }
-    });
-    return count;
-  }, [jadwalList, lessonPlans]);
 
   // Filter schedules for active day
   const forActiveDay = useMemo(() => {
@@ -132,22 +113,6 @@ export const JadwalScreen = () => {
         </View>
 
         {/* Warning Lesson Plan Belum Terverifikasi jika ada */}
-        {unverifiedCount > 0 && (
-          <View style={styles.unverifiedBanner}>
-            <View style={styles.unverifiedIconBox}>
-              <AlertTriangle size={18} color="#D97706" />
-            </View>
-            <View style={styles.unverifiedTextWrap}>
-              <Text style={styles.unverifiedTitle}>
-                {unverifiedCount} Lesson Plan Belum Diverifikasi
-              </Text>
-              <Text style={styles.unverifiedDesc}>
-                Terdapat jadwal pelajaran yang RPP-nya belum disetujui Kepala Sekolah & Direktur.
-              </Text>
-            </View>
-          </View>
-        )}
-
         {/* Tabs Hari */}
         <View style={styles.dayTabsWrapper}>
           <ScrollView
@@ -222,9 +187,6 @@ export const JadwalScreen = () => {
           </Card>
         ) : (
           forActiveDay.map((item, index) => {
-            const matchedLP = lessonPlans.find((lp) => lp.jadwal_id === item.jadwal_id);
-            const isLPReady = matchedLP ? isLessonPlanApproved(matchedLP) : false;
-
             const jamMulaiStr =
               typeof item.jam_mulai === "object"
                 ? item.jam_mulai?.jam_mulai
@@ -271,28 +233,6 @@ export const JadwalScreen = () => {
                       <Text style={styles.metaText}>{item.ruangan}</Text>
                     </View>
                   )}
-                </View>
-
-                {/* Status RPP Indicator Badge */}
-                <View style={styles.rppFooter}>
-                  <View
-                    style={[
-                      styles.rppBadge,
-                      isLPReady ? styles.rppBadgeApproved : styles.rppBadgePending,
-                    ]}
-                  >
-                    {isLPReady ? (
-                      <>
-                        <CheckCircle2 size={12} color="#15803D" />
-                        <Text style={styles.rppApprovedText}>RPP Terverifikasi</Text>
-                      </>
-                    ) : (
-                      <>
-                        <AlertTriangle size={12} color="#B45309" />
-                        <Text style={styles.rppPendingText}>RPP Belum Disetujui</Text>
-                      </>
-                    )}
-                  </View>
                 </View>
               </Card>
             );

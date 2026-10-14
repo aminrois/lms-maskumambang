@@ -8,24 +8,43 @@ const getAuthInfo = (req: Request) => {
   return user;
 };
 
+const isValidUUID = (str?: string): boolean => {
+  if (!str || typeof str !== 'string') return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str.trim());
+};
+
 // Helper to resolve pegawai_id from explicit value, JWT user_id, or database lookup
-const resolvePegawaiId = async (providedPegawaiId?: any, userId?: string): Promise<number | null> => {
-  if (providedPegawaiId && !isNaN(Number(providedPegawaiId))) {
-    return Number(providedPegawaiId);
+const resolvePegawaiId = async (providedPegawaiId?: any, userId?: string, username?: string): Promise<number | null> => {
+  try {
+    if (providedPegawaiId && !isNaN(Number(providedPegawaiId))) {
+      return Number(providedPegawaiId);
+    }
+    if (userId && isValidUUID(userId)) {
+      const p = await prisma.pegawai.findFirst({
+        where: { user_id: userId.trim() },
+        select: { pegawai_id: true },
+      });
+      if (p) return p.pegawai_id;
+    }
+    if (username) {
+      const cleanU = String(username).trim();
+      if (cleanU) {
+        const p = await prisma.pegawai.findFirst({
+          where: {
+            OR: [
+              { nig: { equals: cleanU, mode: 'insensitive' } },
+              { nip: { equals: cleanU, mode: 'insensitive' } },
+            ],
+          },
+          select: { pegawai_id: true },
+        });
+        if (p) return p.pegawai_id;
+      }
+    }
+  } catch (err) {
+    console.error('Error resolving pegawai_id:', err);
   }
-  if (userId) {
-    const p = await prisma.pegawai.findFirst({
-      where: { user_id: userId },
-      select: { pegawai_id: true },
-    });
-    if (p) return p.pegawai_id;
-  }
-  // Fallback to first active pegawai (for testing or superadmin)
-  const fallback = await prisma.pegawai.findFirst({
-    where: { status: 'Aktif' },
-    select: { pegawai_id: true },
-  });
-  return fallback?.pegawai_id || null;
+  return null;
 };
 
 // ==========================================
@@ -1914,3 +1933,405 @@ export const getKelasTilawah = async (req: Request, res: Response, next: NextFun
     next(error);
   }
 };
+
+// ==========================================
+// 8. MODAL AWAL HAFALAN SANTRI
+// ==========================================
+
+export const getModalAwalList = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { lembaga_id, kelas_id, status_modal, search, pegawai_id } = req.query;
+    const clientActiveRole = (req.headers['x-active-role'] as string) || (req.query.role as string);
+    const authUser = getAuthInfo(req);
+    const userRoles = authUser?.roles || [];
+
+    // Deteksi apakah user sedang bertindak sebagai Guru Tahfidz
+    const isGuruTahfidz = clientActiveRole
+      ? clientActiveRole === 'Guru Tahfidz'
+      : (userRoles.includes('Guru Tahfidz') &&
+         !userRoles.includes('Super Admin') &&
+         !userRoles.includes('Direktur'));
+
+    const isGlobal = !isGuruTahfidz && (
+      clientActiveRole
+        ? ['Super Admin', 'Direktur', 'Kepala Sekolah'].includes(clientActiveRole)
+        : (userRoles.includes('Super Admin') || userRoles.includes('Direktur') || userRoles.includes('Kepala Sekolah'))
+    );
+
+    let targetKelasIds: number[] = [];
+    let halaqahSiswaIds: number[] = [];
+
+    // Resolusi pegawai ID untuk guru tahfidz atau pegawai spesifik
+    const userPegawaiId = await resolvePegawaiId(
+      pegawai_id || (isGuruTahfidz ? authUser?.pegawai_id : undefined),
+      authUser?.user_id,
+      authUser?.username
+    );
+
+    if (kelas_id) {
+      targetKelasIds = [Number(kelas_id)];
+    } else if (isGuruTahfidz || pegawai_id) {
+      const targetPegawaiId = pegawai_id ? Number(pegawai_id) : userPegawaiId;
+      if (targetPegawaiId) {
+        // Ambil kelas yang diampu guru tahfidz ini
+        const pengampuRows = await prisma.tahfidzPengampu.findMany({
+          where: { pegawai_id: targetPegawaiId },
+          select: { kelas_id: true },
+        });
+        targetKelasIds = pengampuRows.map((p) => p.kelas_id);
+
+        // Ambil santri dari kelompok halaqah aktif binaan guru ini
+        const halaqahRows = await prisma.tahfidzHalaqah.findMany({
+          where: { pegawai_id: targetPegawaiId, status: 'Aktif' },
+          select: { halaqah_id: true },
+        });
+        const halaqahIds = halaqahRows.map((h) => h.halaqah_id);
+        if (halaqahIds.length > 0) {
+          const anggotaRows = await prisma.tahfidzHalaqahSiswa.findMany({
+            where: { halaqah_id: { in: halaqahIds } },
+            select: { siswa_id: true },
+          });
+          halaqahSiswaIds = anggotaRows.map((a) => a.siswa_id);
+        }
+      }
+    }
+
+    const whereSiswa: any = {
+      NOT: { status: 'Tidak Aktif' },
+    };
+
+    if (isGuruTahfidz) {
+      // Guru Tahfidz: HANYA tampilkan santri yang diampu (kelas pengampu dan/atau anggota halaqah binaan)
+      if (targetKelasIds.length > 0 && halaqahSiswaIds.length > 0) {
+        whereSiswa.OR = [
+          { kelas_id: { in: targetKelasIds } },
+          { siswa_id: { in: halaqahSiswaIds } },
+        ];
+      } else if (targetKelasIds.length > 0) {
+        whereSiswa.kelas_id = { in: targetKelasIds };
+      } else if (halaqahSiswaIds.length > 0) {
+        whereSiswa.siswa_id = { in: halaqahSiswaIds };
+      } else {
+        // Guru belum ditugaskan kelas atau halaqah -> kosongkan (jangan bocor ke semua siswa)
+        whereSiswa.siswa_id = { in: [] };
+      }
+    } else if (isGlobal) {
+      // Role Global (Super Admin / Direktur / Kepala Sekolah)
+      if (targetKelasIds.length > 0) {
+        whereSiswa.kelas_id = { in: targetKelasIds };
+      }
+      if (lembaga_id) {
+        whereSiswa.kelas = { ...(whereSiswa.kelas || {}), lembaga_id: Number(lembaga_id) };
+      }
+    }
+
+    if (search && typeof search === 'string' && search.trim() !== '') {
+      const q = search.trim();
+      whereSiswa.AND = [
+        ...(whereSiswa.AND || []),
+        {
+          OR: [
+            { nama: { contains: q, mode: 'insensitive' } },
+            { nis: { contains: q, mode: 'insensitive' } },
+            { nisn: { contains: q, mode: 'insensitive' } },
+          ],
+        },
+      ];
+    }
+
+    if (status_modal === 'sudah') {
+      whereSiswa.tahfidz_modal_awal = { isNot: null };
+    } else if (status_modal === 'belum') {
+      whereSiswa.tahfidz_modal_awal = null;
+    }
+
+    const santriList = await prisma.siswa.findMany({
+      where: whereSiswa,
+      include: {
+        kelas: {
+          include: { lembaga: true },
+        },
+        tahfidz_modal_awal: {
+          include: {
+            pegawai: { select: { pegawai_id: true, nama: true } },
+          },
+        },
+        tahfidz_setoran: {
+          where: { kategori: 'Al-Quran', jenis_hafalan: 'Setoran Baru' },
+          select: {
+            setoran_id: true,
+            tanggal: true,
+            total_ayat: true,
+            juz: true,
+            surat_selesai_nama: true,
+            ayat_selesai: true,
+            kelancaran: true,
+          },
+          orderBy: { tanggal: 'desc' },
+        },
+        tahfidz_halaqah_siswa: {
+          include: {
+            halaqah: {
+              select: { halaqah_id: true, nama_halaqah: true, pegawai: { select: { nama: true } } },
+            },
+          },
+        },
+      },
+      orderBy: [
+        { kelas: { nama_kelas: 'asc' } },
+        { nama: 'asc' },
+      ],
+    });
+
+    let totalSudah = 0;
+    let totalBelum = 0;
+    let totalModalJuzAll = 0;
+    let totalZiyadahJuzAll = 0;
+
+    const formatted = santriList.map((s) => {
+      const modal = s.tahfidz_modal_awal;
+      const modalJuz = modal ? modal.juz_awal : 0;
+      if (modal) {
+        totalSudah++;
+        totalModalJuzAll += modalJuz;
+      } else {
+        totalBelum++;
+      }
+
+      // Hitung akumulasi Ziyadah dari setoran sistem
+      const totalAyatZiyadah = s.tahfidz_setoran.reduce((acc, cur) => acc + (cur.total_ayat || 0), 0);
+      const ziyadahJuz = Number(((totalAyatZiyadah / 6236) * 30).toFixed(2));
+      totalZiyadahJuzAll += ziyadahJuz;
+
+      const totalHafalanSekarang = Number((modalJuz + ziyadahJuz).toFixed(2));
+      const latestSetoran = s.tahfidz_setoran[0] || null;
+
+      return {
+        siswa_id: s.siswa_id,
+        nama: s.nama,
+        nis: s.nis,
+        nisn: s.nisn,
+        foto: s.foto,
+        jenis_kelamin: s.jenis_kelamin,
+        kelas: s.kelas
+          ? {
+              kelas_id: s.kelas.kelas_id,
+              nama_kelas: s.kelas.nama_kelas,
+              lembaga_id: s.kelas.lembaga_id,
+              nama_lembaga: s.kelas.lembaga?.nama_lembaga || '-',
+            }
+          : null,
+        halaqah: s.tahfidz_halaqah_siswa[0]?.halaqah || null,
+        modal_awal: modal
+          ? {
+              modal_id: modal.modal_id,
+              juz_awal: modal.juz_awal,
+              surah_awal: modal.surah_awal,
+              surah_awal_no: modal.surah_awal_no,
+              ayat_awal: modal.ayat_awal,
+              halaman_awal: modal.halaman_awal,
+              total_halaman: modal.total_halaman,
+              keterangan: modal.keterangan,
+              tanggal_input: modal.tanggal_input,
+              riwayat: modal.riwayat,
+              pencatat: modal.pegawai ? modal.pegawai.nama : '-',
+              created_at: modal.created_at,
+              updated_at: modal.updated_at,
+            }
+          : null,
+        progress: {
+          modal_juz: modalJuz,
+          total_ayat_ziyadah: totalAyatZiyadah,
+          ziyadah_juz: ziyadahJuz,
+          total_hafalan_juz: totalHafalanSekarang,
+          total_setoran: s.tahfidz_setoran.length,
+          last_setoran: latestSetoran,
+        },
+      };
+    });
+
+    res.json({
+      success: true,
+      data: formatted,
+      summary: {
+        total_santri: santriList.length,
+        total_sudah_input: totalSudah,
+        total_belum_input: totalBelum,
+        total_modal_juz: Number(totalModalJuzAll.toFixed(1)),
+        total_ziyadah_juz: Number(totalZiyadahJuzAll.toFixed(2)),
+        total_keseluruhan_juz: Number((totalModalJuzAll + totalZiyadahJuzAll).toFixed(2)),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const saveModalAwal = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const {
+      siswa_id,
+      juz_awal,
+      surah_awal,
+      surah_awal_no,
+      ayat_awal,
+      halaman_awal,
+      total_halaman,
+      keterangan,
+      tanggal_input,
+    } = req.body;
+
+    if (!siswa_id) {
+      res.status(400).json({ success: false, message: 'ID Santri wajib ditentukan' });
+      return;
+    }
+
+    const authUser = getAuthInfo(req);
+    const userPegawaiId = await resolvePegawaiId(authUser?.pegawai_id, authUser?.user_id);
+
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    const dataPayload = {
+      juz_awal: juz_awal !== undefined && juz_awal !== null ? Number(juz_awal) : 0,
+      surah_awal: surah_awal || null,
+      surah_awal_no: surah_awal_no ? Number(surah_awal_no) : null,
+      ayat_awal: ayat_awal ? Number(ayat_awal) : null,
+      halaman_awal: halaman_awal ? Number(halaman_awal) : null,
+      total_halaman: total_halaman ? Number(total_halaman) : null,
+      keterangan: keterangan || null,
+      tanggal_input: tanggal_input || todayStr,
+      pegawai_id: userPegawaiId || null,
+    };
+
+    const saved = await prisma.tahfidzModalAwal.upsert({
+      where: { siswa_id: Number(siswa_id) },
+      update: dataPayload,
+      create: {
+        siswa_id: Number(siswa_id),
+        ...dataPayload,
+      },
+      include: {
+        siswa: { select: { nama: true, nis: true } },
+        pegawai: { select: { nama: true } },
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      data: saved,
+      message: `Modal awal hafalan santri ${saved.siswa.nama} berhasil disimpan`,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteModalAwal = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const targetId = Number(id);
+
+    // Boleh dihapus berdasarkan modal_id atau siswa_id
+    const existing = await prisma.tahfidzModalAwal.findFirst({
+      where: {
+        OR: [{ modal_id: targetId }, { siswa_id: targetId }],
+      },
+    });
+
+    if (!existing) {
+      res.status(404).json({ success: false, message: 'Data modal awal tidak ditemukan' });
+      return;
+    }
+
+    await prisma.tahfidzModalAwal.delete({
+      where: { modal_id: existing.modal_id },
+    });
+
+    res.json({ success: true, message: 'Data modal awal hafalan berhasil dihapus' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const akumulasiModalAwal = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { siswa_id, catatan_kenaikan, tambah_juz_manual } = req.body;
+
+    if (!siswa_id) {
+      res.status(400).json({ success: false, message: 'ID Santri wajib ditentukan' });
+      return;
+    }
+
+    const siswa = await prisma.siswa.findUnique({
+      where: { siswa_id: Number(siswa_id) },
+      include: {
+        kelas: true,
+        tahfidz_modal_awal: true,
+        tahfidz_setoran: {
+          where: { kategori: 'Al-Quran', jenis_hafalan: 'Setoran Baru' },
+        },
+      },
+    });
+
+    if (!siswa) {
+      res.status(404).json({ success: false, message: 'Santri tidak ditemukan' });
+      return;
+    }
+
+    const authUser = getAuthInfo(req);
+    const userPegawaiId = await resolvePegawaiId(authUser?.pegawai_id, authUser?.user_id);
+
+    const currentModal = siswa.tahfidz_modal_awal;
+    const oldJuzAwal = currentModal?.juz_awal || 0;
+
+    // Hitung penambahan dari setoran sistem
+    const totalAyatZiyadah = siswa.tahfidz_setoran.reduce((acc, cur) => acc + (cur.total_ayat || 0), 0);
+    const systemZiyadahJuz = Number(((totalAyatZiyadah / 6236) * 30).toFixed(2));
+
+    const penambahanJuz = tambah_juz_manual !== undefined ? Number(tambah_juz_manual) : systemZiyadahJuz;
+    const newJuzAwal = Math.round(oldJuzAwal + penambahanJuz);
+
+    const snapshot = {
+      tanggal: new Date().toISOString().split('T')[0],
+      kelas: siswa.kelas?.nama_kelas || '-',
+      juz_awal_sebelumnya: oldJuzAwal,
+      ziyadah_diperoleh: penambahanJuz,
+      juz_awal_baru: newJuzAwal,
+      keterangan: catatan_kenaikan || 'Akumulasi Kenaikan Kelas / Semester',
+      diinput_oleh: authUser?.nama || authUser?.username || 'Guru Tahfidz',
+    };
+
+    const prevRiwayat = Array.isArray(currentModal?.riwayat) ? (currentModal.riwayat as any[]) : [];
+    const newRiwayat = [...prevRiwayat, snapshot];
+
+    const updated = await prisma.tahfidzModalAwal.upsert({
+      where: { siswa_id: Number(siswa_id) },
+      update: {
+        juz_awal: newJuzAwal,
+        tanggal_input: snapshot.tanggal,
+        pegawai_id: userPegawaiId || null,
+        riwayat: newRiwayat,
+      },
+      create: {
+        siswa_id: Number(siswa_id),
+        juz_awal: newJuzAwal,
+        tanggal_input: snapshot.tanggal,
+        pegawai_id: userPegawaiId || null,
+        riwayat: newRiwayat,
+        keterangan: catatan_kenaikan || 'Akumulasi Modal Awal',
+      },
+      include: {
+        siswa: { select: { nama: true } },
+      },
+    });
+
+    res.json({
+      success: true,
+      data: updated,
+      message: `Hafalan santri ${updated.siswa.nama} berhasil diakumulasikan menjadi ${newJuzAwal} Juz untuk tingkat berikutnya.`,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+

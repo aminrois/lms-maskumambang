@@ -163,10 +163,10 @@ export const TeacherDashboardScreen = () => {
           onPress: () => navigation.navigate("MonitoringKbm"),
         },
         {
-          title: "Setoran Hafalan",
-          icon: <ScrollText size={24} color="#FFFFFF" />,
-          bg: "#3b82f6",
-          onPress: () => navigation.navigate("TahfidzSetoran"),
+          title: "Verifikasi RPP",
+          icon: <FileCheck2 size={24} color="#FFFFFF" />,
+          bg: "#D97706",
+          onPress: () => navigation.navigate("VerifikasiLessonPlan"),
         },
         {
           title: "Presensi Guru",
@@ -181,6 +181,12 @@ export const TeacherDashboardScreen = () => {
           onPress: () => navigation.navigate("Jadwal"),
         },
         {
+          title: "Setoran Hafalan",
+          icon: <ScrollText size={24} color="#FFFFFF" />,
+          bg: "#3b82f6",
+          onPress: () => navigation.navigate("TahfidzSetoran"),
+        },
+        {
           title: "Tilawah Harian",
           icon: <BookOpen size={24} color="#FFFFFF" />,
           bg: "#7C3AED",
@@ -191,12 +197,6 @@ export const TeacherDashboardScreen = () => {
           icon: <BookMarked size={24} color="#FFFFFF" />,
           bg: "#0284c7",
           onPress: () => navigation.navigate("DoaDzikir"),
-        },
-        {
-          title: "Berita",
-          icon: <Newspaper size={24} color="#FFFFFF" />,
-          bg: "#f43f5e",
-          onPress: () => navigation.navigate("Berita"),
         },
         {
           title: "Bimbingan",
@@ -515,7 +515,7 @@ export const TeacherDashboardScreen = () => {
         <View style={styles.headerBackground}>
           {/* Mosque Watermark Image Backdrop */}
           <Image
-            source={require("../../../assets/pesantren-bg.jpg")}
+            source={require("../../../assets/pesantren-bg.webp")}
             style={styles.headerBackdropImage}
             resizeMode="cover"
           />
@@ -527,7 +527,7 @@ export const TeacherDashboardScreen = () => {
               <View style={styles.brandRow}>
                 <View style={styles.logoBadge}>
                   <Image
-                    source={require("../../../assets/logo.png")}
+                    source={require("../../../assets/logo.webp")}
                     style={styles.logoImg}
                     resizeMode="contain"
                   />
@@ -724,8 +724,45 @@ export const TeacherDashboardScreen = () => {
             4. DUA KARTU FITUR UTAMA: LESSON PLAN / BIMBINGAN & JADWAL / SUPERVISI
         ════════════════════════════════════════════════════════ */}
         <View style={styles.dualCardContainer}>
-          {/* Card Kiri: Lesson Plan (Guru) / Bimbingan Santri (Wali Kelas & Pimpinan) */}
-          {!isWaliKls && !isPimpinan ? (
+          {/* Card Kiri: Verifikasi RPP (Pimpinan) / Lesson Plan (Guru) / Bimbingan Santri (Wali Kelas) */}
+          {isPimpinan ? (
+            <TouchableOpacity
+              style={styles.dualCard}
+              onPress={() => navigation.navigate("VerifikasiLessonPlan")}
+              activeOpacity={0.85}
+            >
+              <View style={styles.dualCardHeader}>
+                <View style={styles.dualCardTitleRow}>
+                  <FileCheck2 size={16} color="#D97706" />
+                  <Text style={styles.dualCardTitle}>Verifikasi RPP</Text>
+                </View>
+                <ChevronRight size={14} color="#94A3B8" />
+              </View>
+
+              <View style={styles.lmsClassBox}>
+                <View style={styles.lmsClassTop}>
+                  <View style={[styles.lmsIconBox, { backgroundColor: "#FFFBEB" }]}>
+                    <FileCheck2 size={18} color="#D97706" />
+                  </View>
+                  <View style={[styles.lmsClassBadge, { backgroundColor: "#FFFBEB" }]}>
+                    <Text style={[styles.lmsClassBadgeText, { color: "#D97706" }]}>Pemeriksaan</Text>
+                  </View>
+                </View>
+
+                <Text style={styles.lmsClassName} numberOfLines={1}>
+                  Perangkat Ajar
+                </Text>
+                <Text style={styles.lmsTeacherName} numberOfLines={1}>
+                  Validasi & Pengesahan RPP
+                </Text>
+
+                <View style={[styles.progressBarBg, { marginTop: 8 }]}>
+                  <View style={[styles.progressBarFill, { width: "100%", backgroundColor: "#D97706" }]} />
+                </View>
+                <Text style={[styles.progressStatusText, { color: "#D97706" }]}>Buka Verifikasi RPP ›</Text>
+              </View>
+            </TouchableOpacity>
+          ) : !isWaliKls ? (
             <TouchableOpacity
               style={styles.dualCard}
               onPress={() => navigation.navigate("LessonPlan")}
@@ -923,7 +960,7 @@ export const TeacherDashboardScreen = () => {
           {/* Banner Dark Navy with Mosque Photo */}
           <View style={styles.pesantrenBanner}>
             <Image
-              source={require("../../../assets/pesantren-bg.jpg")}
+              source={require("../../../assets/pesantren-bg.webp")}
               style={styles.bannerBgImage}
               resizeMode="cover"
             />
@@ -1444,7 +1481,7 @@ export const TeacherDashboardScreen = () => {
                 </Text>
 
                 <Image
-                  source={require("../../../assets/pesantren-bg.jpg")}
+                  source={require("../../../assets/pesantren-bg.webp")}
                   style={styles.newsDetailImg}
                   resizeMode="cover"
                 />
@@ -1509,7 +1546,7 @@ export const TeacherDashboardScreen = () => {
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
               <Image
-                source={require("../../../assets/pesantren-bg.jpg")}
+                source={require("../../../assets/pesantren-bg.webp")}
                 style={styles.profilPesantrenImg}
                 resizeMode="cover"
               />

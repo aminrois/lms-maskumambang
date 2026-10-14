@@ -98,6 +98,7 @@ model Pegawai {
   tahfidz_pengampu        TahfidzPengampu[]
   tahfidz_setoran         TahfidzSetoran[]
   tahfidz_halaqah         TahfidzHalaqah[]
+  tahfidz_modal_awal      TahfidzModalAwal[]
   konseling_sesi          SiswaKonselingSesi[]
 
   @@index([user_id])
@@ -203,6 +204,7 @@ model Siswa {
   tahfidz_setoran     TahfidzSetoran[]
   tahfidz_halaqah_siswa TahfidzHalaqahSiswa[]
   tahfidz_tilawah     TahfidzTilawah[]
+  tahfidz_modal_awal  TahfidzModalAwal?
   tagihan_siswa       TagihanSiswa[]
   pembayaran_transaksi PembayaranTransaksi[]
   guidance_detail     SiswaGuidanceDetail?
@@ -588,6 +590,29 @@ model TahfidzTilawah {
   @@index([tanggal])
   @@index([diinput_oleh])
   @@map("tahfidz_tilawah")
+}
+
+model TahfidzModalAwal {
+  modal_id         Int       @id @default(autoincrement())
+  siswa_id         Int       @unique
+  pegawai_id       Int?      // Guru Tahfidz yang mencatat / memperbarui
+  juz_awal         Int       @default(0) // Jumlah juz awal yang sudah dihafal
+  surah_awal       String?   // Nama surah terakhir (misal: "Al-Baqarah")
+  surah_awal_no    Int?      // Nomor surah (1-114)
+  ayat_awal        Int?      // Ayat terakhir
+  halaman_awal     Int?      // Halaman mushaf (1-604)
+  total_halaman    Float?    // Total halaman awal jika ada
+  keterangan       String?   // Catatan detail hafalan sebelumnya / asal sekolah
+  tanggal_input    String?   // Tanggal input / pencatatan (YYYY-MM-DD)
+  riwayat          Json?     // Rekam riwayat snapshot saat naik kelas / akumulasi
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+
+  siswa            Siswa     @relation(fields: [siswa_id], references: [siswa_id], onDelete: Cascade)
+  pegawai          Pegawai?  @relation(fields: [pegawai_id], references: [pegawai_id], onDelete: SetNull)
+
+  @@index([pegawai_id])
+  @@map("tahfidz_modal_awal")
 }
 
 // ═══════════════════════════════════════════════════════

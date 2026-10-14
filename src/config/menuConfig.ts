@@ -71,7 +71,8 @@ export const allMenuGroups: MenuGroup[] = [
     category: "Tahfidz & Hafalan",
     items: [
       { name: "Input Setoran", icon: Sparkles, path: "/tahfidz/setoran", allowedRoles: ['Super Admin', 'Direktur', 'Guru Tahfidz'], color: "emerald" },
-      { name: "Tilawah Harian", icon: BookOpen, path: "/tahfidz/tilawah", allowedRoles: ['Super Admin', 'Direktur', 'Guru Tahfidz', 'Wali Kelas', 'Wali Murid'], color: "indigo" },
+      { name: "Modal Awal Hafalan", icon: BookMarked, path: "/tahfidz/modal-awal", allowedRoles: ['Super Admin', 'Direktur', 'Kepala Sekolah', 'Guru Tahfidz'], color: "amber" },
+      { name: "Tilawah Harian", icon: BookOpen, path: "/tahfidz/tilawah", allowedRoles: ['Super Admin', 'Direktur', 'Wali Kelas', 'Wali Murid'], color: "indigo" },
       { name: "Target & Progres", icon: Target, path: "/tahfidz/target", allowedRoles: ['Super Admin', 'Direktur', 'Guru Tahfidz', 'Wali Kelas'], color: "blue" },
       { name: "Riwayat Setoran", icon: History, path: "/tahfidz/riwayat", allowedRoles: ['Super Admin', 'Direktur', 'Guru Tahfidz', 'Wali Kelas', 'Wali Murid'], color: "purple" },
       { name: "Penugasan Kelas", icon: UserCheck, path: "/tahfidz/penugasan", allowedRoles: ['Super Admin', 'Direktur'], color: "amber" },

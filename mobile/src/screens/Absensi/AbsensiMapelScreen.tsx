@@ -46,10 +46,10 @@ import {
   LessonPlanItem,
   JurnalMengajarItem,
 } from "../../api/absensiService";
-import { jadwalService, JadwalItem } from "../../api/jadwalService";
+import { jadwalService, JadwalItem, GroupedJadwalSesi } from "../../api/jadwalService";
 import { useAuthStore } from "../../store/useAuthStore";
 import { canManageKBM } from "../../utils/permissions";
-import { isLessonPlanApproved } from "../../utils/jadwalHelper";
+import { isLessonPlanApproved, groupJadwalSessions, isLPForSubjectAndClass } from "../../utils/jadwalHelper";
 
 const DAYS = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Ahad"];
 
@@ -69,8 +69,8 @@ export const AbsensiMapelScreen = () => {
   // Wizard Step: 1 = Pilih Jadwal, 2 = Pilih Pertemuan (RPP), 3 = Isi Absensi & Jurnal
   const [currentStep, setCurrentStep] = useState<number>(1);
 
-  // Selected schedule & RPP state
-  const [selectedJadwal, setSelectedJadwal] = useState<JadwalItem | null>(null);
+  // Selected schedule session & RPP state
+  const [selectedJadwal, setSelectedJadwal] = useState<GroupedJadwalSesi | null>(null);
   const [selectedPertemuan, setSelectedPertemuan] = useState<number | null>(null);
   const [selectedLpDetail, setSelectedLpDetail] = useState<LessonPlanDetailItem | null>(null);
 
@@ -117,25 +117,26 @@ export const AbsensiMapelScreen = () => {
     fetchInitialData();
   }, [fetchInitialData]);
 
-  // Handle route params if passed from navigation
-  useEffect(() => {
-    if (route.params?.jadwalId && schedules.length > 0) {
-      const found = schedules.find((s) => s.jadwal_id === route.params.jadwalId);
-      if (found) {
-        handleSelectSchedule(found);
-      }
-    }
-  }, [route.params?.jadwalId, schedules]);
+  // Grouped sessions for all schedules
+  const allGroupedSessions = useMemo(() => {
+    return groupJadwalSessions(schedules, lessonPlans);
+  }, [schedules, lessonPlans]);
 
-  // Check matched RPP and verification status for a schedule
-  const getScheduleRppStatus = useCallback(
-    (item: JadwalItem) => {
-      const matched = lessonPlans.find(
-        (lp) =>
-          lp.jadwal_id === item.jadwal_id ||
-          (lp.jadwal?.mapel?.mapel_id === item.mapel_id &&
-            lp.jadwal?.kelas?.kelas_id === item.kelas_id)
-      );
+  // Check matched RPP and verification status for a grouped session
+  const getSessionRppStatus = useCallback(
+    (sesi: GroupedJadwalSesi) => {
+      const matched = lessonPlans.find((lp) => {
+        if (lp.jadwal_id && sesi.jadwalIds.includes(Number(lp.jadwal_id))) {
+          return true;
+        }
+        if (
+          lp.jadwal?.mapel?.mapel_id === sesi.mapelId &&
+          lp.jadwal?.kelas?.kelas_id === sesi.kelasId
+        ) {
+          return true;
+        }
+        return isLPForSubjectAndClass(lp.judul_rpp, sesi.namaMapel, sesi.namaKelas);
+      });
 
       if (!matched) {
         return {
@@ -159,18 +160,16 @@ export const AbsensiMapelScreen = () => {
     [lessonPlans]
   );
 
-  // 2. Select schedule in Step 1
-  const handleSelectSchedule = async (item: JadwalItem) => {
-    const isToday = (item.hari || "").toLowerCase() === todayName.toLowerCase();
-    const rppStatus = getScheduleRppStatus(item);
+  // 2. Select schedule session in Step 1
+  const handleSelectSchedule = async (sesi: GroupedJadwalSesi) => {
+    const isToday = (sesi.hari || "").toLowerCase() === todayName.toLowerCase();
+    const rppStatus = getSessionRppStatus(sesi);
 
     // Rule 1: Day Lock
     if (!isToday) {
       Alert.alert(
         "🔒 Jadwal Terkunci",
-        `Absensi jadwal "${item.mapel?.nama_mapel || "Mapel"} - ${
-          item.kelas?.nama_kelas || "Kelas"
-        }" hanya dapat diisi pada hari ${item.hari}.`
+        `Absensi jadwal "${sesi.namaMapel} - ${sesi.namaKelas}" hanya dapat diisi pada hari ${sesi.hari}.`
       );
       return;
     }
@@ -185,14 +184,15 @@ export const AbsensiMapelScreen = () => {
       return;
     }
 
-    setSelectedJadwal(item);
+    setSelectedJadwal(sesi);
     setCurrentStep(2);
 
-    // Load existing journals for this schedule to show completed meetings
+    // Load existing journals for this session using primary/first jadwal_id
     try {
       setLoadingStep2(true);
+      const primaryJadwalId = sesi.jadwalIds[0];
       const jurnals = await absensiService.getJurnalMengajar({
-        jadwal_id: item.jadwal_id,
+        jadwal_id: primaryJadwalId,
       });
       setExistingJurnals(jurnals);
     } catch (e) {
@@ -201,6 +201,18 @@ export const AbsensiMapelScreen = () => {
       setLoadingStep2(false);
     }
   };
+
+  // Handle route params if passed from navigation
+  useEffect(() => {
+    if (route.params?.jadwalId && allGroupedSessions.length > 0) {
+      const found = allGroupedSessions.find((sesi) =>
+        sesi.jadwalIds.includes(Number(route.params.jadwalId))
+      );
+      if (found) {
+        handleSelectSchedule(found);
+      }
+    }
+  }, [route.params?.jadwalId, allGroupedSessions]);
 
   // 3. Select meeting in Step 2 -> Move to Step 3
   const handleSelectMeeting = async (
@@ -218,7 +230,7 @@ export const AbsensiMapelScreen = () => {
       setLoadingStep3(true);
 
       // Fetch students of the class
-      const siswas = await absensiService.getSiswaByKelas(selectedJadwal.kelas_id);
+      const siswas = await absensiService.getSiswaByKelas(selectedJadwal.kelasId);
       setSiswaList(siswas);
 
       // Default attendance map: 'Hadir' for all
@@ -307,14 +319,6 @@ export const AbsensiMapelScreen = () => {
       return;
     }
 
-    if (!materi.trim() && !catatan.trim()) {
-      Alert.alert(
-        "Materi / Topik Pembelajaran",
-        "Harap isi ringkasan materi atau catatan topik yang diajarkan pada pertemuan ini."
-      );
-      return;
-    }
-
     try {
       setSubmitting(true);
       const detail_absensi = Object.entries(attendance).map(([sId, status]) => ({
@@ -322,15 +326,22 @@ export const AbsensiMapelScreen = () => {
         status: status,
       }));
 
+      const primaryJadwalId = selectedJadwal.jadwalIds[0];
+      const materiRPP =
+        selectedLpDetail?.topik_materi ||
+        selectedLpDetail?.materi ||
+        selectedLpDetail?.isi ||
+        `Pertemuan ke-${selectedPertemuan}`;
+
       await absensiService.submitAbsensiMapel({
-        jadwal_id: selectedJadwal.jadwal_id,
-        kelas_id: selectedJadwal.kelas_id,
-        mapel_id: selectedJadwal.mapel_id,
+        jadwal_id: primaryJadwalId,
+        kelas_id: selectedJadwal.kelasId,
+        mapel_id: selectedJadwal.mapelId,
         tanggal: new Date().toISOString().split("T")[0],
         pertemuan_ke: selectedPertemuan,
-        materi_diajarkan: materi.trim(),
+        materi_diajarkan: materiRPP,
         catatan_guru: catatan.trim(),
-        catatan_tambahan: materi.trim() || catatan.trim(),
+        catatan_tambahan: catatan.trim() || materiRPP,
         lesson_plan_detail_id: selectedLpDetail?.detail_id,
         status: "Sesuai",
         detail_absensi,
@@ -346,7 +357,7 @@ export const AbsensiMapelScreen = () => {
               setCurrentStep(2);
               // Refresh journals list
               const jurnals = await absensiService.getJurnalMengajar({
-                jadwal_id: selectedJadwal.jadwal_id,
+                jadwal_id: primaryJadwalId,
               });
               setExistingJurnals(jurnals);
             },
@@ -375,10 +386,10 @@ export const AbsensiMapelScreen = () => {
   ];
 
   // ═══════════════════════════════════════════════════════
-  // STEP 1: PILIH JADWAL MENGAJAR (DENGAN DAY LOCK & RPP LOCK)
+  // STEP 1: PILIH JADWAL MENGAJAR (SESI TERGABUNG & LOCK)
   // ═══════════════════════════════════════════════════════
   if (currentStep === 1) {
-    const schedulesForDay = schedules.filter(
+    const sessionsForDay = allGroupedSessions.filter(
       (s) => (s.hari || "").toLowerCase() === activeDayFilter.toLowerCase()
     );
 
@@ -425,9 +436,6 @@ export const AbsensiMapelScreen = () => {
             {DAYS.map((day) => {
               const isSelected = activeDayFilter.toLowerCase() === day.toLowerCase();
               const isToday = day.toLowerCase() === todayName.toLowerCase();
-              const countForDay = schedules.filter(
-                (s) => (s.hari || "").toLowerCase() === day.toLowerCase()
-              ).length;
 
               return (
                 <TouchableOpacity
@@ -491,11 +499,11 @@ export const AbsensiMapelScreen = () => {
                 )}
               </View>
               <Text style={styles.pickerSubtitle}>
-                Pilih jadwal KBM untuk melanjutkan ke pemilihan pertemuan RPP.
+                Pilih sesi KBM untuk melanjutkan ke pemilihan pertemuan RPP.
               </Text>
             </View>
 
-            {schedulesForDay.length === 0 ? (
+            {sessionsForDay.length === 0 ? (
               <View style={styles.emptyScheduleCard}>
                 <Calendar size={36} color="#94A3B8" />
                 <Text style={styles.emptyScheduleTitle}>Tidak Ada Jadwal Mengajar</Text>
@@ -504,90 +512,94 @@ export const AbsensiMapelScreen = () => {
                 </Text>
               </View>
             ) : (
-              schedulesForDay.map((item) => {
-                const isToday = (item.hari || "").toLowerCase() === todayName.toLowerCase();
-                const rppStatus = getScheduleRppStatus(item);
+              sessionsForDay.map((sesi) => {
+                const isToday = (sesi.hari || "").toLowerCase() === todayName.toLowerCase();
+                const rppStatus = getSessionRppStatus(sesi);
                 const isLocked = !isToday || !rppStatus.isApproved;
-
-                const jamMulaiStr =
-                  typeof item.jam_mulai === "object"
-                    ? item.jam_mulai?.jam_mulai
-                    : item.jam_mulai || "-";
-                const jamSelesaiStr =
-                  typeof item.jam_selesai === "object"
-                    ? item.jam_selesai?.jam_selesai
-                    : item.jam_selesai || "-";
 
                 return (
                   <TouchableOpacity
-                    key={item.jadwal_id}
+                    key={sesi.sesiKey}
                     style={[
                       styles.scheduleCard,
                       isLocked && styles.scheduleCardLocked,
                     ]}
-                    onPress={() => handleSelectSchedule(item)}
+                    onPress={() => handleSelectSchedule(sesi)}
                     activeOpacity={0.85}
                   >
+                    {/* Header: Badges & Lock status */}
                     <View style={styles.scheduleCardHeader}>
                       <View style={styles.scheduleBadgeWrap}>
                         <Badge
-                          label={`Kelas ${item.kelas?.nama_kelas || item.kelas_id}`}
+                          label={`Kelas ${sesi.namaKelas}`}
                           variant={isLocked ? "neutral" : "primary"}
                         />
                         <View style={styles.jamKeBadge}>
-                          <Clock size={11} color="#475569" />
+                          <Clock size={11} color="#1D4ED8" />
                           <Text style={styles.jamKeText}>
-                            {jamMulaiStr} - {jamSelesaiStr}
+                            {sesi.labelJam} ({sesi.timeRangeStr})
                           </Text>
                         </View>
+                        {sesi.jumlahJam > 1 && (
+                          <View style={styles.gabunganBadge}>
+                            <Text style={styles.gabunganBadgeText}>
+                              {sesi.jumlahJam} JP Gabungan
+                            </Text>
+                          </View>
+                        )}
                       </View>
 
-                      {isLocked ? (
+                      {isLocked && (
                         <View style={styles.lockIconBox}>
                           <Lock size={14} color="#94A3B8" />
-                        </View>
-                      ) : (
-                        <View style={styles.actionBtnSmall}>
-                          <Text style={styles.actionBtnText}>Pilih</Text>
-                          <ChevronRight size={14} color="#1D4ED8" />
                         </View>
                       )}
                     </View>
 
+                    {/* Mata Pelajaran Title */}
                     <Text
                       style={[
                         styles.scheduleMapelName,
                         isLocked && { color: "#64748B" },
                       ]}
                     >
-                      {item.mapel?.nama_mapel || `Mapel ${item.mapel_id}`}
+                      {sesi.namaMapel}
                     </Text>
 
-                    {/* Status RPP Footnote */}
+                    {/* Footer: Status RPP & Action Button */}
                     <View style={styles.scheduleCardFooter}>
-                      <View style={styles.scheduleRppStatusRow}>
-                        {rppStatus.isApproved ? (
-                          <>
-                            <CheckCircle2 size={12} color="#15803D" />
-                            <Text style={styles.rppStatusApprovedText}>
-                              RPP Terverifikasi (Siap Absensi)
-                            </Text>
-                          </>
-                        ) : (
-                          <>
-                            <AlertTriangle size={12} color="#D97706" />
-                            <Text style={styles.rppStatusPendingText}>
-                              {rppStatus.hasLP
-                                ? "RPP Belum Disetujui"
-                                : "Belum Ada RPP"}
-                            </Text>
-                          </>
+                      <View style={styles.scheduleFooterLeft}>
+                        <View style={styles.scheduleRppStatusRow}>
+                          {rppStatus.isApproved ? (
+                            <>
+                              <CheckCircle2 size={12} color="#15803D" />
+                              <Text style={styles.rppStatusApprovedText}>
+                                RPP Terverifikasi (Siap Absensi)
+                              </Text>
+                            </>
+                          ) : (
+                            <>
+                              <AlertTriangle size={12} color="#D97706" />
+                              <Text style={styles.rppStatusPendingText}>
+                                {rppStatus.hasLP
+                                  ? "RPP Belum Disetujui"
+                                  : "Belum Ada RPP"}
+                              </Text>
+                            </>
+                          )}
+                        </View>
+                        {!isToday && (
+                          <Text style={styles.notTodayFootnote}>
+                            Khusus hari {sesi.hari}
+                          </Text>
                         )}
                       </View>
-                      {!isToday && (
-                        <Text style={styles.notTodayFootnote}>
-                          Khusus hari {item.hari}
-                        </Text>
+
+                      {!isLocked && (
+                        <View style={styles.selectActionPill}>
+                          <Text style={styles.selectActionPillText}>Pilih</Text>
+                          <ChevronRight size={13} color="#FFFFFF" strokeWidth={2.5} />
+                        </View>
                       )}
                     </View>
                   </TouchableOpacity>
@@ -604,12 +616,18 @@ export const AbsensiMapelScreen = () => {
   // STEP 2: PILIH PERTEMUAN LESSON PLAN (RPP)
   // ═══════════════════════════════════════════════════════
   if (currentStep === 2 && selectedJadwal) {
-    const matchedLP = lessonPlans.find(
-      (lp) =>
-        lp.jadwal_id === selectedJadwal.jadwal_id ||
-        (lp.jadwal?.mapel?.mapel_id === selectedJadwal.mapel_id &&
-          lp.jadwal?.kelas?.kelas_id === selectedJadwal.kelas_id)
-    );
+    const matchedLP = lessonPlans.find((lp) => {
+      if (lp.jadwal_id && selectedJadwal.jadwalIds.includes(Number(lp.jadwal_id))) {
+        return true;
+      }
+      if (
+        lp.jadwal?.mapel?.mapel_id === selectedJadwal.mapelId &&
+        lp.jadwal?.kelas?.kelas_id === selectedJadwal.kelasId
+      ) {
+        return true;
+      }
+      return isLPForSubjectAndClass(lp.judul_rpp, selectedJadwal.namaMapel, selectedJadwal.namaKelas);
+    });
 
     const rppDetails = matchedLP?.details || [];
     // Default 16 meetings if details array is empty
@@ -658,8 +676,9 @@ export const AbsensiMapelScreen = () => {
               onRefresh={async () => {
                 if (!selectedJadwal) return;
                 setLoadingStep2(true);
+                const primaryJadwalId = selectedJadwal.jadwalIds[0];
                 const jurnals = await absensiService.getJurnalMengajar({
-                  jadwal_id: selectedJadwal.jadwal_id,
+                  jadwal_id: primaryJadwalId,
                 });
                 setExistingJurnals(jurnals);
                 setLoadingStep2(false);
@@ -676,10 +695,10 @@ export const AbsensiMapelScreen = () => {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.selectedScheduleTitle}>
-                  {selectedJadwal.mapel?.nama_mapel || "Mata Pelajaran"}
+                  {selectedJadwal.namaMapel}
                 </Text>
                 <Text style={styles.selectedScheduleSubtitle}>
-                  Kelas {selectedJadwal.kelas?.nama_kelas || "-"} • Hari {selectedJadwal.hari}
+                  Kelas {selectedJadwal.namaKelas} • Hari {selectedJadwal.hari} • {selectedJadwal.labelJam} ({selectedJadwal.timeRangeStr})
                 </Text>
               </View>
               <TouchableOpacity
@@ -788,8 +807,8 @@ export const AbsensiMapelScreen = () => {
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <Header
         title={`Presensi Pertemuan ${selectedPertemuan || 1}`}
-        subtitle={`${selectedJadwal?.mapel?.nama_mapel || "Mapel"} • ${
-          selectedJadwal?.kelas?.nama_kelas || "Kelas"
+        subtitle={`${selectedJadwal?.namaMapel || "Mapel"} • Kelas ${
+          selectedJadwal?.namaKelas || "Kelas"
         }`}
         showBack
         onBack={() => setCurrentStep(2)}
@@ -847,29 +866,17 @@ export const AbsensiMapelScreen = () => {
             <View style={styles.infoHeader}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.mapelHeading}>
-                  {selectedJadwal?.mapel?.nama_mapel || "Mata Pelajaran"}
+                  {selectedJadwal?.namaMapel || "Mata Pelajaran"}
                 </Text>
                 <Text style={styles.kelasHeading}>
-                  Kelas {selectedJadwal?.kelas?.nama_kelas || "-"} • Pertemuan ke-{selectedPertemuan}
+                  Kelas {selectedJadwal?.namaKelas || "-"} • Pertemuan ke-{selectedPertemuan} ({selectedJadwal?.labelJam})
                 </Text>
               </View>
               <Badge label={`${siswaList.length} Santri`} variant="primary" />
             </View>
 
-            {/* Input Materi Pembelajaran */}
-            <View style={{ marginTop: 6 }}>
-              <Text style={styles.fieldLabel}>Materi / Topik KBM *</Text>
-              <TextInput
-                style={styles.fieldInput}
-                value={materi}
-                onChangeText={setMateri}
-                placeholder="Tulis materi yang diajarkan..."
-                placeholderTextColor="#94A3B8"
-              />
-            </View>
-
-            {/* Input Catatan Guru */}
-            <View style={{ marginTop: 10 }}>
+            {/* Input Catatan Guru (Opsional) */}
+            <View style={{ marginTop: 8 }}>
               <Text style={styles.fieldLabel}>Catatan Pembelajaran (Opsional)</Text>
               <TextInput
                 style={[styles.fieldInput, { height: 60, textAlignVertical: "top" }]}
@@ -1266,14 +1273,17 @@ const styles = StyleSheet.create({
   },
   scheduleCardHeader: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
     marginBottom: 8,
   },
   scheduleBadgeWrap: {
     flexDirection: "row",
     alignItems: "center",
+    flexWrap: "wrap",
     gap: 6,
+    flex: 1,
+    marginRight: 6,
   },
   jamKeBadge: {
     flexDirection: "row",
@@ -1289,6 +1299,19 @@ const styles = StyleSheet.create({
     fontFamily: "monospace",
     fontWeight: "700",
     color: "#1D4ED8",
+  },
+  gabunganBadge: {
+    backgroundColor: "#F0FDF4",
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#DCFCE7",
+  },
+  gabunganBadgeText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#166534",
   },
   lockIconBox: {
     width: 26,
@@ -1312,15 +1335,38 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "800",
     color: "#0F172A",
-    marginBottom: 8,
+    marginBottom: 10,
   },
   scheduleCardFooter: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: 8,
+    paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: "#F1F5F9",
+    gap: 8,
+  },
+  scheduleFooterLeft: {
+    flex: 1,
+  },
+  selectActionPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#1D4ED8",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    shadowColor: "#1D4ED8",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  selectActionPillText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#FFFFFF",
   },
   scheduleRppStatusRow: {
     flexDirection: "row",
@@ -1341,6 +1387,7 @@ const styles = StyleSheet.create({
     fontSize: 10.5,
     color: "#94A3B8",
     fontStyle: "italic",
+    marginTop: 2,
   },
   selectedScheduleCard: {
     backgroundColor: "#FFFFFF",

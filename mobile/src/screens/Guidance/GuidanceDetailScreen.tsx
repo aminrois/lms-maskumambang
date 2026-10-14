@@ -106,7 +106,7 @@ export const GuidanceDetailScreen = () => {
     skor_rapi: 3,
     skor_adab: 3,
     catatan_fundamental: ""
-});
+  });
 
   // Modal Follow-up
   const [followUpModalVisible, setFollowUpModalVisible] = useState(false);
@@ -128,7 +128,7 @@ export const GuidanceDetailScreen = () => {
           internship_nama: data.guidance_detail.internship_nama || data.guidance_detail.internship_instansi || "",
           prodi_pilihan: data.guidance_detail.prodi_pilihan || data.guidance_detail.prodi_tujuan || "",
           persiapan: data.guidance_detail.persiapan || data.guidance_detail.persiapan_kuliah || ""
-}));
+        }));
       }
     } catch (err: any) {
       console.warn("Error fetching siswa detail:", err);
@@ -180,7 +180,7 @@ export const GuidanceDetailScreen = () => {
       await guidanceService.updateFollowUp(activeFollowUpSesi.konseling_id, {
         status_follow_up: followUpStatus,
         catatan_tindak_lanjut: followUpNotes
-});
+      });
       setFollowUpModalVisible(false);
       Alert.alert("Berhasil", "Status follow-up sesi berhasil diperbarui.");
       fetchDetail();
@@ -208,7 +208,7 @@ export const GuidanceDetailScreen = () => {
     2: { label: "2: Bisa", color: "#D97706", bg: "#FFFBEB" },
     3: { label: "3: Butuh Kontrol", color: "#2563EB", bg: "#EFF6FF" },
     4: { label: "4: Mandiri & Istiqomah", color: "#16A34A", bg: "#F0FDF4" }
-};
+  };
 
   const konselingList: KonselingSesi[] = siswaDetail?.konseling_sesi || [];
 
@@ -329,7 +329,7 @@ export const GuidanceDetailScreen = () => {
                                 backgroundColor: btnConf.bg,
                                 borderColor: btnConf.color,
                                 borderWidth: 2
-},
+                              },
                             ]}
                             onPress={() => updateField(item.key, num)}
                             activeOpacity={0.8}
@@ -684,7 +684,7 @@ export const GuidanceDetailScreen = () => {
             <Text style={styles.inputLabel}>Nama Instansi Tujuan</Text>
             <TextInput
               style={styles.textInput}
-              placeholder="Contoh: RSI Gresik / Lazisnu / Bank Syariah"
+              placeholder="Instansi/lembaga"
               placeholderTextColor="#94A3B8"
               value={formData.internship_nama || ""}
               onChangeText={(val) => updateField("internship_nama", val)}
@@ -831,7 +831,7 @@ export const GuidanceDetailScreen = () => {
                 namaSiswa: siswaDetail?.nama || namaSiswa,
                 namaKelas: siswaDetail?.kelas?.nama_kelas,
                 namaLembaga: siswaDetail?.kelas?.lembaga?.nama_lembaga
-})
+              })
             }
             activeOpacity={0.85}
           >
@@ -892,9 +892,9 @@ export const GuidanceDetailScreen = () => {
                             sesi.status_follow_up === "Selesai"
                               ? "#DCFCE7"
                               : sesi.status_follow_up === "Dirujuk ke Pihak Luar"
-                              ? "#F3E8FF"
-                              : "#DBEAFE"
-},
+                                ? "#F3E8FF"
+                                : "#DBEAFE"
+                        },
                       ]}
                     >
                       <Text
@@ -905,9 +905,9 @@ export const GuidanceDetailScreen = () => {
                               sesi.status_follow_up === "Selesai"
                                 ? "#15803D"
                                 : sesi.status_follow_up === "Dirujuk ke Pihak Luar"
-                                ? "#7E22CE"
-                                : "#1D4ED8"
-},
+                                  ? "#7E22CE"
+                                  : "#1D4ED8"
+                          },
                         ]}
                       >
                         {sesi.status_follow_up}
@@ -1036,7 +1036,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F8FAFC"
-},
+  },
   header: {
     backgroundColor: "#162E6E",
     paddingTop: 12,
@@ -1044,26 +1044,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center"
-},
+  },
   backButton: {
     padding: 8,
     borderRadius: 12,
     backgroundColor: "rgba(255, 255, 255, 0.15)",
     marginRight: 10
-},
+  },
   headerTitleContainer: {
     flex: 1
-},
+  },
   headerTitle: {
     fontSize: 16,
     fontWeight: "800",
     color: "#FFFFFF"
-},
+  },
   headerSubtitle: {
     fontSize: 11,
     color: "#CBD5E1",
     marginTop: 2
-},
+  },
   saveTopBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -1072,12 +1072,12 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 10,
     gap: 4
-},
+  },
   saveTopBtnText: {
     fontSize: 11.5,
     fontWeight: "800",
     color: "#FFFFFF"
-},
+  },
   tabContainer: {
     flexDirection: "row",
     backgroundColor: "#FFFFFF",
@@ -1085,7 +1085,7 @@ const styles = StyleSheet.create({
     gap: 8,
     borderBottomWidth: 1,
     borderBottomColor: "#EEF2F6"
-},
+  },
   tabBtn: {
     flex: 1,
     flexDirection: "row",
@@ -1094,34 +1094,34 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     borderRadius: 10,
     gap: 6
-},
+  },
   tabBtnActive: {
     backgroundColor: "#EFF6FF"
-},
+  },
   tabBtnText: {
     fontSize: 11.5,
     fontWeight: "600",
     color: "#94A3B8"
-},
+  },
   tabBtnTextActive: {
     color: "#162E6E",
     fontWeight: "800"
-},
+  },
   body: {
     flex: 1,
     padding: 16
-},
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: 20
-},
+  },
   loadingText: {
     fontSize: 12,
     color: "#64748B",
     marginTop: 10
-},
+  },
   sectionCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
@@ -1134,7 +1134,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 6,
     elevation: 1
-},
+  },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -1143,63 +1143,63 @@ const styles = StyleSheet.create({
     borderBottomColor: "#F1F5F9",
     paddingBottom: 10,
     marginBottom: 12
-},
+  },
   sectionIconCircle: {
     width: 32,
     height: 32,
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center"
-},
+  },
   sectionTitle: {
     fontSize: 13.5,
     fontWeight: "800",
     color: "#0F172A"
-},
+  },
   sectionSubtitle: {
     fontSize: 10.5,
     color: "#64748B",
     marginTop: 1
-},
+  },
   fundamentalGrid: {
     gap: 10
-},
+  },
   fundamentalEditCard: {
     backgroundColor: "#F8FAFC",
     padding: 12,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#EEF2F6"
-},
+  },
   fundamentalTopRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 8
-},
+  },
   fundamentalItemLabel: {
     fontSize: 12,
     fontWeight: "700",
     color: "#0F172A"
-},
+  },
   fundamentalItemDesc: {
     fontSize: 10,
     color: "#64748B",
     marginTop: 1
-},
+  },
   fundamentalScoreBadge: {
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6
-},
+  },
   fundamentalScoreText: {
     fontSize: 10,
     fontWeight: "800"
-},
+  },
   scoreSelectorRow: {
     flexDirection: "row",
     gap: 8
-},
+  },
   scoreBtn: {
     flex: 1,
     paddingVertical: 7,
@@ -1209,18 +1209,18 @@ const styles = StyleSheet.create({
     borderColor: "#CBD5E1",
     alignItems: "center",
     justifyContent: "center"
-},
+  },
   scoreBtnText: {
     fontSize: 12,
     fontWeight: "700",
     color: "#475569"
-},
+  },
   inputLabel: {
     fontSize: 11,
     fontWeight: "700",
     color: "#334155",
     marginBottom: 5
-},
+  },
   textInput: {
     backgroundColor: "#F8FAFC",
     borderWidth: 1,
@@ -1230,7 +1230,7 @@ const styles = StyleSheet.create({
     height: 40,
     fontSize: 12,
     color: "#0F172A"
-},
+  },
   textInputWhite: {
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
@@ -1240,7 +1240,7 @@ const styles = StyleSheet.create({
     height: 38,
     fontSize: 11.5,
     color: "#0F172A"
-},
+  },
   textArea: {
     backgroundColor: "#F8FAFC",
     borderWidth: 1,
@@ -1250,12 +1250,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#0F172A",
     textAlignVertical: "top"
-},
+  },
   pillSelectorRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 6
-},
+  },
   pillOption: {
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -1263,20 +1263,20 @@ const styles = StyleSheet.create({
     backgroundColor: "#F1F5F9",
     borderWidth: 1,
     borderColor: "#E2E8F0"
-},
+  },
   pillOptionActive: {
     backgroundColor: "#162E6E",
     borderColor: "#162E6E"
-},
+  },
   pillOptionText: {
     fontSize: 11,
     fontWeight: "600",
     color: "#475569"
-},
+  },
   pillOptionTextActive: {
     color: "#FFFFFF",
     fontWeight: "800"
-},
+  },
   daruratEditCard: {
     backgroundColor: "#FFF1F2",
     borderWidth: 1,
@@ -1284,12 +1284,12 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 12,
     marginTop: 12
-},
+  },
   daruratCardTitle: {
     fontSize: 11.5,
     fontWeight: "800",
     color: "#9F1239"
-},
+  },
   saveBottomBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -1304,12 +1304,12 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
     marginTop: 6
-},
+  },
   saveBottomBtnText: {
     fontSize: 13,
     fontWeight: "800",
     color: "#FFFFFF"
-},
+  },
   addKonselingBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -1324,29 +1324,29 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 6,
     elevation: 3
-},
+  },
   addKonselingBtnText: {
     fontSize: 12,
     fontWeight: "800",
     color: "#FFFFFF"
-},
+  },
   emptyContainer: {
     padding: 40,
     alignItems: "center",
     justifyContent: "center"
-},
+  },
   emptyTitle: {
     fontSize: 14,
     fontWeight: "700",
     color: "#475569",
     marginTop: 12
-},
+  },
   emptySubtitle: {
     fontSize: 11.5,
     color: "#94A3B8",
     textAlign: "center",
     marginTop: 4
-},
+  },
   konselingCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
@@ -1355,82 +1355,82 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#EEF2F6",
     gap: 8
-},
+  },
   konselingCardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center"
-},
+  },
   kategoriBadge: {
     paddingHorizontal: 8,
     paddingVertical: 3,
     backgroundColor: "#EFF6FF",
     borderRadius: 6
-},
+  },
   kategoriText: {
     fontSize: 10.5,
     fontWeight: "700",
     color: "#1D4ED8"
-},
+  },
   dateRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4
-},
+  },
   dateText: {
     fontSize: 10.5,
     color: "#94A3B8"
-},
+  },
   konselingTopic: {
     fontSize: 13.5,
     fontWeight: "800",
     color: "#0F172A"
-},
+  },
   keluhanBox: {
     backgroundColor: "#F8FAFC",
     padding: 8,
     borderRadius: 8
-},
+  },
   keluhanLabel: {
     fontSize: 9.5,
     fontWeight: "700",
     color: "#64748B",
     marginBottom: 2
-},
+  },
   keluhanText: {
     fontSize: 11,
     color: "#334155"
-},
+  },
   solusiBox: {
     backgroundColor: "#F0FDF4",
     padding: 8,
     borderRadius: 8
-},
+  },
   solusiLabel: {
     fontSize: 9.5,
     fontWeight: "700",
     color: "#15803D",
     marginBottom: 2
-},
+  },
   solusiText: {
     fontSize: 11,
     color: "#166534"
-},
+  },
   followUpBox: {
     backgroundColor: "#FAF5FF",
     padding: 8,
     borderRadius: 8
-},
+  },
   followUpLabel: {
     fontSize: 9.5,
     fontWeight: "700",
     color: "#7E22CE",
     marginBottom: 2
-},
+  },
   followUpText: {
     fontSize: 11,
     color: "#581C87"
-},
+  },
   konselingCardFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -1438,25 +1438,25 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: "#F1F5F9"
-},
+  },
   statusRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4
-},
+  },
   statusLabel: {
     fontSize: 10.5,
     color: "#64748B"
-},
+  },
   statusBadgeSmall: {
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 12
-},
+  },
   statusBadgeTextSmall: {
     fontSize: 10,
     fontWeight: "700"
-},
+  },
   followUpActionBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -1465,20 +1465,20 @@ const styles = StyleSheet.create({
     backgroundColor: "#F1F5F9",
     borderRadius: 6,
     gap: 4
-},
+  },
   followUpActionText: {
     fontSize: 10.5,
     fontWeight: "700",
     color: "#162E6E"
-},
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.6)",
     justifyContent: "flex-end"
-},
+  },
   modalDismissArea: {
     flex: 1
-},
+  },
   modalCard: {
     backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 24,
@@ -1487,7 +1487,7 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: Platform.OS === "ios" ? 30 : 18,
     maxHeight: "85%"
-},
+  },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -1496,20 +1496,20 @@ const styles = StyleSheet.create({
     borderBottomColor: "#EEF2F6",
     paddingBottom: 12,
     marginBottom: 12
-},
+  },
   modalTitle: {
     fontSize: 15,
     fontWeight: "800",
     color: "#0F172A"
-},
+  },
   modalBody: {
     maxHeight: 320,
     marginBottom: 12
-},
+  },
   statusRowContainer: {
     flexDirection: "row",
     gap: 6
-},
+  },
   statusPill: {
     flex: 1,
     paddingVertical: 8,
@@ -1518,46 +1518,46 @@ const styles = StyleSheet.create({
     borderColor: "#E2E8F0",
     backgroundColor: "#FFFFFF",
     alignItems: "center"
-},
+  },
   statusPillActive: {
     borderColor: "#162E6E",
     backgroundColor: "#EFF6FF"
-},
+  },
   statusPillText: {
     fontSize: 10,
     fontWeight: "600",
     color: "#64748B"
-},
+  },
   statusPillTextActive: {
     color: "#162E6E",
     fontWeight: "800"
-},
+  },
   modalFooter: {
     flexDirection: "row",
     gap: 10
-},
+  },
   cancelBtn: {
     flex: 1,
     paddingVertical: 12,
     borderRadius: 12,
     backgroundColor: "#F1F5F9",
     alignItems: "center"
-},
+  },
   cancelBtnText: {
     fontSize: 12,
     fontWeight: "700",
     color: "#64748B"
-},
+  },
   submitBtn: {
     flex: 2,
     paddingVertical: 12,
     borderRadius: 12,
     backgroundColor: "#162E6E",
     alignItems: "center"
-},
+  },
   submitBtnText: {
     fontSize: 12,
     fontWeight: "800",
     color: "#FFFFFF"
-}
+  }
 });

@@ -24,10 +24,12 @@ import { GuidanceCatatSesiScreen } from "../screens/Guidance/GuidanceCatatSesiSc
 import { QuranScreen } from "../screens/Quran/QuranScreen";
 import { ArahKiblatScreen } from "../screens/Quran/ArahKiblatScreen";
 import { DoaDzikirScreen } from "../screens/Quran/DoaDzikirScreen";
+import { DoaDzikirDetailScreen } from "../screens/Quran/DoaDzikirDetailScreen";
 import { NotifikasiScreen } from "../screens/Notifikasi/NotifikasiScreen";
 import { TilawahScreen } from "../screens/Tilawah/TilawahScreen";
 import { LmsScreen } from "../screens/LMS/LmsScreen";
 import { LessonPlanScreen } from "../screens/LMS/LessonPlanScreen";
+import { VerifikasiLessonPlanScreen } from "../screens/LMS/VerifikasiLessonPlanScreen";
 import { JurnalMengajarScreen } from "../screens/LMS/JurnalMengajarScreen";
 import { JadwalScreen } from "../screens/Jadwal/JadwalScreen";
 import { EventScreen } from "../screens/Event/EventScreen";
@@ -117,7 +119,7 @@ export const AppNavigator = () => {
       <View style={styles.splashContainer}>
         <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
         <Image
-          source={require("../../assets/splash.png")}
+          source={require("../../assets/splash-simas.webp")}
           style={styles.splashImage}
           resizeMode="contain"
         />
@@ -308,6 +310,11 @@ export const AppNavigator = () => {
               options={{ animation: "slide_from_right" }}
             />
             <Stack.Screen
+              name="DoaDzikirDetail"
+              component={DoaDzikirDetailScreen}
+              options={{ animation: "slide_from_right" }}
+            />
+            <Stack.Screen
               name="Notifikasi"
               component={NotifikasiScreen}
               options={{ animation: "slide_from_right" }}
@@ -320,6 +327,11 @@ export const AppNavigator = () => {
             <Stack.Screen
               name="LessonPlan"
               component={LessonPlanScreen}
+              options={{ animation: "slide_from_right" }}
+            />
+            <Stack.Screen
+              name="VerifikasiLessonPlan"
+              component={VerifikasiLessonPlanScreen}
               options={{ animation: "slide_from_right" }}
             />
             <Stack.Screen

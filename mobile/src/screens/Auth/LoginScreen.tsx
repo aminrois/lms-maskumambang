@@ -138,12 +138,12 @@ export const LoginScreen = () => {
           <View style={styles.brandContainer}>
             <View style={styles.logoContainer}>
               <Image
-                source={require("../../../assets/logo.png")}
+                source={require("../../../assets/logo.webp")}
                 style={styles.logoImage}
                 resizeMode="contain"
               />
             </View>
-            <Text style={styles.appName}>SIMAS</Text>
+            <Text style={styles.appName}>siMas</Text>
             <Text style={styles.schoolName}>Sistem Informasi Maskumambang</Text>
             <View style={styles.taglineBadge}>
               <Text style={styles.taglineText}>Satu Aplikasi, Banyak Manfaat untuk Masa Depan</Text>

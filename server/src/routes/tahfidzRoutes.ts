@@ -60,4 +60,11 @@ router.post('/tilawah', tahfidzController.createTilawah);
 router.patch('/tilawah/:id', tahfidzController.updateTilawah);
 router.delete('/tilawah/:id', tahfidzController.deleteTilawah);
 
+// 8. Modal Awal Hafalan Santri (Guru Tahfidz, Direktur, Super Admin)
+router.get('/modal-awal', tahfidzController.getModalAwalList);
+router.post('/modal-awal', tahfidzController.saveModalAwal);
+router.delete('/modal-awal/:id', tahfidzController.deleteModalAwal);
+router.post('/modal-awal/akumulasi', tahfidzController.akumulasiModalAwal);
+
 export default router;
+

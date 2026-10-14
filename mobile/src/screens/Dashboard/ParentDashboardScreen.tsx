@@ -242,7 +242,7 @@ export const ParentDashboardScreen = () => {
         ════════════════════════════════════════════════════════ */}
         <View style={styles.headerBackground}>
           <Image
-            source={require("../../../assets/pesantren-bg.jpg")}
+            source={require("../../../assets/pesantren-bg.webp")}
             style={styles.headerBackdropImage}
             resizeMode="cover"
           />
@@ -254,7 +254,7 @@ export const ParentDashboardScreen = () => {
               <View style={styles.brandRow}>
                 <View style={styles.logoBadge}>
                   <Image
-                    source={require("../../../assets/logo.png")}
+                    source={require("../../../assets/logo.webp")}
                     style={styles.logoImg}
                     resizeMode="contain"
                   />
@@ -776,7 +776,7 @@ export const ParentDashboardScreen = () => {
           {/* Banner Dark Navy with Mosque Photo */}
           <View style={styles.pesantrenBanner}>
             <Image
-              source={require("../../../assets/pesantren-bg.jpg")}
+              source={require("../../../assets/pesantren-bg.webp")}
               style={styles.bannerBgImage}
               resizeMode="cover"
             />

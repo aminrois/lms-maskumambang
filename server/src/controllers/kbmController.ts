@@ -4,19 +4,42 @@ import prisma from '../config/prisma';
 // LESSON PLAN (RPP)
 export const getLessonPlans = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { pegawai_id, jadwal_id } = req.query;
+    const { pegawai_id, jadwal_id, lembaga_id } = req.query;
     const where: any = {};
     if (pegawai_id) where.pegawai_id = Number(pegawai_id);
     if (jadwal_id) where.jadwal_id = Number(jadwal_id);
+    if (lembaga_id) {
+      where.OR = [
+        { jadwal: { kelas: { lembaga_id: Number(lembaga_id) } } },
+        { jadwal: { mapel: { lembaga_id: Number(lembaga_id) } } },
+      ];
+    }
 
     const list = await prisma.lessonPlan.findMany({
       where,
       include: {
         pegawai: true,
         jadwal: {
-          include: { kelas: true, mapel: true },
+          include: { kelas: true, mapel: true, jam_mulai: true, jam_selesai: true },
         },
-        details: true,
+        details: {
+          select: {
+            detail_id: true,
+            lesson_plan_id: true,
+            pertemuan_ke: true,
+            materi: true,
+            topik_materi: true,
+            rencana_pelaksanaan_kbm: true,
+            status_verifikasi_kepsek: true,
+            verified_by_kepsek: true,
+            catatan_revisi_kepsek: true,
+            status_verifikasi_direktur: true,
+            verified_by_direktur: true,
+            catatan_revisi_direktur: true,
+            ...(req.query.include_isi === 'true' ? { isi: true } : {}),
+          },
+          orderBy: { pertemuan_ke: 'asc' },
+        },
       },
       orderBy: { lesson_plan_id: 'desc' },
     });
@@ -34,7 +57,7 @@ export const getLessonPlanById = async (req: Request, res: Response, next: NextF
       include: {
         pegawai: true,
         jadwal: {
-          include: { kelas: true, mapel: true },
+          include: { kelas: true, mapel: true, jam_mulai: true, jam_selesai: true },
         },
         details: { orderBy: { pertemuan_ke: 'asc' } },
       },
@@ -96,9 +119,12 @@ export const deleteLessonPlan = async (req: Request, res: Response, next: NextFu
 // LESSON PLAN DETAIL
 export const getLessonPlanDetails = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { lesson_plan_id } = req.query;
+    const { lesson_plan_id, detail_id } = req.query;
+    const where: any = {};
+    if (lesson_plan_id) where.lesson_plan_id = Number(lesson_plan_id);
+    if (detail_id) where.detail_id = Number(detail_id);
     const list = await prisma.lessonPlanDetail.findMany({
-      where: lesson_plan_id ? { lesson_plan_id: Number(lesson_plan_id) } : undefined,
+      where: Object.keys(where).length > 0 ? where : undefined,
       orderBy: { pertemuan_ke: 'asc' },
     });
     res.json(list);

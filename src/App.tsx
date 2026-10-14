@@ -10,6 +10,7 @@ import GlobalMutationLoader from "./components/ui/GlobalMutationLoader";
 import GlobalNetworkHandler from "./components/ui/GlobalNetworkHandler";
 import SessionTimeoutGuard from "./components/ui/SessionTimeoutGuard";
 import ErrorBoundary from "./components/ui/ErrorBoundary";
+import TahfidzModalAwal from "./pages/Tahfidz/ModalAwal/Index";
 
 // --- Lazy-loaded pages ---
 // Auth
@@ -624,11 +625,22 @@ const App: React.FC = () => {
                   <Route path="setoran" element={<TahfidzSetoran />} />
                 </Route>
 
-                {/* Tilawah Harian Santri: Super Admin, Direktur, Guru Tahfidz, Wali Kelas, Wali Murid */}
+                {/* Modal Awal Hafalan Santri: Super Admin, Direktur, Kepala Sekolah, Guru Tahfidz */}
                 <Route
                   element={
                     <ProtectedRoute
-                      allowedRoles={["Super Admin", "Direktur", "Guru Tahfidz", "Wali Kelas", "Wali Murid"]}
+                      allowedRoles={["Super Admin", "Direktur", "Kepala Sekolah", "Guru Tahfidz"]}
+                    />
+                  }
+                >
+                  <Route path="modal-awal" element={<TahfidzModalAwal />} />
+                </Route>
+
+                {/* Tilawah Harian Santri: Super Admin, Direktur, Wali Kelas, Wali Murid */}
+                <Route
+                  element={
+                    <ProtectedRoute
+                      allowedRoles={["Super Admin", "Direktur", "Wali Kelas", "Wali Murid"]}
                     />
                   }
                 >

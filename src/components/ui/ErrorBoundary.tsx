@@ -38,9 +38,14 @@ export class ErrorBoundary extends Component<Props, State> {
             <AlertTriangle className="w-7 h-7" />
           </div>
           <h2 className="text-xl font-bold text-slate-800 mb-2">Terjadi Kendala pada Halaman Ini</h2>
-          <p className="text-sm text-slate-500 max-w-md mb-6">
+          <p className="text-sm text-slate-500 max-w-md mb-4">
             Sistem mendeteksi kendala rendering komponen. Silakan segarkan halaman atau kembali ke dashboard.
           </p>
+          {this.state.error && (
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-left text-xs text-rose-700 max-w-xl mb-6 font-mono break-all overflow-auto max-h-40">
+              {this.state.error.message || String(this.state.error)}
+            </div>
+          )}
           <div className="flex gap-3">
             <Button
               onClick={this.handleReload}

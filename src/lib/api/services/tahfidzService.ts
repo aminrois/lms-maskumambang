@@ -411,6 +411,47 @@ export const tahfidzService = {
     const res = await apiClient.get(`/tahfidz/tilawah/stats/${siswa_id}`);
     return res.data?.data;
   },
+
+  // --- Modal Awal Hafalan Santri ---
+  getModalAwalList: async (params?: {
+    lembaga_id?: number | string;
+    kelas_id?: number | string;
+    status_modal?: 'all' | 'sudah' | 'belum';
+    search?: string;
+    pegawai_id?: number | string;
+  }) => {
+    const res = await apiClient.get('/tahfidz/modal-awal', { params });
+    return res.data;
+  },
+
+  saveModalAwal: async (payload: {
+    siswa_id: number;
+    juz_awal: number;
+    surah_awal?: string;
+    surah_awal_no?: number;
+    ayat_awal?: number;
+    halaman_awal?: number;
+    total_halaman?: number;
+    keterangan?: string;
+    tanggal_input?: string;
+  }) => {
+    const res = await apiClient.post('/tahfidz/modal-awal', payload);
+    return res.data;
+  },
+
+  deleteModalAwal: async (id: number) => {
+    const res = await apiClient.delete(`/tahfidz/modal-awal/${id}`);
+    return res.data;
+  },
+
+  akumulasiModalAwal: async (payload: {
+    siswa_id: number;
+    catatan_kenaikan?: string;
+    tambah_juz_manual?: number;
+  }) => {
+    const res = await apiClient.post('/tahfidz/modal-awal/akumulasi', payload);
+    return res.data;
+  },
 };
 
 export interface TahfidzTilawahItem {
@@ -443,5 +484,68 @@ export interface TahfidzTilawahItem {
     };
   };
 }
+
+export interface TahfidzModalAwalItem {
+  modal_id: number;
+  juz_awal: number;
+  surah_awal?: string | null;
+  surah_awal_no?: number | null;
+  ayat_awal?: number | null;
+  halaman_awal?: number | null;
+  total_halaman?: number | null;
+  keterangan?: string | null;
+  tanggal_input?: string | null;
+  riwayat?: any[];
+  pencatat?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface SantriModalAwalData {
+  siswa_id: number;
+  nama: string;
+  nis: string;
+  nisn: string;
+  foto?: string | null;
+  jenis_kelamin: string;
+  kelas?: {
+    kelas_id: number;
+    nama_kelas: string;
+    lembaga_id?: number;
+    nama_lembaga?: string;
+  } | null;
+  halaqah?: {
+    halaqah_id: number;
+    nama_halaqah: string;
+    pegawai?: { nama: string };
+  } | null;
+  modal_awal?: TahfidzModalAwalItem | null;
+  progress: {
+    modal_juz: number;
+    total_ayat_ziyadah: number;
+    ziyadah_juz: number;
+    total_hafalan_juz: number;
+    total_setoran: number;
+    last_setoran?: {
+      setoran_id: number;
+      tanggal: string;
+      total_ayat: number;
+      juz: number;
+      surat_selesai_nama: string;
+      ayat_selesai: number;
+      kelancaran: string;
+    } | null;
+  };
+}
+
+export interface ModalAwalSummary {
+  total_santri: number;
+  total_sudah_input: number;
+  total_belum_input: number;
+  total_modal_juz: number;
+  total_ziyadah_juz: number;
+  total_keseluruhan_juz: number;
+}
+
 
 

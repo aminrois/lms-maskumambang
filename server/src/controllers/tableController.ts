@@ -740,6 +740,25 @@ export const createTableRecord = async (req: AuthRequest, res: Response, next: N
             continue;
           }
         }
+        if (tableName === 'pegawai_lembaga' && sanitized.pegawai_id && sanitized.lembaga_id) {
+          const item = await prisma.pegawaiLembaga.upsert({
+            where: {
+              pegawai_id_lembaga_id: {
+                pegawai_id: Number(sanitized.pegawai_id),
+                lembaga_id: Number(sanitized.lembaga_id),
+              },
+            },
+            update: {},
+            create: {
+              pegawai_id: Number(sanitized.pegawai_id),
+              lembaga_id: Number(sanitized.lembaga_id),
+            },
+            ...(config.defaultInclude ? { include: config.defaultInclude } : {}),
+          });
+          createdItems.push(item);
+          continue;
+        }
+
         const created = await prismaModel.create({
           data: sanitized,
           ...(config.defaultInclude ? { include: config.defaultInclude } : {}),
@@ -751,6 +770,31 @@ export const createTableRecord = async (req: AuthRequest, res: Response, next: N
     }
 
     const sanitized = sanitizeData(req.body);
+
+    if (tableName === 'pegawai_lembaga' && sanitized.pegawai_id && sanitized.lembaga_id) {
+      const created = await prisma.pegawaiLembaga.upsert({
+        where: {
+          pegawai_id_lembaga_id: {
+            pegawai_id: Number(sanitized.pegawai_id),
+            lembaga_id: Number(sanitized.lembaga_id),
+          },
+        },
+        update: {},
+        create: {
+          pegawai_id: Number(sanitized.pegawai_id),
+          lembaga_id: Number(sanitized.lembaga_id),
+        },
+        ...(config.defaultInclude ? { include: config.defaultInclude } : {}),
+      });
+
+      if (wantRepresentation) {
+        res.status(201).json([created]);
+      } else {
+        res.status(201).json(created);
+      }
+      return;
+    }
+
     const created = await prismaModel.create({
       data: sanitized,
       ...(config.defaultInclude ? { include: config.defaultInclude } : {}),
@@ -784,24 +828,38 @@ export const updateTableRecord = async (req: AuthRequest, res: Response, next: N
     const wantRepresentation = preferHeader.includes('return=representation');
     const sanitized = sanitizeData(req.body);
 
-    // If ID is specified in path or query
-    if (where[config.idField] !== undefined) {
+    // If explicit ID is specified in URL path (e.g. PATCH /table/:id)
+    if (idParam && where[config.idField] !== undefined) {
       const idVal = where[config.idField];
-      const updated = await prismaModel.update({
-        where: { [config.idField]: idVal },
-        data: sanitized,
-        ...(config.defaultInclude ? { include: config.defaultInclude } : {}),
-      });
+      try {
+        const updated = await prismaModel.update({
+          where: { [config.idField]: idVal },
+          data: sanitized,
+          ...(config.defaultInclude ? { include: config.defaultInclude } : {}),
+        });
 
-      if (wantRepresentation) {
-        res.json([updated]);
-      } else {
-        res.json(updated);
+        if (wantRepresentation) {
+          res.json([updated]);
+        } else {
+          res.json(updated);
+        }
+        return;
+      } catch (err: any) {
+        // Fallback to updateMany if model has composite unique or idField is not strictly unique
+        await prismaModel.updateMany({
+          where: { [config.idField]: idVal },
+          data: sanitized,
+        });
+        const updatedList = await prismaModel.findMany({
+          where: { [config.idField]: idVal },
+          ...(config.defaultInclude ? { include: config.defaultInclude } : {}),
+        });
+        res.json(wantRepresentation ? updatedList : (updatedList[0] || null));
+        return;
       }
-      return;
     }
 
-    // Multiple records update
+    // Query filter update (e.g. PATCH /table?pegawai_id=eq.123)
     await prismaModel.updateMany({
       where,
       data: sanitized,
@@ -841,15 +899,26 @@ export const deleteTableRecord = async (req: AuthRequest, res: Response, next: N
 
     let deletedItems: any[] = [];
     if (wantRepresentation) {
-      deletedItems = await prismaModel.findMany({ where });
+      try {
+        deletedItems = await prismaModel.findMany({ where });
+      } catch (e) {
+        // ignore representation error
+      }
     }
 
-    if (where[config.idField] !== undefined) {
+    // Jika ada path parameter spesifik (misal DELETE /table/:id)
+    if (idParam && where[config.idField] !== undefined) {
       const idVal = where[config.idField];
-      await prismaModel.delete({
-        where: { [config.idField]: idVal },
-      });
+      try {
+        await prismaModel.delete({
+          where: { [config.idField]: idVal },
+        });
+      } catch (err: any) {
+        // Fallback jika model memiliki composite key (seperti pegawai_lembaga)
+        await prismaModel.deleteMany({ where });
+      }
     } else {
+      // Jika pemanggilan menggunakan filter query string (misal DELETE /pegawai_lembaga?pegawai_id=eq.361)
       await prismaModel.deleteMany({ where });
     }
 

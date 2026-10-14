@@ -16,7 +16,6 @@ import {
   User,
   Mail,
   Shield,
-  Server,
   LogOut,
   ChevronRight,
   Info,
@@ -33,15 +32,13 @@ import { Input } from "../../components/ui/Input";
 import { Colors } from "../../constants/colors";
 import { useAuthStore } from "../../store/useAuthStore";
 import { RoleSwitcherModal } from "../../components/RoleSwitcherModal";
-import { APP_CONFIG, PROD_API_BASE_URL, LOCAL_API_BASE_URL } from "../../constants/config";
+import { APP_CONFIG } from "../../constants/config";
 
 export const ProfileScreen = () => {
   const {
     user,
     activeRole,
     logout,
-    apiBaseUrl,
-    setApiBaseUrl,
     biometricStatus,
     checkBiometricStatus,
     enableBiometric,
@@ -51,11 +48,9 @@ export const ProfileScreen = () => {
   } = useAuthStore();
 
   const [showRoleModal, setShowRoleModal] = useState(false);
-  const [showServerModal, setShowServerModal] = useState(false);
   const [showBioPasswordModal, setShowBioPasswordModal] = useState(false);
   const [bioConfirmPassword, setBioConfirmPassword] = useState("");
   const [bioError, setBioError] = useState("");
-  const [customUrl, setCustomUrl] = useState(apiBaseUrl);
 
   useEffect(() => {
     checkBiometricStatus();
@@ -147,13 +142,6 @@ export const ProfileScreen = () => {
     } catch (err: any) {
       setBioError(err.message || "Terjadi kesalahan.");
     }
-  };
-
-  const handleSaveUrl = async () => {
-    if (!customUrl.trim()) return;
-    await setApiBaseUrl(customUrl.trim());
-    setShowServerModal(false);
-    Alert.alert("Sukses", "Alamat server berhasil diperbarui.");
   };
 
   const isFaceId = biometricStatus?.biometricType === "faceid";
@@ -271,26 +259,9 @@ export const ProfileScreen = () => {
           </TouchableOpacity>
         </Card>
 
-        {/* App & Server Settings */}
-        <Text style={styles.sectionHeader}>Pengaturan Sistem</Text>
+        {/* App Info */}
+        <Text style={styles.sectionHeader}>Informasi Aplikasi</Text>
         <Card style={styles.menuCard}>
-          <TouchableOpacity
-            style={styles.clickableMenuItem}
-            onPress={() => setShowServerModal(true)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.iconCircle}>
-              <Server size={18} color={Colors.primary} />
-            </View>
-            <View style={styles.menuText}>
-              <Text style={styles.menuLabel}>Alamat Server API</Text>
-              <Text style={styles.menuValue} numberOfLines={1}>
-                {apiBaseUrl}
-              </Text>
-            </View>
-            <ChevronRight size={18} color={Colors.textMuted} />
-          </TouchableOpacity>
-
           <View style={styles.menuItem}>
             <View style={styles.iconCircle}>
               <Info size={18} color={Colors.primary} />
@@ -368,61 +339,6 @@ export const ProfileScreen = () => {
                 onPress={handleConfirmEnableBiometric}
                 icon={<Check size={16} color="#FFFFFF" />}
                 style={{ flex: 1, marginLeft: 8, backgroundColor: "#15803d" }}
-              />
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Modal Server Settings */}
-      <Modal
-        visible={showServerModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowServerModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Pengaturan Server API</Text>
-            <Text style={styles.modalSubtitle}>
-              Tentukan endpoint backend API yang aktif
-            </Text>
-
-            <Input
-              label="API Base URL"
-              value={customUrl}
-              onChangeText={setCustomUrl}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-
-            <View style={styles.presetButtons}>
-              <TouchableOpacity
-                style={[styles.presetBtn, { backgroundColor: "#E6FBF5" }]}
-                onPress={() => setCustomUrl(PROD_API_BASE_URL)}
-              >
-                <Text style={[styles.presetBtnText, { color: Colors.success }]}>🌐 lms2.maskumambang.ac.id</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.presetBtn}
-                onPress={() => setCustomUrl(LOCAL_API_BASE_URL)}
-              >
-                <Text style={styles.presetBtnText}>💻 Local Dev</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.modalActions}>
-              <Button
-                title="Batal"
-                variant="outline"
-                onPress={() => setShowServerModal(false)}
-                style={{ flex: 1, marginRight: 8 }}
-              />
-              <Button
-                title="Simpan"
-                onPress={handleSaveUrl}
-                icon={<Check size={16} color="#FFFFFF" />}
-                style={{ flex: 1, marginLeft: 8 }}
               />
             </View>
           </View>
@@ -600,22 +516,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.danger,
     fontWeight: "600",
-  },
-  presetButtons: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 20,
-  },
-  presetBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: Colors.primaryLight,
-    borderRadius: 8,
-  },
-  presetBtnText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: Colors.primary,
   },
   modalActions: {
     flexDirection: "row",
