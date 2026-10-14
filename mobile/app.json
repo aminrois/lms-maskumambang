@@ -34,7 +34,11 @@
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION"
+        "android.permission.ACCESS_FINE_LOCATION",
+        "POST_NOTIFICATIONS",
+        "android.permission.POST_NOTIFICATIONS",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED"
       ]
     },
     "web": {
@@ -46,6 +50,13 @@
         "expo-local-authentication",
         {
           "faceIDPermission": "Izinkan SIMAS menggunakan Face ID untuk login cepat."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#1E3A8A"
         }
       ]
     ],
