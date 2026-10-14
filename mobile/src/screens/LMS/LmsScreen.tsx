@@ -4,13 +4,13 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { LessonPlanScreen } from "./LessonPlanScreen";
 import { VerifikasiLessonPlanScreen } from "./VerifikasiLessonPlanScreen";
 import { useAuthStore } from "../../store/useAuthStore";
-import { isPimpinanRole } from "../../utils/permissions";
+import { canVerifikasiRpp } from "../../utils/permissions";
 
 export const LmsScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { user, activeRole } = useAuthStore();
-  const isPimpinan = isPimpinanRole(activeRole || user);
+  const canVerify = canVerifikasiRpp(activeRole || user);
 
   useEffect(() => {
     if (route.params?.tab === "rekap") {
@@ -20,7 +20,7 @@ export const LmsScreen = () => {
     }
   }, [route.params?.tab, navigation]);
 
-  if (isPimpinan) {
+  if (canVerify) {
     return <VerifikasiLessonPlanScreen />;
   }
 

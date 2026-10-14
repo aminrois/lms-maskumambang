@@ -115,6 +115,24 @@ export const deleteUser = async (req: Request, res: Response, next: NextFunction
   }
 };
 
+export const savePushToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const userId = (req as any).user?.userId;
+    const { token } = req.body;
+    if (!userId || !token) {
+      res.status(400).json({ success: false, message: 'User ID dan token perangkat wajib diisi' });
+      return;
+    }
+    await prisma.user.update({
+      where: { user_id: userId },
+      data: { fcm_device_token: token },
+    });
+    res.json({ success: true, message: 'Push token berhasil disimpan' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // ROLES
 export const getRoles = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {

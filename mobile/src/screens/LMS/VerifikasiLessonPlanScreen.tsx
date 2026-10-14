@@ -49,16 +49,31 @@ import {
   resolveDetailStatus,
   resolvePlanStatus,
 } from "../../api/lessonPlanService";
-import { isDirekturRole, isKepalaSekolahRole, isSuperAdminRole } from "../../utils/permissions";
+import { isDirekturRole, isKepalaSekolahRole, isSuperAdminRole, canVerifikasiRpp } from "../../utils/permissions";
 
 export const VerifikasiLessonPlanScreen = () => {
   const navigation = useNavigation<any>();
   const isFocused = useIsFocused();
   const { user, activeRole } = useAuthStore();
 
+  const canVerify = canVerifikasiRpp(activeRole || user);
   const isDirektur = isDirekturRole(activeRole || user);
   const isSuperAdmin = isSuperAdminRole(activeRole || user);
   const isKepsek = isKepalaSekolahRole(activeRole || user);
+
+  useEffect(() => {
+    if (!canVerify) {
+      Alert.alert(
+        "Akses Terbatas",
+        "Menu dan halaman Verifikasi RPP hanya dapat diakses oleh Kepala Sekolah dan Direktur.",
+        [{ text: "Kembali", onPress: () => navigation.goBack() }]
+      );
+    }
+  }, [canVerify, navigation]);
+
+  if (!canVerify) {
+    return null;
+  }
 
   // Role title & scope
   const activeRoleName = activeRole?.nama_role || user?.roles?.[0]?.nama_role || "Pimpinan";

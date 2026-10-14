@@ -61,10 +61,47 @@ export const isDirekturRole = (target: AuthUser | UserRoleItem | null | undefine
 };
 
 /**
+ * Checks if target matches Kepala Sekolah (Strict, without falling back to Direktur)
+ */
+export const isStrictKepalaSekolahRole = (target: AuthUser | UserRoleItem | null | undefined): boolean => {
+  if (!target) return false;
+  const roleName = getActiveRoleName(target).toLowerCase();
+  return roleName.includes("kepala sekolah") || roleName === "kepala";
+};
+
+/**
  * Checks if target matches Kepala Sekolah
  */
 export const isKepalaSekolahRole = (target: AuthUser | UserRoleItem | null | undefined): boolean => {
   return hasAnyRole(target, ["Kepala Sekolah", "Kepala", "Direktur", "Super Admin"]);
+};
+
+/**
+ * Checks if target matches Kepala Sekolah or Direktur (Khusus role yang berhak verifikasi RPP)
+ */
+export const canVerifikasiRpp = (target: AuthUser | UserRoleItem | null | undefined): boolean => {
+  if (!target) return false;
+  const roleName = getActiveRoleName(target).toLowerCase();
+  if (roleName === "super admin") return true;
+  return (
+    roleName === "kepala sekolah" ||
+    roleName.includes("kepala sekolah") ||
+    roleName === "direktur" ||
+    roleName.includes("direktur")
+  );
+};
+
+/**
+ * Checks if target matches WaKa Kurikulum atau Admin Lembaga
+ */
+export const isWakaKurikulumOrAdminLembaga = (target: AuthUser | UserRoleItem | null | undefined): boolean => {
+  if (!target) return false;
+  const roleName = getActiveRoleName(target).toLowerCase();
+  return (
+    roleName.includes("waka kurikulum") ||
+    roleName.includes("kurikulum") ||
+    roleName.includes("admin lembaga")
+  );
 };
 
 /**

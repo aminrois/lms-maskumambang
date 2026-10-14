@@ -70,6 +70,10 @@ import {
   isPimpinanRole,
   isGuruTahfidzRole,
   isWaliKelasRole,
+  canVerifikasiRpp,
+  isWakaKurikulumOrAdminLembaga,
+  isDirekturRole,
+  isStrictKepalaSekolahRole,
 } from "../../utils/permissions";
 import { RoleBadgeButton } from "../../components/RoleBadgeButton";
 import { RoleSwitcherModal } from "../../components/RoleSwitcherModal";
@@ -92,6 +96,10 @@ const { width } = Dimensions.get("window");
 export const TeacherDashboardScreen = () => {
   const navigation = useNavigation<any>();
   const { user, activeRole } = useAuthStore();
+  const isDirektur = isDirekturRole(activeRole || user);
+  const isStrictKepsek = isStrictKepalaSekolahRole(activeRole || user);
+  const isWakaOrAdmin = isWakaKurikulumOrAdminLembaga(activeRole || user);
+  const canVerifyRpp = canVerifikasiRpp(activeRole || user);
   const isPimpinan = isPimpinanRole(activeRole || user);
   const isTahfidz = isGuruTahfidzRole(activeRole || user);
   const isWaliKls = isWaliKelasRole(activeRole || user);
@@ -154,7 +162,75 @@ export const TeacherDashboardScreen = () => {
 
   // Dynamic 8-Grid Menu based on active role
   const menuItems = useMemo(() => {
-    if (isPimpinan) {
+    // 1. Khusus Role WaKa Kurikulum dan Admin Lembaga:
+    // HANYA menampilkan menu: Daftar siswa (sesuai lembaga masing-masing), Al-Qur'an, Do'a Dzikir, Berita, Arah Kiblat, Performa, Kalender, Alarm.
+    if (isWakaOrAdmin) {
+      return [
+        {
+          title: "Daftar Siswa",
+          icon: <Users size={24} color="#FFFFFF" />,
+          bg: "#8B5CF6",
+          onPress: () => navigation.navigate("DaftarSiswaKelas"),
+        },
+        {
+          title: "Al-Qur'an",
+          icon: <BookOpen size={24} color="#FFFFFF" />,
+          bg: "#059669",
+          onPress: () => navigation.navigate("Quran"),
+        },
+        {
+          title: "Do'a Dzikir",
+          icon: <BookMarked size={24} color="#FFFFFF" />,
+          bg: "#0284C7",
+          onPress: () => navigation.navigate("DoaDzikir"),
+        },
+        {
+          title: "Berita",
+          icon: <Newspaper size={24} color="#FFFFFF" />,
+          bg: "#F43F5E",
+          onPress: () => navigation.navigate("Berita"),
+        },
+        {
+          title: "Arah Kiblat",
+          icon: <Compass size={24} color="#FFFFFF" />,
+          bg: "#0D9488",
+          onPress: () => navigation.navigate("ArahKiblat"),
+        },
+        {
+          title: "Performa",
+          icon: <TrendingUp size={24} color="#FFFFFF" />,
+          bg: "#8B5CF6",
+          badge: "SOON",
+          onPress: () =>
+            Alert.alert(
+              "Fitur Segera Hadir",
+              "Fitur Evaluasi & Performa Guru sedang dalam tahap pengembangan dan akan segera tersedia."
+            ),
+        },
+        {
+          title: "Kalender",
+          icon: <CalendarDays size={24} color="#FFFFFF" />,
+          bg: "#4F46E5",
+          badge: "SOON",
+          onPress: () => navigation.navigate("Event"),
+        },
+        {
+          title: "Alarm",
+          icon: <Bell size={24} color="#FFFFFF" />,
+          bg: "#EA580C",
+          badge: "SOON",
+          onPress: () =>
+            Alert.alert(
+              "Fitur Segera Hadir",
+              "Fitur Alarm Pengingat sedang dalam tahap pengembangan dan akan segera tersedia."
+            ),
+        },
+      ];
+    }
+
+    // 2. Khusus Role Direktur:
+    // Menu: Monitoring KBM, Verifikasi RPP, Pegawai, Siswa, Input Notifikasi, Al-Qur'an, Do'a Dzikir, Arah Kiblat
+    if (isDirektur) {
       return [
         {
           title: "Monitoring KBM",
@@ -167,6 +243,108 @@ export const TeacherDashboardScreen = () => {
           icon: <FileCheck2 size={24} color="#FFFFFF" />,
           bg: "#D97706",
           onPress: () => navigation.navigate("VerifikasiLessonPlan"),
+        },
+        {
+          title: "Pegawai",
+          icon: <Users size={24} color="#FFFFFF" />,
+          bg: "#8B5CF6",
+          onPress: () => navigation.navigate("DaftarPegawai"),
+        },
+        {
+          title: "Siswa",
+          icon: <GraduationCap size={24} color="#FFFFFF" />,
+          bg: "#059669",
+          onPress: () => navigation.navigate("DaftarSiswaKelas"),
+        },
+        {
+          title: "Input Notifikasi",
+          icon: <Megaphone size={24} color="#FFFFFF" />,
+          bg: "#EA580C",
+          onPress: () => navigation.navigate("InputNotifikasi"),
+        },
+        {
+          title: "Al-Qur'an",
+          icon: <BookOpen size={24} color="#FFFFFF" />,
+          bg: "#0D9488",
+          onPress: () => navigation.navigate("Quran"),
+        },
+        {
+          title: "Doa & Dzikir",
+          icon: <BookMarked size={24} color="#FFFFFF" />,
+          bg: "#0284C7",
+          onPress: () => navigation.navigate("DoaDzikir"),
+        },
+        {
+          title: "Arah Kiblat",
+          icon: <Compass size={24} color="#FFFFFF" />,
+          bg: "#162E6E",
+          onPress: () => navigation.navigate("ArahKiblat"),
+        },
+      ];
+    }
+
+    // 3. Khusus Role Kepala Sekolah:
+    // Menu: Monitoring KBM, Verifikasi RPP, Pegawai, Siswa, Berita, Al-Qur'an, Do'a Dzikir, Jadwal Guru
+    if (isStrictKepsek || canVerifyRpp) {
+      return [
+        {
+          title: "Monitoring KBM",
+          icon: <BarChart3 size={24} color="#FFFFFF" />,
+          bg: "#1D4ED8",
+          onPress: () => navigation.navigate("MonitoringKbm"),
+        },
+        {
+          title: "Verifikasi RPP",
+          icon: <FileCheck2 size={24} color="#FFFFFF" />,
+          bg: "#D97706",
+          onPress: () => navigation.navigate("VerifikasiLessonPlan"),
+        },
+        {
+          title: "Pegawai",
+          icon: <Users size={24} color="#FFFFFF" />,
+          bg: "#8B5CF6",
+          onPress: () => navigation.navigate("DaftarPegawai"),
+        },
+        {
+          title: "Siswa",
+          icon: <GraduationCap size={24} color="#FFFFFF" />,
+          bg: "#059669",
+          onPress: () => navigation.navigate("DaftarSiswaKelas"),
+        },
+        {
+          title: "Berita",
+          icon: <Newspaper size={24} color="#FFFFFF" />,
+          bg: "#F43F5E",
+          onPress: () => navigation.navigate("Berita"),
+        },
+        {
+          title: "Al-Qur'an",
+          icon: <BookOpen size={24} color="#FFFFFF" />,
+          bg: "#0D9488",
+          onPress: () => navigation.navigate("Quran"),
+        },
+        {
+          title: "Doa & Dzikir",
+          icon: <BookMarked size={24} color="#FFFFFF" />,
+          bg: "#0284C7",
+          onPress: () => navigation.navigate("DoaDzikir"),
+        },
+        {
+          title: "Jadwal Guru",
+          icon: <CalendarDays size={24} color="#FFFFFF" />,
+          bg: "#162E6E",
+          onPress: () => navigation.navigate("JadwalSeluruhGuru"),
+        },
+      ];
+    }
+
+    if (isPimpinan) {
+      return [
+        {
+          title: "Monitoring KBM",
+          icon: <BarChart3 size={24} color="#FFFFFF" />,
+          bg: "#1D4ED8",
+          onPress: () => navigation.navigate("MonitoringKbm"),
         },
         {
           title: "Presensi Guru",
@@ -203,6 +381,12 @@ export const TeacherDashboardScreen = () => {
           icon: <Compass size={24} color="#FFFFFF" />,
           bg: "#162E6E",
           onPress: () => navigation.navigate("GuidanceHome"),
+        },
+        {
+          title: "Kalender",
+          icon: <CalendarDays size={24} color="#FFFFFF" />,
+          bg: "#4F46E5",
+          onPress: () => navigation.navigate("Event"),
         },
       ];
     }
@@ -467,7 +651,7 @@ export const TeacherDashboardScreen = () => {
         onPress: () => navigation.navigate("Event"),
       },
     ];
-  }, [isPimpinan, isTahfidz, isWaliKls]);
+  }, [isWakaOrAdmin, canVerifyRpp, isPimpinan, isTahfidz, isWaliKls]);
 
   // Data Berita Pesantren
   const BERITA_LIST = [
@@ -723,14 +907,15 @@ export const TeacherDashboardScreen = () => {
         {/* ═══════════════════════════════════════════════════════
             4. DUA KARTU FITUR UTAMA: LESSON PLAN / BIMBINGAN & JADWAL / SUPERVISI
         ════════════════════════════════════════════════════════ */}
-        <View style={styles.dualCardContainer}>
-          {/* Card Kiri: Verifikasi RPP (Pimpinan) / Lesson Plan (Guru) / Bimbingan Santri (Wali Kelas) */}
-          {isPimpinan ? (
-            <TouchableOpacity
-              style={styles.dualCard}
-              onPress={() => navigation.navigate("VerifikasiLessonPlan")}
-              activeOpacity={0.85}
-            >
+        {!isWakaOrAdmin && (
+          <View style={styles.dualCardContainer}>
+            {/* Card Kiri: Verifikasi RPP (Khusus Kepala Sekolah / Direktur) / Lesson Plan (Guru) / Bimbingan Santri (Wali Kelas) */}
+            {canVerifyRpp ? (
+              <TouchableOpacity
+                style={styles.dualCard}
+                onPress={() => navigation.navigate("VerifikasiLessonPlan")}
+                activeOpacity={0.85}
+              >
               <View style={styles.dualCardHeader}>
                 <View style={styles.dualCardTitleRow}>
                   <FileCheck2 size={16} color="#D97706" />
@@ -838,8 +1023,8 @@ export const TeacherDashboardScreen = () => {
             </TouchableOpacity>
           )}
 
-          {/* Card Kanan: Supervisi KBM (Pimpinan) / Jadwal Kelas (WaliKls) / Jadwal Guru (Guru) */}
-          {isPimpinan ? (
+          {/* Card Kanan: Supervisi KBM (Kepala Sekolah/Direktur) / Jadwal Kelas (WaliKls) / Jadwal Guru (Guru) */}
+          {canVerifyRpp ? (
             <TouchableOpacity
               style={styles.dualCard}
               onPress={() => navigation.navigate("MonitoringKbm")}
@@ -952,6 +1137,7 @@ export const TeacherDashboardScreen = () => {
             </TouchableOpacity>
           )}
         </View>
+        )}
 
         {/* ═══════════════════════════════════════════════════════
             5. BANNER & INFORMASI PENTING (Bottom Section)

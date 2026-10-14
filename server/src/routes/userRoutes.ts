@@ -4,6 +4,9 @@ import { authenticate } from '../middlewares/authMiddleware';
 
 const router = Router();
 
+// Push Token Perangkat
+router.post('/push-token', authenticate, userController.savePushToken);
+
 // Users
 router.get('/', authenticate, userController.getUsers);
 router.get('/:id', authenticate, userController.getUserById);

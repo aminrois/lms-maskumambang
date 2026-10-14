@@ -1,6 +1,7 @@
 // server/src/controllers/notifikasiController.ts
 import { Request, Response } from 'express';
 import prisma from '../config/prisma';
+import { broadcastPushNotification } from '../services/pushNotificationService';
 
 /** GET /api/v1/notifikasi — ambil semua notifikasi aktif */
 export const getAll = async (req: Request, res: Response) => {
@@ -49,6 +50,15 @@ export const create = async (req: Request, res: Response) => {
     const item = await prisma.notifikasi.create({
       data: { judul, isi, kategori, target_role, created_by: userId ?? null },
     });
+
+    // Kirim Push Notification instan ke seluruh HP target (WhatsApp-like pop-up)
+    broadcastPushNotification(target_role, {
+      title: judul,
+      body: isi,
+      kategori,
+      notifikasiId: item.id,
+    }).catch((err) => console.warn('[Notifikasi] Broadcast error:', err.message));
+
     res.status(201).json({ message: 'Notifikasi berhasil dibuat.', data: item });
   } catch (err: any) {
     res.status(500).json({ message: 'Gagal membuat notifikasi', error: err.message });

@@ -87,7 +87,14 @@ export const getKelass = async (req: Request, res: Response, next: NextFunction)
   try {
     const { lembaga_id, tahun_id, wali_kelas_id } = req.query;
     const where: any = {};
-    if (lembaga_id) where.lembaga_id = Number(lembaga_id);
+    if (lembaga_id) {
+      const ids = String(lembaga_id).split(',').map((s) => Number(s.trim())).filter((n) => !isNaN(n));
+      if (ids.length > 1) {
+        where.lembaga_id = { in: ids };
+      } else if (ids.length === 1) {
+        where.lembaga_id = ids[0];
+      }
+    }
     if (tahun_id) where.tahun_id = Number(tahun_id);
     if (wali_kelas_id) {
       const cleanWaliId = String(wali_kelas_id).replace(/^eq\./, '');
@@ -288,11 +295,19 @@ export const deleteJamAkademik = async (req: Request, res: Response, next: NextF
 // JADWAL PELAJARAN
 export const getJadwalPelajarans = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { kelas_id, pegawai_id, hari } = req.query;
+    const { kelas_id, pegawai_id, hari, lembaga_id } = req.query;
     const where: any = {};
     if (kelas_id) where.kelas_id = Number(kelas_id);
     if (pegawai_id) where.pegawai_id = Number(pegawai_id);
     if (hari) where.hari = String(hari);
+    if (lembaga_id) {
+      const ids = String(lembaga_id).split(',').map((s) => Number(s.trim())).filter((n) => !isNaN(n));
+      if (ids.length > 1) {
+        where.kelas = { lembaga_id: { in: ids } };
+      } else if (ids.length === 1) {
+        where.kelas = { lembaga_id: ids[0] };
+      }
+    }
 
     const list = await prisma.jadwalPelajaran.findMany({
       where,

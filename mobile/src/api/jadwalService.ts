@@ -64,6 +64,7 @@ export const jadwalService = {
     hari?: string;
     kelas_id?: number;
     tahun_ajaran_id?: number;
+    lembaga_id?: number;
   }): Promise<JadwalItem[]> => {
     const response = await apiClient.get("/akademik/jadwal-pelajaran", { params });
     const list = response.data?.data || response.data || [];

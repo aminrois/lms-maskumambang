@@ -30,6 +30,20 @@ apiClient.interceptors.request.use(
         // Perbarui aktivitas sesi aktif
         AsyncStorage.setItem(STORAGE_KEYS.LAST_ACTIVE_TIME, String(Date.now())).catch(() => {});
       }
+
+      // Periksa active role & lembaga untuk scoping data backend
+      const activeRoleRaw = await AsyncStorage.getItem(STORAGE_KEYS.ACTIVE_ROLE);
+      if (activeRoleRaw && config.headers) {
+        try {
+          const parsed = JSON.parse(activeRoleRaw);
+          if (parsed?.nama_role) {
+            config.headers["x-active-role"] = parsed.nama_role;
+          }
+          if (parsed?.lembaga_id) {
+            config.headers["x-active-lembaga-id"] = String(parsed.lembaga_id);
+          }
+        } catch (_) {}
+      }
     } catch (e) {
       console.warn("Error reading storage in API interceptor:", e);
     }

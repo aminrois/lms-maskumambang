@@ -26,16 +26,26 @@ import {
   X,
   Phone,
   Calendar,
+  Building2,
 } from "lucide-react-native";
 import { Colors } from "../../constants/colors";
 import { useAuthStore } from "../../store/useAuthStore";
 import { apiClient } from "../../api/client";
 import { SwipeBackContainer } from "../../components/ui/SwipeBackContainer";
 import { Card } from "../../components/ui/Card";
+import { isWakaKurikulumOrAdminLembaga, canVerifikasiRpp, isDirekturRole, isKepalaSekolahRole } from "../../utils/permissions";
+import { getJenjangLembagaIds, getJenjangDisplayName } from "../../utils/lembagaUtil";
 
 interface KelasItem {
   kelas_id: number;
   nama_kelas: string;
+  lembaga_id?: number;
+}
+
+interface LembagaFilterItem {
+  lembaga_id: number;
+  nama_lembaga: string;
+  singkatan?: string;
 }
 
 interface SiswaItem {
@@ -47,6 +57,14 @@ interface SiswaItem {
   tempat_lahir?: string;
   tanggal_lahir?: string;
   foto?: string;
+  kelas?: {
+    kelas_id: number;
+    nama_kelas: string;
+    lembaga?: {
+      nama_lembaga?: string;
+      singkatan?: string;
+    };
+  };
   wali_murid?: {
     nama_lengkap?: string;
     no_hp?: string;
@@ -55,30 +73,125 @@ interface SiswaItem {
 
 export const DaftarSiswaKelasScreen = () => {
   const navigation = useNavigation<any>();
-  const { user } = useAuthStore();
+  const { user, activeRole } = useAuthStore();
+
+  const isDirektur = isDirekturRole(activeRole || user);
+  const isKepsek = isKepalaSekolahRole(activeRole || user);
+  const isWakaOrAdmin = isWakaKurikulumOrAdminLembaga(activeRole || user);
+  const isLeader = canVerifikasiRpp(activeRole || user);
+
+  // Ambil lembaga_id efektif dari activeRole atau penugasan pegawai
+  const effectiveLembagaId =
+    activeRole?.lembaga_id ||
+    activeRole?.lembaga?.lembaga_id ||
+    (user as any)?.lembaga_id ||
+    (user as any)?.pegawai?.pegawai_lembaga?.[0]?.lembaga_id ||
+    (user as any)?.pegawai?.lembaga_id ||
+    null;
+
+  const effectiveLembagaName =
+    activeRole?.lembaga?.singkatan ||
+    activeRole?.lembaga?.nama_lembaga ||
+    (user as any)?.lembaga?.singkatan ||
+    (user as any)?.lembaga?.nama_lembaga ||
+    (user as any)?.pegawai?.pegawai_lembaga?.[0]?.lembaga?.singkatan ||
+    (user as any)?.pegawai?.pegawai_lembaga?.[0]?.lembaga?.nama_lembaga ||
+    "";
+
+  // State Lembaga untuk Direktur (null = belum memilih di awal, 0 = Semua Lembaga di akhir, >0 = Lembaga tertentu)
+  const [lembagaList, setLembagaList] = useState<LembagaFilterItem[]>([]);
+  const [selectedLembagaId, setSelectedLembagaId] = useState<number | null>(
+    isDirektur ? null : effectiveLembagaId
+  );
 
   const [kelasList, setKelasList] = useState<KelasItem[]>([]);
-  const [selectedKelasId, setSelectedKelasId] = useState<number | null>(null);
+  // -1 = Semua Kelas di lembaga ini, >0 = kelas tertentu
+  const [selectedKelasId, setSelectedKelasId] = useState<number | null>(-1);
 
   const [siswaList, setSiswaList] = useState<SiswaItem[]>([]);
-  const [loadingKelas, setLoadingKelas] = useState(true);
+  const [loadingKelas, setLoadingKelas] = useState(isDirektur ? false : true);
   const [loadingSiswa, setLoadingSiswa] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   const pegawaiId = (user as any)?.pegawai?.pegawai_id || (user as any)?.pegawai_id;
 
-  // 1. Fetch Kelas Wali
+  // IDs lembaga dalam 1 jenjang untuk kepala sekolah (misal MIPA & MIPI)
+  const kepsekJenjangIds = useMemo(() => {
+    return getJenjangLembagaIds(effectiveLembagaId, lembagaList);
+  }, [effectiveLembagaId, lembagaList]);
+
+  const displayJenjangTitle = useMemo(() => {
+    if (isDirektur) {
+      if (selectedLembagaId === 0) return "Semua Lembaga";
+      if (selectedLembagaId) {
+        const found = lembagaList.find((l) => l.lembaga_id === selectedLembagaId);
+        return found?.singkatan || found?.nama_lembaga || "Lembaga Terpilih";
+      }
+      return "Pilih Lembaga";
+    }
+    return getJenjangDisplayName(effectiveLembagaId, effectiveLembagaName);
+  }, [isDirektur, selectedLembagaId, lembagaList, effectiveLembagaId, effectiveLembagaName]);
+
+  // 1. Fetch Daftar Lembaga
+  useEffect(() => {
+    apiClient
+      .get("/lembaga?order=lembaga_id.asc")
+      .then((res) => {
+        const data = res.data?.data || res.data || [];
+        if (Array.isArray(data)) setLembagaList(data);
+      })
+      .catch(() => {});
+  }, []);
+
+  // 2. Fetch Kelas (sesuai filter lembaga Direktur atau 1 jenjang Kepala Sekolah)
   const fetchKelasWali = useCallback(async () => {
+    // Untuk Direktur: jika belum memilih lembaga (null), jangan load kelas
+    if (isDirektur && selectedLembagaId === null) {
+      setKelasList([]);
+      setLoadingKelas(false);
+      return;
+    }
+
     try {
       setLoadingKelas(true);
       let foundClasses: KelasItem[] = [];
-      const cached = (user as any)?.pegawai?.kelas_wali;
-      if (Array.isArray(cached) && cached.length > 0) {
-        foundClasses = cached;
+
+      if (isDirektur) {
+        if (selectedLembagaId === 0) {
+          // Direktur memilih "Semua Lembaga" (di tab terakhir)
+          const res = await apiClient.get("/kelas?order=nama_kelas.asc&limit=200");
+          const data = res.data?.data || res.data;
+          if (Array.isArray(data)) foundClasses = data;
+        } else if (selectedLembagaId) {
+          // Direktur memilih lembaga tertentu
+          const res = await apiClient.get(`/kelas?lembaga_id=${selectedLembagaId}&order=nama_kelas.asc`);
+          const data = res.data?.data || res.data;
+          if (Array.isArray(data)) foundClasses = data;
+        }
+      } else if (isKepsek && kepsekJenjangIds.length > 0) {
+        // Kepala Sekolah memuat seluruh kelas dalam 1 jenjang yang dipimpin (misal MI PA & MI PI)
+        const idsParam = kepsekJenjangIds.join(",");
+        const res = await apiClient.get(`/kelas?lembaga_id=${idsParam}&order=nama_kelas.asc`);
+        const data = res.data?.data || res.data;
+        if (Array.isArray(data)) foundClasses = data;
+      } else if (effectiveLembagaId) {
+        // Pimpinan / Waka lembaga tertentu
+        const res = await apiClient.get(`/kelas?lembaga_id=${effectiveLembagaId}&order=nama_kelas.asc`);
+        const data = res.data?.data || res.data;
+        if (Array.isArray(data)) foundClasses = data;
       }
 
-      if (foundClasses.length === 0 && pegawaiId) {
+      // Prioritas tambahan: Cek cache kelas wali
+      if (foundClasses.length === 0 && !isDirektur && !isKepsek) {
+        const cached = (user as any)?.pegawai?.kelas_wali;
+        if (Array.isArray(cached) && cached.length > 0) {
+          foundClasses = cached;
+        }
+      }
+
+      // Prioritas tambahan: Cari kelas berdasarkan wali_kelas_id
+      if (foundClasses.length === 0 && pegawaiId && !isDirektur && !isKepsek) {
         try {
           const res = await apiClient.get(`/kelas?wali_kelas_id=${pegawaiId}`);
           const data = res.data?.data || res.data;
@@ -88,61 +201,101 @@ export const DaftarSiswaKelasScreen = () => {
         } catch (_) {}
       }
 
-      if (foundClasses.length === 0) {
-        try {
-          const res = await apiClient.get("/kelas");
-          const all = res.data?.data || res.data;
-          if (Array.isArray(all)) {
-            const matched = all.filter(
-              (k: any) => k.wali_kelas_id === pegawaiId || k.wali_kelas?.pegawai_id === pegawaiId
-            );
-            if (matched.length > 0) {
-              foundClasses = matched;
-            } else if (all.length > 0) {
-              foundClasses = all.slice(0, 1);
-            }
-          }
-        } catch (_) {}
-      }
-
       setKelasList(foundClasses);
-      if (foundClasses.length > 0) {
+
+      // Default ke Semua Kelas (-1) untuk pimpinan/direktur/kepsek/waka/admin, atau kelas pertama jika wali kelas
+      if (isDirektur || isKepsek || isWakaOrAdmin || isLeader) {
+        setSelectedKelasId((prev) => (prev !== null ? prev : -1));
+      } else if (foundClasses.length > 0) {
         setSelectedKelasId((prev) =>
           prev && foundClasses.some((k) => k.kelas_id === prev) ? prev : foundClasses[0].kelas_id
         );
       }
     } catch (err: any) {
-      console.warn("Gagal fetch kelas wali:", err.message);
+      console.warn("Gagal fetch kelas:", err.message);
     } finally {
       setLoadingKelas(false);
     }
-  }, [pegawaiId, user]);
+  }, [pegawaiId, user, activeRole, isDirektur, selectedLembagaId, isKepsek, kepsekJenjangIds, effectiveLembagaId, isWakaOrAdmin, isLeader]);
 
-  // 2. Fetch Siswa dalam kelas
+  // 3. Fetch Siswa dalam kelas atau seluruh siswa lembaga/jenjang
   const fetchSiswa = useCallback(async () => {
-    if (!selectedKelasId) {
+    // Khusus Direktur di awal jika belum memilih lembaga
+    if (isDirektur && selectedLembagaId === null) {
+      if (!searchQuery.trim()) {
+        setSiswaList([]);
+        setLoadingSiswa(false);
+        return;
+      }
+      // Fitur search di awal: jika mengetik sebelum pilih lembaga, cari langsung ke DB
+      try {
+        setLoadingSiswa(true);
+        const q = encodeURIComponent(searchQuery.trim());
+        const res = await apiClient.get(`/siswa?nama=ilike.%25${q}%25&limit=100&order=nama.asc`);
+        const data: SiswaItem[] = res.data?.data || res.data || [];
+        setSiswaList(data);
+      } catch (err: any) {
+        console.warn("Gagal search siswa di awal:", err.message);
+      } finally {
+        setLoadingSiswa(false);
+      }
+      return;
+    }
+
+    if (selectedKelasId === null) {
       setSiswaList([]);
       return;
     }
 
     try {
       setLoadingSiswa(true);
-      const res = await apiClient.get(`/siswa?kelas_id=${selectedKelasId}&limit=200`);
-      const data: SiswaItem[] = res.data?.data || res.data || [];
-      setSiswaList(data);
+      let url = "";
+
+      if (selectedKelasId === -1) {
+        // Semua Siswa
+        if (isDirektur) {
+          if (selectedLembagaId === 0) {
+            // Tab "Semua Lembaga" di bagian akhir
+            url = `/siswa?limit=1000&order=nama.asc`;
+          } else if (selectedLembagaId) {
+            // Direktur filter ke lembaga tertentu
+            url = `/siswa?kelas.lembaga_id=eq.${selectedLembagaId}&limit=500&order=nama.asc`;
+          }
+        } else if (isKepsek && kepsekJenjangIds.length > 0) {
+          // Kepala Sekolah: SEMUA SISWA 1 JENJANG (Laki-laki & Perempuan, misal MI PA & MI PI)
+          if (kepsekJenjangIds.length > 1) {
+            url = `/siswa?kelas.lembaga_id=in.(${kepsekJenjangIds.join(",")})&limit=500&order=nama.asc`;
+          } else {
+            url = `/siswa?kelas.lembaga_id=eq.${kepsekJenjangIds[0]}&limit=500&order=nama.asc`;
+          }
+        } else if (effectiveLembagaId) {
+          url = `/siswa?kelas.lembaga_id=eq.${effectiveLembagaId}&limit=500&order=nama.asc`;
+        } else {
+          url = `/siswa?limit=300&order=nama.asc`;
+        }
+      } else if (selectedKelasId > 0) {
+        // Siswa per kelas tertentu
+        url = `/siswa?kelas_id=${selectedKelasId}&limit=200&order=nama.asc`;
+      }
+
+      if (url) {
+        const res = await apiClient.get(url);
+        const data: SiswaItem[] = res.data?.data || res.data || [];
+        setSiswaList(data);
+      }
     } catch (err: any) {
-      console.warn("Gagal fetch siswa kelas:", err.message);
+      console.warn("Gagal fetch siswa:", err.message);
     } finally {
       setLoadingSiswa(false);
     }
-  }, [selectedKelasId]);
+  }, [selectedKelasId, isDirektur, selectedLembagaId, searchQuery, isKepsek, kepsekJenjangIds, effectiveLembagaId]);
 
   useEffect(() => {
     fetchKelasWali();
   }, [fetchKelasWali]);
 
   useEffect(() => {
-    if (selectedKelasId) {
+    if (selectedKelasId !== null) {
       fetchSiswa();
     }
   }, [selectedKelasId, fetchSiswa]);
@@ -206,9 +359,14 @@ export const DaftarSiswaKelasScreen = () => {
             </TouchableOpacity>
 
             <View style={styles.headerCenter}>
-              <Text style={styles.headerTitle}>Daftar Siswa Kelas</Text>
-              <Text style={styles.headerSubtitle}>
-                {currentKelas ? `Kelas ${currentKelas.nama_kelas} (${genderStats.total} Siswa)` : "Daftar Siswa Binaan"}
+              <Text style={styles.headerTitle}>Daftar Siswa</Text>
+              <Text style={styles.headerSubtitle} numberOfLines={1}>
+                {displayJenjangTitle} •{" "}
+                {selectedKelasId === -1
+                  ? `Semua Siswa (${genderStats.total})`
+                  : currentKelas
+                  ? `Kelas ${currentKelas.nama_kelas} (${genderStats.total} Siswa)`
+                  : `Total: ${genderStats.total} Siswa`}
               </Text>
             </View>
 
@@ -219,10 +377,120 @@ export const DaftarSiswaKelasScreen = () => {
         </SafeAreaView>
       </View>
 
-      {/* ─── SELECTOR KELAS (JIKA LEBIH DARI 1) ─── */}
-      {kelasList.length > 1 && (
+      {/* ─── 1. SEARCH & METRICS BAR (DIPERTAHANKAN DI AWAL) ─── */}
+      <View style={styles.topFilterBar}>
+        <View style={styles.searchBar}>
+          <Search size={15} color="#64748B" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder={
+              isDirektur && selectedLembagaId === null
+                ? "Cari nama / NISN santri..."
+                : "Cari nama atau NISN santri..."
+            }
+            placeholderTextColor="#94A3B8"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery ? (
+            <TouchableOpacity onPress={() => setSearchQuery("")}>
+              <X size={15} color="#64748B" />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+
+        {/* Quick Gender Badges (Hanya tampil jika ada data atau lembaga dipilih) */}
+        {(!isDirektur || selectedLembagaId !== null || searchQuery.trim().length > 0) && (
+          <View style={styles.genderRow}>
+            <View style={styles.genderBadge}>
+              <Text style={styles.genderBadgeText}>Total: {genderStats.total}</Text>
+            </View>
+            <View style={[styles.genderBadge, { backgroundColor: "#DBEAFE" }]}>
+              <Text style={[styles.genderBadgeText, { color: "#1D4ED8" }]}>L: {genderStats.lk}</Text>
+            </View>
+            <View style={[styles.genderBadge, { backgroundColor: "#FCE7F3" }]}>
+              <Text style={[styles.genderBadgeText, { color: "#BE185D" }]}>P: {genderStats.pr}</Text>
+            </View>
+          </View>
+        )}
+      </View>
+
+      {/* ─── 2. SELECTOR LEMBAGA (KHUSUS DIREKTUR: SEMUA LEMBAGA DI BAGIAN TERAKHIR) ─── */}
+      {isDirektur && (
+        <View style={styles.lembagaSelectorBar}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }}>
+            {/* Lembaga Spesifik Terlebih Dahulu */}
+            {lembagaList.map((lem) => (
+              <TouchableOpacity
+                key={lem.lembaga_id}
+                style={[
+                  styles.lembagaChip,
+                  selectedLembagaId === lem.lembaga_id && styles.lembagaChipActive,
+                ]}
+                onPress={() => {
+                  setSelectedLembagaId(lem.lembaga_id);
+                  setSelectedKelasId(-1);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.lembagaChipText,
+                    selectedLembagaId === lem.lembaga_id && styles.lembagaChipTextActive,
+                  ]}
+                >
+                  {lem.singkatan || lem.nama_lembaga}
+                </Text>
+              </TouchableOpacity>
+            ))}
+
+            {/* Tab Semua Lembaga diletakkan di BAGIAN TERAKHIR */}
+            <TouchableOpacity
+              style={[
+                styles.lembagaChip,
+                selectedLembagaId === 0 && styles.lembagaChipActive,
+              ]}
+              onPress={() => {
+                setSelectedLembagaId(0);
+                setSelectedKelasId(-1);
+              }}
+            >
+              <Text
+                style={[
+                  styles.lembagaChipText,
+                  selectedLembagaId === 0 && styles.lembagaChipTextActive,
+                ]}
+              >
+                Semua Lembaga
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+      )}
+
+      {/* ─── 3. SELECTOR KELAS (JIKA LEMBAGA SUDAH DIPILIH / BUKAN DIREKTUR) ─── */}
+      {(!isDirektur || selectedLembagaId !== null) && (isWakaOrAdmin || isLeader || kelasList.length > 0) && (
         <View style={styles.classSelectorBar}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }}>
+            {/* Opsi Semua Siswa / Semua Kelas */}
+            {(isDirektur || isWakaOrAdmin || isLeader) && (
+              <TouchableOpacity
+                style={[
+                  styles.classChip,
+                  selectedKelasId === -1 && styles.classChipActive,
+                ]}
+                onPress={() => setSelectedKelasId(-1)}
+              >
+                <Text
+                  style={[
+                    styles.classChipText,
+                    selectedKelasId === -1 && styles.classChipTextActive,
+                  ]}
+                >
+                  Semua Kelas
+                </Text>
+              </TouchableOpacity>
+            )}
+
             {kelasList.map((k) => (
               <TouchableOpacity
                 key={k.kelas_id}
@@ -246,45 +514,24 @@ export const DaftarSiswaKelasScreen = () => {
         </View>
       )}
 
-      {/* ─── SEARCH & METRICS BAR ─── */}
-      <View style={styles.topFilterBar}>
-        <View style={styles.searchBar}>
-          <Search size={15} color="#64748B" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Cari nama atau NISN santri..."
-            placeholderTextColor="#94A3B8"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery ? (
-            <TouchableOpacity onPress={() => setSearchQuery("")}>
-              <X size={15} color="#64748B" />
-            </TouchableOpacity>
-          ) : null}
-        </View>
-
-        {/* Quick Gender Badges */}
-        <View style={styles.genderRow}>
-          <View style={styles.genderBadge}>
-            <Text style={styles.genderBadgeText}>Total: {genderStats.total}</Text>
-          </View>
-          <View style={[styles.genderBadge, { backgroundColor: "#DBEAFE" }]}>
-            <Text style={[styles.genderBadgeText, { color: "#1D4ED8" }]}>L: {genderStats.lk}</Text>
-          </View>
-          <View style={[styles.genderBadge, { backgroundColor: "#FCE7F3" }]}>
-            <Text style={[styles.genderBadgeText, { color: "#BE185D" }]}>P: {genderStats.pr}</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* ─── STUDENT LIST ─── */}
+      {/* ─── 4. STUDENT LIST ─── */}
       <ScrollView
         style={styles.scrollArea}
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {loadingKelas || loadingSiswa ? (
+        {isDirektur && selectedLembagaId === null && !searchQuery.trim() ? (
+          /* Placeholder Ramah jika Direktur belum memilih lembaga */
+          <View style={styles.initialSelectCard}>
+            <View style={styles.initialIconCircle}>
+              <Building2 size={36} color="#1D4ED8" />
+            </View>
+            <Text style={styles.initialTitle}>Pilih Lembaga Terlebih Dahulu</Text>
+            <Text style={styles.initialSubtitle}>
+              Silakan pilih salah satu lembaga di atas untuk memuat daftar santri dan kelas, atau gunakan kolom pencarian di atas untuk mencari santri langsung.
+            </Text>
+          </View>
+        ) : loadingKelas || loadingSiswa ? (
           <View style={styles.centerLoading}>
             <ActivityIndicator size="large" color={Colors.primary} />
             <Text style={styles.loadingText}>Memuat daftar siswa...</Text>
@@ -350,7 +597,7 @@ export const DaftarSiswaKelasScreen = () => {
                       </View>
 
                       <Text style={styles.studentMetaText}>
-                        NISN: {item.nisn || "-"} • NIS: {item.nis || "-"}
+                        {item.kelas?.nama_kelas ? `Kelas ${item.kelas.nama_kelas} • ` : ""}NISN: {item.nisn || "-"} • NIS: {item.nis || "-"}
                       </Text>
 
                       {item.wali_murid?.nama_lengkap ? (
@@ -422,6 +669,33 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.12)",
     alignItems: "center",
     justifyContent: "center",
+  },
+  lembagaSelectorBar: {
+    backgroundColor: "#EFF6FF",
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#DBEAFE",
+  },
+  lembagaChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+  },
+  lembagaChipActive: {
+    backgroundColor: "#1D4ED8",
+    borderColor: "#1D4ED8",
+  },
+  lembagaChipText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#1E40AF",
+  },
+  lembagaChipTextActive: {
+    color: "#FFFFFF",
   },
   classSelectorBar: {
     backgroundColor: "#FFFFFF",
@@ -501,6 +775,43 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 14,
     color: "#64748B",
+  },
+  initialSelectCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 28,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#DBEAFE",
+    marginTop: 10,
+    elevation: 2,
+    shadowColor: "#1E40AF",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+  },
+  initialIconCircle: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: "#EFF6FF",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  initialTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#0F172A",
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  initialSubtitle: {
+    fontSize: 13,
+    color: "#64748B",
+    textAlign: "center",
+    lineHeight: 19,
+    paddingHorizontal: 8,
   },
   emptyCard: {
     backgroundColor: "#FFFFFF",

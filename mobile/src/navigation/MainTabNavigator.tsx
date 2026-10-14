@@ -14,15 +14,17 @@ import {
   BookMarked,
   CalendarDays,
   CheckCheck,
+  Users,
 } from "lucide-react-native";
 import { TeacherDashboardScreen } from "../screens/Dashboard/TeacherDashboardScreen";
 import { ParentDashboardScreen } from "../screens/Dashboard/ParentDashboardScreen";
 import { TilawahScreen } from "../screens/Tilawah/TilawahScreen";
 import { AbsensiMapelScreen } from "../screens/Absensi/AbsensiMapelScreen";
+import { DaftarSiswaKelasScreen } from "../screens/Siswa/DaftarSiswaKelasScreen";
 import { EventScreen } from "../screens/Event/EventScreen";
 import { ProfileScreen } from "../screens/Profile/ProfileScreen";
 import { useAuthStore } from "../store/useAuthStore";
-import { isWaliMurid, isWaliKelasRole } from "../utils/permissions";
+import { isWaliMurid, isWaliKelasRole, isWakaKurikulumOrAdminLembaga } from "../utils/permissions";
 import { Colors } from "../constants/colors";
 
 const Tab = createBottomTabNavigator();
@@ -34,6 +36,7 @@ export const MainTabNavigator = () => {
 
   const isWali = isWaliMurid(activeRole || user);
   const isWaliKls = isWaliKelasRole(activeRole || user);
+  const isWakaOrAdmin = isWakaKurikulumOrAdminLembaga(activeRole || user);
   const DashboardComponent = isWali ? ParentDashboardScreen : TeacherDashboardScreen;
 
   // Dynamic bottom padding: accounts for Android gesture nav bar
@@ -75,8 +78,17 @@ export const MainTabNavigator = () => {
           }}
         />
 
-        {/* 2. Absensi (Role Guru) / Tilawah (Wali Kelas & Wali Murid) */}
-        {isWaliKls || isWali ? (
+        {/* 2. Siswa (WaKa / Admin Lembaga) / Tilawah (Wali Kelas & Wali Murid) / Absensi (Role Guru) */}
+        {isWakaOrAdmin ? (
+          <Tab.Screen
+            name="DaftarSiswaTab"
+            component={DaftarSiswaKelasScreen}
+            options={{
+              tabBarLabel: "Siswa",
+              tabBarIcon: ({ color }) => <Users size={22} color={color} />,
+            }}
+          />
+        ) : isWaliKls || isWali ? (
           <Tab.Screen
             name="TilawahTab"
             component={TilawahScreen}

@@ -38,9 +38,16 @@ import { JadwalKelasScreen } from "../screens/Jadwal/JadwalKelasScreen";
 import { RekapAbsensiHarianScreen } from "../screens/Absensi/RekapAbsensiHarianScreen";
 import { RekapAbsensiMapelScreen } from "../screens/Absensi/RekapAbsensiMapelScreen";
 import { DaftarSiswaKelasScreen } from "../screens/Siswa/DaftarSiswaKelasScreen";
+import { DaftarPegawaiScreen } from "../screens/Pegawai/DaftarPegawaiScreen";
+import { InputNotifikasiScreen } from "../screens/Notifikasi/InputNotifikasiScreen";
+import { JadwalSeluruhGuruScreen } from "../screens/Jadwal/JadwalSeluruhGuruScreen";
 import { MainTabNavigator } from "./MainTabNavigator";
 import { useAuthStore } from "../store/useAuthStore";
 import { Colors } from "../constants/colors";
+import * as Notifications from "expo-notifications";
+import { registerForPushNotificationsAsync } from "../services/notificationService";
+
+export const navigationRef = React.createRef<any>();
 
 const Stack = createNativeStackNavigator();
 
@@ -103,6 +110,26 @@ export const AppNavigator = () => {
     };
   }, [isAuthenticated, checkSessionExpiry, updateLastActiveTime, autoLogoutMinutes]);
 
+  // Inisialisasi Push Notification (Registrasi device token & listener klik pop-up)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    // 1. Registrasi token perangkat ke backend
+    registerForPushNotificationsAsync();
+
+    // 2. Listener saat pengguna mengklik/mengetuk notifikasi di HP
+    const responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      console.log("[PushNotification] Notifikasi diklik:", response);
+      try {
+        navigationRef.current?.navigate("Notifikasi");
+      } catch (_) {}
+    });
+
+    return () => {
+      responseSubscription.remove();
+    };
+  }, [isAuthenticated]);
+
   // Notifikasi jika sesi kedaluwarsa saat pertama kali membuka aplikasi
   useEffect(() => {
     if (!isAuthenticated && !isLoading && wasAutoLoggedOut) {
@@ -131,7 +158,7 @@ export const AppNavigator = () => {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
@@ -352,6 +379,21 @@ export const AppNavigator = () => {
             <Stack.Screen
               name="Event"
               component={EventScreen}
+              options={{ animation: "slide_from_right" }}
+            />
+            <Stack.Screen
+              name="DaftarPegawai"
+              component={DaftarPegawaiScreen}
+              options={{ animation: "slide_from_right" }}
+            />
+            <Stack.Screen
+              name="InputNotifikasi"
+              component={InputNotifikasiScreen}
+              options={{ animation: "slide_from_right" }}
+            />
+            <Stack.Screen
+              name="JadwalSeluruhGuru"
+              component={JadwalSeluruhGuruScreen}
               options={{ animation: "slide_from_right" }}
             />
           </>
