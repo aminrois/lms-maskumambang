@@ -1,13 +1,13 @@
 {
   "expo": {
-    "name": "SIMAS",
+    "name": "siMas",
     "slug": "lms-maskumambang",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/splash-logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#FFFFFF"
     },
@@ -19,6 +19,11 @@
       }
     },
     "android": {
+      "splash": {
+        "image": "./assets/splash-logo.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#FFFFFF"
+      },
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/android-icon-foreground.png"
@@ -50,7 +55,7 @@
       [
         "expo-local-authentication",
         {
-          "faceIDPermission": "Izinkan SIMAS menggunakan Face ID untuk login cepat."
+          "faceIDPermission": "Izinkan siMas menggunakan Face ID untuk login cepat."
         }
       ],
       [

@@ -63,8 +63,15 @@ export const AppNavigator = () => {
     autoLogoutMinutes,
   } = useAuthStore();
 
+  const [showSplash, setShowSplash] = React.useState(true);
+
   useEffect(() => {
     restoreSession();
+    // Tampilkan splash-simas.webp selama 1.5 detik agar transisi pembuka terasa elegan & profesional
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 1500);
+    return () => clearTimeout(timer);
   }, [restoreSession]);
 
   // Handle Inactivity & Background Auto Logout
@@ -141,7 +148,7 @@ export const AppNavigator = () => {
     }
   }, [isAuthenticated, isLoading, wasAutoLoggedOut, resetAutoLogoutFlag]);
 
-  if (isLoading) {
+  if (isLoading || showSplash) {
     return (
       <View style={styles.splashContainer}>
         <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent />
