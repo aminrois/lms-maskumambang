@@ -12,6 +12,7 @@ import {
   FlatList,
   Dimensions,
   Platform,
+  StatusBar,
   Alert,
   ActivityIndicator,
 } from "react-native";
@@ -695,6 +696,7 @@ export const TeacherDashboardScreen = () => {
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={

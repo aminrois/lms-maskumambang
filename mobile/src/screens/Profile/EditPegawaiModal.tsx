@@ -10,6 +10,7 @@ import {
   Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
+  StatusBar,
   Platform,
 } from "react-native";
 import {
@@ -159,6 +160,7 @@ export const EditPegawaiModal: React.FC<EditPegawaiModalProps> = ({
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
       >
+        <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
         <View style={styles.modalContainer}>
           {/* Header */}
           <View style={styles.modalHeader}>

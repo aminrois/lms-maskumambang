@@ -12,6 +12,7 @@ import {
   FlatList,
   Dimensions,
   Platform,
+  StatusBar,
   ActivityIndicator,
   Alert,
 } from "react-native";
@@ -239,6 +240,7 @@ export const ParentDashboardScreen = () => {
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
