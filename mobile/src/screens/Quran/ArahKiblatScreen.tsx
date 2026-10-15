@@ -14,7 +14,7 @@ import {
   Platform,
   StatusBar,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import {
   ChevronLeft,
@@ -43,6 +43,7 @@ const getCardinal = (deg: number): string => {
 
 export const ArahKiblatScreen = () => {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const {
     currentLocation: selectedCity,
     isGpsActive,
@@ -156,10 +157,10 @@ export const ArahKiblatScreen = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <ChevronLeft size={22} color="#FFFFFF" />
         </TouchableOpacity>
@@ -464,7 +465,7 @@ export const ArahKiblatScreen = () => {
           </Text>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -475,7 +476,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingBottom: 14,
   },
   backBtn: {
     width: 36,
