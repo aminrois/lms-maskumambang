@@ -11,7 +11,6 @@ import { useAuthStore } from "../store/useAuthStore";
  */
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
     shouldShowBanner: true,
     shouldShowList: true,
     shouldPlaySound: true,
@@ -26,19 +25,24 @@ Notifications.setNotificationHandler({
 export async function registerForPushNotificationsAsync(): Promise<string | null> {
   let token: string | null = null;
 
-  // Hanya perangkat fisik yang memiliki device push token
+  // Hanya perangkat Android asli/standalone yang mendukung custom channel
   if (Platform.OS === "android") {
-    // Buat Notification Channel Prioritas Tinggi untuk Android (Pop-up Banner Heads-up)
-    await Notifications.setNotificationChannelAsync("default", {
-      name: "Pengumuman Sekolah",
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: "#162E6E",
-      sound: "default",
-      showBadge: true,
-      enableVibrate: true,
-      enableLights: true,
-    });
+    try {
+      // Buat Notification Channel Prioritas Tinggi untuk Android (Pop-up Banner Heads-up)
+      await Notifications.setNotificationChannelAsync("default", {
+        name: "Pengumuman Sekolah",
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: "#162E6E",
+        sound: "default",
+        showBadge: true,
+        enableVibrate: true,
+        enableLights: true,
+      });
+    } catch (channelErr: any) {
+      // Di Expo Go, channel manager memang tidak tersedia / null, tapi di APK standalone berfungsi normal
+      console.warn("[NotificationService] Channel notice (Expo Go):", channelErr.message);
+    }
   }
 
   if (Device.isDevice) {

@@ -110,8 +110,8 @@ export const NotifikasiScreen = () => {
         );
       } else {
         Alert.alert(
-          "Tes Notifikasi Lokal Berhasil",
-          "Pop-up lokal telah dikirim ke status bar HP Anda.\n\nCatatan: Token push jarak jauh belum terdeteksi (pastikan izin notifikasi aktif di Pengaturan HP)."
+          "Tes Notifikasi Lokal",
+          "Notifikasi percobaan telah dikirim ke status bar HP Anda.\n\nCatatan:\nDi Expo Go Android (aplikasi development), Google membatasi remote push notification. Di APK/Play Store asli (yang sudah Anda hubungkan dengan Firebase FCM v1), push notification jarak jauh akan berfungsi 100% normal."
         );
       }
     } catch (err: any) {
