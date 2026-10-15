@@ -144,16 +144,12 @@ export const AppNavigator = () => {
   if (isLoading) {
     return (
       <View style={styles.splashContainer}>
-        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-        <View style={styles.splashContent}>
-          <Image
-            source={require("../../assets/logo.webp")}
-            style={styles.splashLogo}
-            resizeMode="contain"
-          />
-          <Text style={styles.splashTitle}>SIMAS</Text>
-          <Text style={styles.splashSubtitle}>Sistem Informasi Madrasah Maskumambang</Text>
-        </View>
+        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent />
+        <Image
+          source={require("../../assets/splash-simas.webp")}
+          style={styles.splashFullImage}
+          resizeMode="cover"
+        />
         <View style={styles.splashLoader}>
           <ActivityIndicator size="small" color="#162E6E" />
         </View>
@@ -411,33 +407,14 @@ const styles = StyleSheet.create({
   splashContainer: {
     flex: 1,
     backgroundColor: "#FFFFFF",
-    alignItems: "center",
-    justifyContent: "center",
   },
-  splashContent: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  splashLogo: {
-    width: 110,
-    height: 110,
-    marginBottom: 16,
-  },
-  splashTitle: {
-    fontSize: 26,
-    fontWeight: "800",
-    color: "#162E6E",
-    letterSpacing: 2,
-  },
-  splashSubtitle: {
-    fontSize: 12,
-    color: "#64748B",
-    marginTop: 6,
-    fontWeight: "500",
+  splashFullImage: {
+    width: "100%",
+    height: "100%",
   },
   splashLoader: {
     position: "absolute",
-    bottom: 60,
+    bottom: 50,
     alignSelf: "center",
   },
 });
