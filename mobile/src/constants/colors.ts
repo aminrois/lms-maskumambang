@@ -1,10 +1,10 @@
 // mobile/src/constants/colors.ts
 
 export const Colors = {
-  primary: "#4318FF",        // Brand Blue / Indigo
-  primaryDark: "#2B3674",    // Dark Navy
-  primaryLight: "#F4F7FE",   // Light Canvas
-  accent: "#38B6FF",         // Light Cyan Accent
+  primary: "#162E6E",        // Brand Blue / Deep Navy
+  primaryDark: "#0F2042",    // Dark Navy
+  primaryLight: "#EFF6FF",   // Light Blue Tint Canvas
+  accent: "#2563EB",         // Royal Blue Accent
   
   // Neutral
   background: "#F4F7FE",

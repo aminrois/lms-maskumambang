@@ -12,8 +12,9 @@ import {
   RefreshControl,
   ActivityIndicator,
   FlatList,
+  StatusBar,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import {
   ChevronLeft,
@@ -28,6 +29,7 @@ import { DoaItem } from "../../utils/islamicPrayerUtil";
 
 export const DoaDzikirScreen = () => {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const [items, setItems] = useState<DoaItem[]>([]);
   const [categories, setCategories] = useState<string[]>(["Semua"]);
   const [selectedCategory, setSelectedCategory] = useState<string>("Semua");
@@ -87,9 +89,10 @@ export const DoaDzikirScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity
           style={styles.backBtn}
           onPress={() => navigation.goBack()}
@@ -227,7 +230,7 @@ export const DoaDzikirScreen = () => {
           }}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -241,9 +244,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
+    paddingBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
   backBtn: {
     width: 36,

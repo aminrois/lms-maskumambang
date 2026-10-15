@@ -374,7 +374,7 @@ export const RekapAbsensiMapelScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+    <SafeAreaView style={styles.safeArea} edges={[]}>
       <Header
         title={step === "select_kelas" ? "Rekap Absensi Siswa" : `Rekap: ${selectedKelas?.nama_kelas}`}
         subtitle={

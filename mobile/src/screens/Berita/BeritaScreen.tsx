@@ -16,8 +16,9 @@ import {
   Dimensions,
   Platform,
   BackHandler,
+  StatusBar,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import {
   ChevronLeft,
@@ -56,6 +57,7 @@ const CATEGORIES = [
 
 export const BeritaScreen = () => {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const { hasUnread } = useNotificationStore();
 
   const [posts, setPosts] = useState<WordPressPost[]>([]);
@@ -176,17 +178,18 @@ export const BeritaScreen = () => {
 
   return (
     <SwipeBackContainer onBack={handleBack}>
-      <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
+      <SafeAreaView style={styles.safeArea} edges={[]}>
       {/* ═══════════════════════════════════════════════════════
           1. TOP NAVIGATION HEADER
       ════════════════════════════════════════════════════════ */}
-      <View style={styles.topHeader}>
+      <View style={[styles.topHeader, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity
           style={styles.backBtn}
           onPress={() => navigation.goBack()}
           activeOpacity={0.8}
         >
-          <ChevronLeft size={22} color="#0F172A" />
+          <ChevronLeft size={22} color="#FFFFFF" />
         </TouchableOpacity>
 
         <Text style={styles.screenTitle}>Berita & Informasi</Text>
@@ -197,7 +200,7 @@ export const BeritaScreen = () => {
             onPress={() => setIsSearchOpen(!isSearchOpen)}
             activeOpacity={0.8}
           >
-            <Search size={19} color="#0F172A" />
+            <Search size={19} color="#FFFFFF" />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -205,7 +208,7 @@ export const BeritaScreen = () => {
             onPress={() => navigation.navigate("Notifikasi")}
             activeOpacity={0.8}
           >
-            <Bell size={19} color="#0F172A" />
+            <Bell size={19} color="#FFFFFF" />
             {hasUnread && <View style={styles.unreadDot} />}
           </TouchableOpacity>
         </View>
@@ -541,23 +544,26 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "#FFFFFF",
-    borderBottomWidth: 1,
-    borderBottomColor: "#EEF2F6",
+    paddingBottom: 16,
+    backgroundColor: "#162E6E",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
   backBtn: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
     alignItems: "center",
     justifyContent: "center",
   },
   screenTitle: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: "800",
-    color: "#0F172A",
+    color: "#FFFFFF",
   },
   headerRightActions: {
     flexDirection: "row",
@@ -568,7 +574,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
     alignItems: "center",
     justifyContent: "center",
     position: "relative",

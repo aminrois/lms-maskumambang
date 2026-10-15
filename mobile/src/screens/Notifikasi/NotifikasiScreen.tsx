@@ -20,14 +20,12 @@ import {
   X,
   AlertTriangle,
   CheckCircle,
-  Sparkles,
   ChevronRight,
   CheckCheck,
 } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NotifikasiItem } from "../../api/notifikasiService";
 import { useNotificationStore } from "../../store/useNotificationStore";
-import { scheduleLocalNotification, registerForPushNotificationsAsync } from "../../services/notificationService";
 
 const KATEGORI_CONFIG: Record<string, { color: string; bg: string; border: string }> = {
   Umum:     { color: "#1D4ED8", bg: "#EFF6FF", border: "#BFDBFE" },
@@ -55,7 +53,6 @@ export const NotifikasiScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedKategori, setSelectedKategori] = useState("Semua");
-  const [testingNotif, setTestingNotif] = useState(false);
 
   useEffect(() => {
     fetchNotifications();
@@ -92,32 +89,6 @@ export const NotifikasiScreen = () => {
         { text: "Ya, Tandai", onPress: () => markAllAsRead() },
       ]
     );
-  };
-
-  const handleTestNotification = async () => {
-    try {
-      setTestingNotif(true);
-      await scheduleLocalNotification(
-        "Tes Pop-up siMas",
-        "Notifikasi banner pop-up berhasil muncul di HP Anda!"
-      );
-      const token = await registerForPushNotificationsAsync();
-      if (token) {
-        Alert.alert(
-          "Notifikasi Aktif & Terhubung",
-          `Pop-up berhasil dipicu!\n\nToken Push HP Anda:\n${token.slice(0, 24)}...\n\nPerangkat ini sudah terdaftar di server untuk menerima pengumuman Direktur.`
-        );
-      } else {
-        Alert.alert(
-          "Tes Notifikasi Lokal",
-          "Notifikasi percobaan telah dikirim ke status bar HP Anda.\n\nCatatan:\nDi Expo Go Android (aplikasi development), Google membatasi remote push notification. Di APK/Play Store asli (yang sudah Anda hubungkan dengan Firebase FCM v1), push notification jarak jauh akan berfungsi 100% normal."
-        );
-      }
-    } catch (err: any) {
-      Alert.alert("Hasil Tes", err.message || "Gagal memicu notifikasi.");
-    } finally {
-      setTestingNotif(false);
-    }
   };
 
   const renderItem = ({ item }: { item: NotifikasiItem }) => {
@@ -266,22 +237,6 @@ export const NotifikasiScreen = () => {
           keyExtractor={(i) => i.id.toString()}
           contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 24 }]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#162E6E"]} />}
-          ListHeaderComponent={
-            <TouchableOpacity
-              style={styles.testBanner}
-              onPress={handleTestNotification}
-              activeOpacity={0.85}
-              disabled={testingNotif}
-            >
-              <View style={styles.testBannerLeft}>
-                <Sparkles size={16} color="#1D4ED8" />
-                <Text style={styles.testBannerTitle}>Uji Notifikasi Pop-up HP</Text>
-              </View>
-              <Text style={styles.testBannerAction}>
-                {testingNotif ? "Menguji..." : "Tes Pop-up »"}
-              </Text>
-            </TouchableOpacity>
-          }
           renderItem={renderItem}
           ListEmptyComponent={
             <View style={styles.emptyBox}>
@@ -302,21 +257,6 @@ export const NotifikasiScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F8FAFC" },
-  testBanner: {
-    backgroundColor: "#EFF6FF",
-    borderWidth: 1,
-    borderColor: "#BFDBFE",
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginBottom: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  testBannerLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
-  testBannerTitle: { fontSize: 13, fontWeight: "600", color: "#1E3A8A" },
-  testBannerAction: { fontSize: 12, fontWeight: "700", color: "#2563EB" },
   header: { backgroundColor: "#162E6E", paddingHorizontal: 16, paddingBottom: 12 },
   headerTop: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
   backBtn: { padding: 8, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.15)", marginRight: 12 },

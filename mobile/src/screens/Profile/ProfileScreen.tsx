@@ -176,7 +176,7 @@ export const ProfileScreen = () => {
   const bioName = biometricStatus?.biometricName || "Sidik Jari / Face ID";
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+    <SafeAreaView style={styles.safeArea} edges={[]}>
       <Header title="Profil Saya" subtitle="Informasi akun & pengaturan" />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>

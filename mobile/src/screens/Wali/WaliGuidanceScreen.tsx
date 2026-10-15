@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     paddingHorizontal: 16,
     flexDirection: "row",
-    alignItems: "center"
+    alignItems: "center",
 },
   backButton: {
     padding: 8,

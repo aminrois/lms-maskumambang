@@ -1,9 +1,9 @@
 // mobile/src/components/ui/Header.tsx
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { ChevronLeft } from "lucide-react-native";
-import { Colors } from "../../constants/colors";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface HeaderProps {
   title: string;
@@ -21,6 +21,7 @@ export const Header: React.FC<HeaderProps> = ({
   rightElement,
 }) => {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
 
   const handleBack = () => {
     if (onBack) {
@@ -33,68 +34,74 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.left}>
-        {showBack && (
-          <TouchableOpacity
-            onPress={handleBack}
-            style={styles.backButton}
-            activeOpacity={0.7}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <ChevronLeft size={22} color={Colors.text} />
-          </TouchableOpacity>
-        )}
-        <View style={{ flex: 1 }}>
-          <Text style={styles.title} numberOfLines={1}>
-            {title}
-          </Text>
-          {subtitle && (
-            <Text style={styles.subtitle} numberOfLines={1}>
-              {subtitle}
-            </Text>
+    <>
+      <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+        <View style={styles.headerTop}>
+          {showBack && (
+            <TouchableOpacity
+              onPress={handleBack}
+              style={styles.backButton}
+              activeOpacity={0.8}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <ChevronLeft size={22} color="#FFFFFF" />
+            </TouchableOpacity>
           )}
+          <View style={styles.headerTitleWrap}>
+            <Text style={styles.headerTitle} numberOfLines={1}>
+              {title}
+            </Text>
+            {subtitle && (
+              <Text style={styles.headerSub} numberOfLines={1}>
+                {subtitle}
+              </Text>
+            )}
+          </View>
+          {rightElement && <View style={styles.right}>{rightElement}</View>}
         </View>
       </View>
-      {rightElement && <View style={styles.right}>{rightElement}</View>}
-    </View>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+  header: {
+    backgroundColor: "#162E6E",
+    paddingBottom: 16,
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "#FFFFFF",
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  left: {
+  headerTop: {
     flexDirection: "row",
     alignItems: "center",
-    flex: 1,
   },
   backButton: {
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 10,
+    marginRight: 12,
   },
-  title: {
-    fontSize: 17,
+  headerTitleWrap: {
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: 18,
     fontWeight: "800",
-    color: Colors.text,
+    color: "#FFFFFF",
+    letterSpacing: 0.2,
   },
-  subtitle: {
+  headerSub: {
     fontSize: 11.5,
-    color: Colors.textMuted,
-    marginTop: 1,
+    color: "rgba(255, 255, 255, 0.75)",
+    marginTop: 2,
   },
   right: {
     marginLeft: 10,

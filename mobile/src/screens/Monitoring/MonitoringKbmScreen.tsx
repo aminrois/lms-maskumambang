@@ -8,8 +8,9 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  StatusBar,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   BarChart3,
   BookOpen,
@@ -32,6 +33,7 @@ import { Colors } from "../../constants/colors";
 
 export const MonitoringKbmScreen = () => {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const { activeRole } = useAuthStore();
   const [activeTab, setActiveTab] = useState<"kbm" | "rpp">("kbm");
   const [loading, setLoading] = useState(false);
@@ -85,6 +87,7 @@ export const MonitoringKbmScreen = () => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
       {/* Top Header */}
       <View style={styles.header}>
         <TouchableOpacity

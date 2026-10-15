@@ -14,8 +14,9 @@ import {
   TextInput,
   RefreshControl,
   Platform,
+  StatusBar,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import {
   Save,
@@ -71,6 +72,7 @@ const STATUS_OPTIONS: { label: string; value: AttendanceStatus; color: string; b
 
 export const AbsensiHarianScreen = () => {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const { user, activeRole } = useAuthStore();
 
   const [kelasList, setKelasList] = useState<KelasItem[]>([]);
@@ -400,9 +402,10 @@ export const AbsensiHarianScreen = () => {
   }, [attendance]);
 
   return (
-    <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
       {/* ─── HEADER ─── */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
           <ChevronLeft size={22} color="#FFFFFF" />
         </TouchableOpacity>
@@ -737,7 +740,7 @@ export const AbsensiHarianScreen = () => {
         onSelect={(d) => setSelectedDate(d)}
         title="Pilih Tanggal Absensi"
       />
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -749,9 +752,14 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: "#162E6E",
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingBottom: 16,
     flexDirection: "row",
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
   backBtn: {
     width: 36,

@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Share,
+  StatusBar,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -103,9 +104,10 @@ export const DoaDzikirDetailScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity
           style={styles.backBtn}
           onPress={() => navigation.goBack()}
@@ -424,7 +426,7 @@ export const DoaDzikirDetailScreen = () => {
           </View>
         )}
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -438,9 +440,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#162E6E",
     paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
+    paddingBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
   backBtn: {
     width: 36,

@@ -106,7 +106,7 @@ export const TahfidzRiwayatScreen = () => {
   }, [riwayatList, searchQuery, selectedKategori, selectedJenis]);
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+    <SafeAreaView style={styles.safeArea} edges={[]}>
       <Header
         title="Riwayat Hafalan"
         subtitle="Catatan riwayat setoran tahfidz santri"

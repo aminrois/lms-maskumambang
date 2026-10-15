@@ -122,7 +122,7 @@ export const LessonPlanScreen = () => {
   }, [lessonPlanList, searchQuery, selectedFilter]);
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+    <SafeAreaView style={styles.safeArea} edges={[]}>
       <Header
         title="Lesson Plan"
         subtitle="Rencana Pelaksanaan Pembelajaran (RPP)"

@@ -84,7 +84,7 @@ export const JadwalScreen = () => {
   }, [jadwalList, activeDay]);
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+    <SafeAreaView style={styles.safeArea} edges={[]}>
       <Header
         title="Jadwal Mengajar Saya"
         subtitle="Sistem Akademik · Tahun Ajaran Aktif"

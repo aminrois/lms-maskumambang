@@ -243,7 +243,7 @@ export const TahfidzTargetScreen = () => {
   }, [santriList, searchQuery]);
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+    <SafeAreaView style={styles.safeArea} edges={[]}>
       <Header
         title="Target Hafalan"
         subtitle="Rencana & capaian target hafalan santri binaan"

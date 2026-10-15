@@ -15,6 +15,7 @@ import {
   Platform,
   Modal,
   Alert,
+  StatusBar,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
@@ -410,6 +411,7 @@ export const RekapAbsensiHarianScreen = () => {
 
   return (
     <SwipeBackContainer style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
       {/* ─── HEADER ─── */}
       <View style={styles.header}>
         <SafeAreaView edges={["top"]} style={styles.headerSafe}>

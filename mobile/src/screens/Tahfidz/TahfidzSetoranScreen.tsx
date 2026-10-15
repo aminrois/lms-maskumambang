@@ -13,6 +13,7 @@ import {
   FlatList,
   RefreshControl,
   Platform,
+  StatusBar,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -662,6 +663,7 @@ export const TahfidzSetoranScreen = () => {
 
   return (
     <SwipeBackContainer style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
       {/* ═══════════════════════════════════════════════════════
           HEADER: DEEP NAVY PESANTREN THEME
       ════════════════════════════════════════════════════════ */}

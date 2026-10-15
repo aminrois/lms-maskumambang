@@ -394,7 +394,7 @@ export const AbsensiMapelScreen = () => {
     );
 
     return (
-      <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      <SafeAreaView style={styles.safeArea} edges={[]}>
         <Header
           title="Absensi Mata Pelajaran"
           subtitle="Langkah 1 dari 3: Pilih Jadwal Mengajar"
@@ -635,7 +635,7 @@ export const AbsensiMapelScreen = () => {
     const meetingNumbers = Array.from({ length: meetingsCount }, (_, i) => i + 1);
 
     return (
-      <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      <SafeAreaView style={styles.safeArea} edges={[]}>
         <Header
           title="Pilih Pertemuan RPP"
           subtitle="Langkah 2 dari 3: Pilih Nomor Pertemuan"
@@ -804,7 +804,7 @@ export const AbsensiMapelScreen = () => {
   // STEP 3: FORM ABSENSI & JURNAL KBM
   // ═══════════════════════════════════════════════════════
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+    <SafeAreaView style={styles.safeArea} edges={[]}>
       <Header
         title={`Presensi Pertemuan ${selectedPertemuan || 1}`}
         subtitle={`${selectedJadwal?.namaMapel || "Mapel"} • Kelas ${

@@ -78,7 +78,7 @@ export const JurnalMengajarScreen = () => {
   });
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+    <SafeAreaView style={styles.safeArea} edges={[]}>
       <Header
         title="Jurnal Mengajar"
         subtitle="Riwayat aktivitas belajar mengajar di kelas"

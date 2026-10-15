@@ -479,7 +479,7 @@ export const VerifikasiLessonPlanScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+    <SafeAreaView style={styles.safeArea} edges={[]}>
       <Header
         title="Verifikasi RPP"
         subtitle="Pemeriksaan & Pengesahan Perangkat Ajar"

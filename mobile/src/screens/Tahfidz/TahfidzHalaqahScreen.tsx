@@ -395,7 +395,7 @@ export const TahfidzHalaqahScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+    <SafeAreaView style={styles.safeArea} edges={[]}>
       <Header
         title="Kelompok Halaqoh"
         subtitle="Manajemen pembagian kelompok & santri binaan"
