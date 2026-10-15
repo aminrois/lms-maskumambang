@@ -117,7 +117,7 @@ export const deleteUser = async (req: Request, res: Response, next: NextFunction
 
 export const savePushToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const userId = (req as any).user?.userId;
+    const userId = (req as any).user?.user_id || (req as any).user?.userId || req.body?.user_id;
     const { token } = req.body;
     if (!userId || !token) {
       res.status(400).json({ success: false, message: 'User ID dan token perangkat wajib diisi' });
@@ -127,6 +127,7 @@ export const savePushToken = async (req: Request, res: Response, next: NextFunct
       where: { user_id: userId },
       data: { fcm_device_token: token },
     });
+    console.log(`[PushToken] Berhasil mendaftarkan push token untuk user ${userId}: ${token.slice(0, 20)}...`);
     res.json({ success: true, message: 'Push token berhasil disimpan' });
   } catch (error) {
     next(error);

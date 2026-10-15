@@ -46,7 +46,7 @@ export const create = async (req: Request, res: Response) => {
     if (!judul || !isi) {
       return res.status(400).json({ message: 'Judul dan isi wajib diisi.' });
     }
-    const userId: string | undefined = (req as any).user?.userId;
+    const userId: string | undefined = (req as any).user?.user_id || (req as any).user?.userId;
     const item = await prisma.notifikasi.create({
       data: { judul, isi, kategori, target_role, created_by: userId ?? null },
     });

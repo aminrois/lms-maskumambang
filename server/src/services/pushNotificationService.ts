@@ -58,7 +58,7 @@ export const sendExpoPushMessages = async (
         console.warn(`[PushNotification] Gagal mengirim batch (${response.status}):`, errorText);
       } else {
         const result: any = await response.json();
-        console.log(`[PushNotification] Berhasil mengirim push ke ${batch.length} perangkat.`);
+        console.log(`[PushNotification] Expo API response:`, JSON.stringify(result));
       }
     } catch (err: any) {
       console.error('[PushNotification] Error saat menghubungi Expo Push API:', err.message);
