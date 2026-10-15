@@ -17,7 +17,7 @@ import {
   Alert,
   StatusBar,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import {
   ChevronLeft,
@@ -81,6 +81,7 @@ const formatDateId = (dateStr: string) => {
 
 export const RekapAbsensiHarianScreen = () => {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const { user } = useAuthStore();
 
   const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
@@ -511,7 +512,7 @@ export const RekapAbsensiHarianScreen = () => {
 
       <ScrollView
         style={styles.scrollArea}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {loading ? (

@@ -13,7 +13,7 @@ import {
   Platform,
   StatusBar,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import {
   ChevronLeft,
@@ -51,6 +51,7 @@ interface KelasItem {
 
 export const JadwalKelasScreen = () => {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const { user, activeRole } = useAuthStore();
 
   const [activeDay, setActiveDay] = useState<string>(getTodayDayName);
@@ -258,7 +259,7 @@ export const JadwalKelasScreen = () => {
       {/* ─── LIST JADWAL SESI ─── */}
       <ScrollView
         style={styles.scrollArea}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {loadingKelas || loadingJadwal ? (

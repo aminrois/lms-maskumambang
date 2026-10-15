@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
   TextInput,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useIsFocused } from "@react-navigation/native";
 import {
   BookMarked,
@@ -36,6 +36,7 @@ import { isLessonPlanApproved } from "../../utils/jadwalHelper";
 
 export const LessonPlanScreen = () => {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
   const { user } = useAuthStore();
 
@@ -130,7 +131,7 @@ export const LessonPlanScreen = () => {
       />
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />
         }

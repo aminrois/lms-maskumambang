@@ -12,7 +12,7 @@ import {
   Platform,
   StatusBar,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import {
   ChevronLeft,
@@ -36,6 +36,7 @@ const DAYS = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Ahad"];
 
 export const JadwalSeluruhGuruScreen = () => {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const { user, activeRole } = useAuthStore();
 
   // Ambil lembaga_id efektif Kepala Sekolah / Pimpinan
@@ -207,7 +208,7 @@ export const JadwalSeluruhGuruScreen = () => {
 
       {/* ─── LIST JADWAL GURU ─── */}
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 32 }]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}

@@ -605,7 +605,7 @@ export const AbsensiHarianScreen = () => {
       ) : (
         <ScrollView
           style={styles.list}
-          contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+          contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 100 }}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#162E6E"]} />
@@ -688,7 +688,7 @@ export const AbsensiHarianScreen = () => {
 
       {/* Floating Save Button di Bawah */}
       {siswaList.length > 0 && !loadingSiswa && (
-        <View style={styles.bottomBar}>
+        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
           {!isToday ? (
             <TouchableOpacity
               style={[styles.bottomSaveBtn, { backgroundColor: "#64748B" }]}
@@ -1076,7 +1076,7 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: "#FFFFFF",
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: "#E2E8F0",
     ...Platform.select({

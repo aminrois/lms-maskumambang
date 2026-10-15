@@ -11,7 +11,7 @@ import {
   Platform,
   StatusBar,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -44,6 +44,7 @@ const formatTanggal = (dateStr?: string) => {
 
 export const WaliLaporanHafalanScreen = () => {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const route = useRoute<any>();
   const initialSiswaId = route.params?.siswaId || null;
 
@@ -167,7 +168,7 @@ export const WaliLaporanHafalanScreen = () => {
           CONTENT BODY
       ════════════════════════════════════════════════════════ */}
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#162E6E"]} />
         }

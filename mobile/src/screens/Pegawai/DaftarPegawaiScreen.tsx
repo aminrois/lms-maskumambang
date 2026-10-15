@@ -13,7 +13,7 @@ import {
   Linking,
   StatusBar,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import {
   ChevronLeft,
@@ -67,6 +67,7 @@ interface PegawaiItem {
 
 export const DaftarPegawaiScreen = () => {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const { user, activeRole } = useAuthStore();
 
   const isDirektur = isDirekturRole(activeRole || user);
@@ -382,7 +383,7 @@ export const DaftarPegawaiScreen = () => {
 
       {/* ─── LIST PEGAWAI ─── */}
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 32 }]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}

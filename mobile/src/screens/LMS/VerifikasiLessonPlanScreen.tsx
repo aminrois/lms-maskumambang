@@ -12,7 +12,7 @@ import {
   Modal,
   Alert,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useIsFocused } from "@react-navigation/native";
 import {
   BookMarked,
@@ -53,6 +53,7 @@ import { isDirekturRole, isKepalaSekolahRole, isSuperAdminRole, canVerifikasiRpp
 
 export const VerifikasiLessonPlanScreen = () => {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
   const { user, activeRole } = useAuthStore();
 
@@ -487,7 +488,7 @@ export const VerifikasiLessonPlanScreen = () => {
       />
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}

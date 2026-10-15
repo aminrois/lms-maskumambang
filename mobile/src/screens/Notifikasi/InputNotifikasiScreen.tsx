@@ -13,7 +13,7 @@ import {
   Alert,
   StatusBar,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import {
   ChevronLeft,
@@ -54,6 +54,7 @@ const TARGET_ROLE_OPTIONS = [
 
 export const InputNotifikasiScreen = () => {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const { user } = useAuthStore();
 
   // Form State
@@ -193,7 +194,7 @@ export const InputNotifikasiScreen = () => {
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 36 }]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}

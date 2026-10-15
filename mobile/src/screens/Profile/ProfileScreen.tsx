@@ -11,7 +11,7 @@ import {
   Switch,
   Platform,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   User,
   Mail,
@@ -42,6 +42,7 @@ import { APP_CONFIG } from "../../constants/config";
 import { apiClient } from "../../api/client";
 
 export const ProfileScreen = () => {
+  const insets = useSafeAreaInsets();
   const {
     user,
     activeRole,
@@ -179,7 +180,7 @@ export const ProfileScreen = () => {
     <SafeAreaView style={styles.safeArea} edges={[]}>
       <Header title="Profil Saya" subtitle="Informasi akun & pengaturan" />
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]} showsVerticalScrollIndicator={false}>
         {/* User Card */}
         <Card style={styles.userCard}>
           <View style={styles.avatarCircle}>

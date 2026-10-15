@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
   TextInput,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useIsFocused, useRoute } from "@react-navigation/native";
 import {
   Users,
@@ -52,6 +52,7 @@ interface KelasOption {
 
 export const RekapAbsensiMapelScreen = () => {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const route = useRoute<any>();
   const isFocused = useIsFocused();
   const { user } = useAuthStore();
@@ -390,7 +391,7 @@ export const RekapAbsensiMapelScreen = () => {
       ═══════════════════════════════════════════════════════════ */}
       {step === "select_kelas" && (
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />
           }
@@ -454,7 +455,7 @@ export const RekapAbsensiMapelScreen = () => {
       ═══════════════════════════════════════════════════════════ */}
       {step === "display_results" && selectedKelas && (
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />
           }

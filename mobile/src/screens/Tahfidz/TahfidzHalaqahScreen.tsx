@@ -13,7 +13,7 @@ import {
   Alert,
   FlatList,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useIsFocused } from "@react-navigation/native";
 import {
   Users,
@@ -39,6 +39,7 @@ import {
 } from "../../api/tahfidzService";
 
 export const TahfidzHalaqahScreen = () => {
+  const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
   const { user, activeRole } = useAuthStore();
 
@@ -403,7 +404,7 @@ export const TahfidzHalaqahScreen = () => {
       />
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
