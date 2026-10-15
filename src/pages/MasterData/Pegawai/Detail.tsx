@@ -28,6 +28,7 @@ export default function MasterDataPegawaiDetail() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const userRole = useAuthStore((state) => state.role);
+  const loggedInUser = useAuthStore((state) => state.user);
   const [copiedUserId, setCopiedUserId] = useState(false);
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
 
@@ -37,6 +38,12 @@ export default function MasterDataPegawaiDetail() {
 
   const { canUpdate } = usePermissions('pegawai');
   const { canRead: canReadRole } = usePermissions('user_role');
+
+  const isSelf = Boolean(
+    (loggedInUser?.pegawai_id && Number(loggedInUser.pegawai_id) === Number(pegawai_id)) ||
+    (pegawai?.user_id && loggedInUser?.user_id && pegawai.user_id === loggedInUser.user_id)
+  );
+  const canEdit = canUpdate || isSelf;
 
   const [formData, setFormData] = useState<PEGAWAI_CREATE & { lembaga_ids: number[] }>({
     nig: "",
@@ -116,8 +123,16 @@ export default function MasterDataPegawaiDetail() {
   const updatePegawaiMutation = useMutation({
     mutationFn: async (data: PEGAWAI_CREATE & { lembaga_ids: number[] }) => {
       const { lembaga_ids, ...payload } = data;
+      // Jika self-edit tanpa hak admin, kirim hanya field yang diperbolehkan
+      if (!canUpdate && isSelf) {
+        delete payload.status;
+        delete payload.user_id;
+        delete payload.nig;
+        delete payload.jabatan;
+        delete payload.tugas_tambahan;
+      }
       await updatePegawai(Number(pegawai_id), payload);
-      if (lembaga_ids !== undefined) {
+      if (canUpdate && lembaga_ids !== undefined) {
         await restClient.delete(`/pegawai_lembaga?pegawai_id=eq.${pegawai_id}`);
         if (lembaga_ids.length > 0) {
           const inserts = lembaga_ids.map((lid: number) => ({
@@ -129,9 +144,10 @@ export default function MasterDataPegawaiDetail() {
       }
     },
     onSuccess: () => {
-      toast.success("Data pegawai berhasil diperbarui!");
+      toast.success(isSelf && !canUpdate ? "Profil Anda berhasil diperbarui!" : "Data pegawai berhasil diperbarui!");
       queryClient.invalidateQueries({ queryKey: ["pegawai-detail", pegawai_id] });
       queryClient.invalidateQueries({ queryKey: ["master-data", "pegawai-all"] });
+      queryClient.invalidateQueries({ queryKey: ["mainlayout", "pegawai-profile"] });
       setIsEditModalOpen(false);
     },
     onError: (err: any) => {
@@ -442,13 +458,13 @@ export default function MasterDataPegawaiDetail() {
           )}
 
           {/* Edit Data Pegawai */}
-          {canUpdate && (
+          {canEdit && (
             <button
               onClick={handleOpenEdit}
               className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
             >
               <Pencil className="w-4 h-4" />
-              Edit Pegawai
+              {isSelf && !canUpdate ? "Edit Data Saya" : "Edit Pegawai"}
             </button>
           )}
 
@@ -690,6 +706,7 @@ export default function MasterDataPegawaiDetail() {
         isSaving={updatePegawaiMutation.isPending}
         isPending={updatePegawaiMutation.isPending}
         onSubmit={handleSaveEdit}
+        isSelfOnly={!canUpdate && isSelf}
       />
     </div>
   );

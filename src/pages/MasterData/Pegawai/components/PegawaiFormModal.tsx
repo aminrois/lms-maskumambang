@@ -18,6 +18,7 @@ interface PegawaiFormModalProps {
   isSaving: boolean;
   isPending: boolean;
   onSubmit: (e: React.FormEvent) => void;
+  isSelfOnly?: boolean;
 }
 
 export default function PegawaiFormModal({
@@ -31,7 +32,8 @@ export default function PegawaiFormModal({
   hasDuplicateError,
   isSaving,
   isPending,
-  onSubmit
+  onSubmit,
+  isSelfOnly = false,
 }: PegawaiFormModalProps) {
   const isFormValid = !!formData.nig && !!formData.nama && !!formData.jenis_kelamin && !!formData.jabatan;
   const isDisabled = isSaving || isPending || hasDuplicateError || !isFormValid;
@@ -40,13 +42,24 @@ export default function PegawaiFormModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{selectedPegawai ? "Edit Data Pegawai" : "Tambah Pegawai Baru"}</DialogTitle>
+          <DialogTitle>
+            {isSelfOnly ? "Edit Data Profil Saya" : selectedPegawai ? "Edit Data Pegawai" : "Tambah Pegawai Baru"}
+          </DialogTitle>
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4 mt-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">NIG <span className="text-red-500">*</span></label>
-              <input required type="text" value={formData.nig} onChange={e => setFormData({ ...formData, nig: e.target.value })} className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${isNigDuplikat ? 'border-red-400' : ''}`} placeholder="Nomor Induk Guru" />
+              <input
+                required
+                type="text"
+                disabled={isSelfOnly}
+                value={formData.nig}
+                onChange={e => setFormData({ ...formData, nig: e.target.value })}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${isSelfOnly ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : ''} ${isNigDuplikat ? 'border-red-400' : ''}`}
+                placeholder="Nomor Induk Guru"
+              />
+              {isSelfOnly && <p className="text-[11px] text-slate-400">Dikelola oleh Administrator</p>}
               {isNigDuplikat && <FieldError message="NIG sudah terdaftar di sistem" />}
             </div>
             <div className="space-y-2">
@@ -146,21 +159,44 @@ export default function PegawaiFormModal({
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Status</label>
-              <select value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value as "Aktif" | "Tidak Aktif" })} className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <select
+                disabled={isSelfOnly}
+                value={formData.status}
+                onChange={e => setFormData({ ...formData, status: e.target.value as "Aktif" | "Tidak Aktif" })}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${isSelfOnly ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : ''}`}
+              >
                 <option value="Aktif">Aktif</option>
                 <option value="Tidak Aktif">Tidak Aktif</option>
               </select>
+              {isSelfOnly && <p className="text-[11px] text-slate-400">Dikelola oleh Administrator</p>}
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Jabatan <span className="text-red-500">*</span></label>
-              <input required type="text" value={formData.jabatan} onChange={e => setFormData({ ...formData, jabatan: e.target.value })} className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Contoh: Guru" />
+              <input
+                required
+                type="text"
+                disabled={isSelfOnly}
+                value={formData.jabatan}
+                onChange={e => setFormData({ ...formData, jabatan: e.target.value })}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${isSelfOnly ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : ''}`}
+                placeholder="Contoh: Guru"
+              />
+              {isSelfOnly && <p className="text-[11px] text-slate-400">Dikelola oleh Administrator</p>}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Tugas Tambahan</label>
-              <input type="text" value={formData.tugas_tambahan || ""} onChange={e => setFormData({ ...formData, tugas_tambahan: e.target.value })} className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Opsional" />
+              <input
+                type="text"
+                disabled={isSelfOnly}
+                value={formData.tugas_tambahan || ""}
+                onChange={e => setFormData({ ...formData, tugas_tambahan: e.target.value })}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${isSelfOnly ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : ''}`}
+                placeholder="Opsional"
+              />
+              {isSelfOnly && <p className="text-[11px] text-slate-400">Dikelola oleh Administrator</p>}
             </div>
           </div>
 

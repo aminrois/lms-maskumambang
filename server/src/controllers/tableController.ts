@@ -828,6 +828,51 @@ export const updateTableRecord = async (req: AuthRequest, res: Response, next: N
     const wantRepresentation = preferHeader.includes('return=representation');
     const sanitized = sanitizeData(req.body);
 
+    // Keamanan: Pastikan pegawai hanya bisa mengedit di akunnya sendiri jika bukan admin
+    if (tableName === 'pegawai') {
+      const userRoles = req.user?.roles || [];
+      const isAdmin = userRoles.some(r => ['Super Admin', 'Direktur', 'Kepala Sekolah', 'Admin Lembaga'].includes(r));
+      if (!isAdmin) {
+        if (!req.user?.user_id) {
+          res.status(401).json({ success: false, message: 'Unauthorized' });
+          return;
+        }
+
+        const myPegawai = await prisma.pegawai.findFirst({
+          where: { user_id: req.user.user_id },
+          select: { pegawai_id: true },
+        });
+
+        if (!myPegawai) {
+          res.status(403).json({ success: false, message: 'Akses ditolak: Akun Anda tidak terhubung dengan data pegawai.' });
+          return;
+        }
+
+        let targetPegawaiId: number | null = null;
+        if (idParam) {
+          targetPegawaiId = Number(idParam);
+        } else if (req.query.pegawai_id) {
+          const raw = String(req.query.pegawai_id);
+          targetPegawaiId = Number(raw.replace(/^eq\./, ''));
+        }
+
+        if (!targetPegawaiId || Number(targetPegawaiId) !== Number(myPegawai.pegawai_id)) {
+          res.status(403).json({
+            success: false,
+            message: 'Akses ditolak: Pegawai hanya memiliki izin untuk mengedit data pegawai pada akun Anda sendiri.',
+          });
+          return;
+        }
+
+        // Hapus field administratif agar pegawai tidak dapat mengubah hak/statusnya sendiri
+        delete sanitized.status;
+        delete sanitized.user_id;
+        delete sanitized.nig;
+        delete sanitized.jabatan;
+        delete sanitized.tugas_tambahan;
+      }
+    }
+
     // If explicit ID is specified in URL path (e.g. PATCH /table/:id)
     if (idParam && where[config.idField] !== undefined) {
       const idVal = where[config.idField];
@@ -888,6 +933,15 @@ export const deleteTableRecord = async (req: AuthRequest, res: Response, next: N
     if (!config) {
       res.status(404).json({ success: false, message: `Table '${tableName}' not found` });
       return;
+    }
+
+    if (tableName === 'pegawai') {
+      const userRoles = req.user?.roles || [];
+      const isAdmin = userRoles.some(r => ['Super Admin', 'Direktur'].includes(r));
+      if (!isAdmin) {
+        res.status(403).json({ success: false, message: 'Akses ditolak: Hanya Administrator yang berhak menghapus data pegawai.' });
+        return;
+      }
     }
 
     const prismaModel = (prisma as any)[config.model];

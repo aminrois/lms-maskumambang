@@ -25,6 +25,7 @@ interface AuthState {
   restoreSession: () => Promise<void>;
   setApiBaseUrl: (url: string) => Promise<void>;
   setActiveRole: (role: UserRoleItem) => Promise<void>;
+  updateUserPegawai: (pegawaiData: any) => Promise<void>;
 
   // Auto Logout actions
   updateLastActiveTime: () => void;
@@ -54,6 +55,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setActiveRole: async (role: UserRoleItem) => {
     set({ activeRole: role });
     await AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_ROLE, JSON.stringify(role));
+  },
+
+  updateUserPegawai: async (pegawaiData: any) => {
+    const { user } = get();
+    if (!user) return;
+    const updatedUser = {
+      ...user,
+      pegawai: {
+        ...(user.pegawai || {}),
+        ...pegawaiData,
+      },
+    };
+    set({ user: updatedUser as any });
+    await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedUser));
   },
 
   updateLastActiveTime: () => {

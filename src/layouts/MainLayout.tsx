@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, Suspense } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, LogOut, ChevronLeft, KeyRound, Loader2, ShieldOff, RefreshCw, Eye, EyeOff, ChevronDown } from "lucide-react";
+import { Menu, LogOut, ChevronLeft, KeyRound, Loader2, ShieldOff, RefreshCw, Eye, EyeOff, ChevronDown, UserCog } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useMenuTrackerStore } from "../store/useMenuTrackerStore";
 import { useNavigationStore } from "../store/useNavigationStore";
@@ -388,8 +388,18 @@ const MainLayout: React.FC = () => {
           })}
         </div>
 
-        {/* Actions Area — Ubah Password & Keluar (selalu tampil) */}
+        {/* Actions Area — Profil Pegawai, Ubah Password & Keluar (selalu tampil) */}
         <div className="p-4 mt-auto mb-2 flex flex-col gap-1">
+          {pegawaiData?.pegawai_id && (
+            <Link
+              to={`/master-data/pegawai/${pegawaiData.pegawai_id}`}
+              className="flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-[#2A4080] w-full rounded-lg transition-colors group"
+            >
+              <UserCog className="w-5 h-5 shrink-0 text-[#FACC15] group-hover:scale-110 transition-transform" />
+              {(!isCollapsed || isMobileOpen) && <span className="text-sm font-medium">Profil Pegawai Saya</span>}
+            </Link>
+          )}
+
           <Dialog open={isPasswordModalOpen} onOpenChange={setIsPasswordModalOpen}>
             <DialogTrigger asChild>
               <button

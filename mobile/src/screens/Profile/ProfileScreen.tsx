@@ -24,6 +24,11 @@ import {
   ScanFace,
   Lock,
   Clock,
+  Pencil,
+  UserCheck,
+  Briefcase,
+  Phone,
+  MapPin,
 } from "lucide-react-native";
 import { Header } from "../../components/ui/Header";
 import { Card } from "../../components/ui/Card";
@@ -32,7 +37,9 @@ import { Input } from "../../components/ui/Input";
 import { Colors } from "../../constants/colors";
 import { useAuthStore } from "../../store/useAuthStore";
 import { RoleSwitcherModal } from "../../components/RoleSwitcherModal";
+import { EditPegawaiModal } from "./EditPegawaiModal";
 import { APP_CONFIG } from "../../constants/config";
+import { apiClient } from "../../api/client";
 
 export const ProfileScreen = () => {
   const {
@@ -52,9 +59,30 @@ export const ProfileScreen = () => {
   const [bioConfirmPassword, setBioConfirmPassword] = useState("");
   const [bioError, setBioError] = useState("");
 
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [pegawaiDetail, setPegawaiDetail] = useState<any>(null);
+
+  const loadPegawaiDetail = async () => {
+    if (!user?.pegawai?.pegawai_id) return;
+    try {
+      const res = await apiClient.get("/pegawai", {
+        params: {
+          pegawai_id: `eq.${user.pegawai.pegawai_id}`,
+        },
+      });
+      const data = Array.isArray(res.data) ? res.data[0] : res.data;
+      if (data) {
+        setPegawaiDetail(data);
+      }
+    } catch (e) {
+      console.warn("Gagal memuat detail pegawai:", e);
+    }
+  };
+
   useEffect(() => {
     checkBiometricStatus();
-  }, [checkBiometricStatus]);
+    loadPegawaiDetail();
+  }, [checkBiometricStatus, user?.pegawai?.pegawai_id]);
 
   const handleLogout = () => {
     Alert.alert("Konfirmasi Keluar", "Apakah Anda yakin ingin keluar dari akun ini?", [
@@ -207,6 +235,67 @@ export const ProfileScreen = () => {
           </TouchableOpacity>
         </Card>
 
+        {/* Data Kepegawaian Saya (Khusus Pegawai) */}
+        {user?.pegawai?.pegawai_id ? (
+          <>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionHeader}>Data Kepegawaian</Text>
+              <TouchableOpacity
+                style={styles.editProfileBtn}
+                onPress={() => setShowEditModal(true)}
+                activeOpacity={0.7}
+              >
+                <Pencil size={13} color="#1D4ED8" />
+                <Text style={styles.editProfileBtnText}>Edit Profil</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Card style={styles.menuCard}>
+              <TouchableOpacity
+                style={styles.clickableMenuItem}
+                onPress={() => setShowEditModal(true)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.iconCircle, { backgroundColor: "#eff6ff" }]}>
+                  <UserCheck size={18} color="#2563eb" />
+                </View>
+                <View style={styles.menuText}>
+                  <Text style={styles.menuLabel}>Profil Biodata Lengkap</Text>
+                  <Text style={styles.menuValue}>
+                    {pegawaiDetail?.nama || user.pegawai.nama}
+                  </Text>
+                  <Text style={styles.menuSubLabel}>
+                    {pegawaiDetail?.no_hp ? `HP: ${pegawaiDetail.no_hp}` : "No. HP belum diisi"} • {pegawaiDetail?.jenis_kelamin === "P" ? "Perempuan" : "Laki-laki"}
+                  </Text>
+                  {pegawaiDetail?.alamat && (
+                    <Text style={[styles.menuSubLabel, { marginTop: 2 }]} numberOfLines={1}>
+                      📍 {pegawaiDetail.alamat}
+                    </Text>
+                  )}
+                </View>
+                <ChevronRight size={18} color="#94A3B8" />
+              </TouchableOpacity>
+
+              <View style={{ height: 1, backgroundColor: "#f1f5f9", marginHorizontal: 16 }} />
+
+              <View style={styles.menuItem}>
+                <View style={[styles.iconCircle, { backgroundColor: "#f8fafc" }]}>
+                  <Briefcase size={18} color={Colors.primary} />
+                </View>
+                <View style={styles.menuText}>
+                  <Text style={styles.menuLabel}>Jabatan & Kedinasan</Text>
+                  <Text style={styles.menuValue}>
+                    {pegawaiDetail?.jabatan || user.pegawai.jabatan || "Pegawai"}
+                  </Text>
+                  <Text style={styles.menuSubLabel}>
+                    NIG: {pegawaiDetail?.nig || user.pegawai.nig || "—"} • Status: {pegawaiDetail?.status || "Aktif"}
+                  </Text>
+                </View>
+              </View>
+            </Card>
+          </>
+        ) : null}
+
         {/* Keamanan & Biometrik */}
         <Text style={styles.sectionHeader}>Keamanan & Masuk Cepat</Text>
         <Card style={styles.menuCard}>
@@ -350,6 +439,16 @@ export const ProfileScreen = () => {
         visible={showRoleModal}
         onClose={() => setShowRoleModal(false)}
       />
+
+      {/* Edit Pegawai Modal */}
+      {user?.pegawai?.pegawai_id ? (
+        <EditPegawaiModal
+          visible={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          pegawaiId={user.pegawai.pegawai_id}
+          onSuccess={loadPegawaiDetail}
+        />
+      ) : null}
     </SafeAreaView>
   );
 };
@@ -407,6 +506,14 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: Colors.primary,
   },
+  sectionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+    marginTop: 8,
+    paddingHorizontal: 4,
+  },
   sectionHeader: {
     fontSize: 14,
     fontWeight: "800",
@@ -414,6 +521,22 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginTop: 8,
     marginLeft: 4,
+  },
+  editProfileBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#EFF6FF",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+  },
+  editProfileBtnText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#1D4ED8",
   },
   menuCard: {
     backgroundColor: "#FFFFFF",
