@@ -1,7 +1,7 @@
 // mobile/src/screens/Quran/ArahKiblatScreen.tsx
-// Halaman Arah Kiblat — real-time compass dengan sensor Magnetometer
+// Halaman Arah Kiblat — real-time compass dengan sensor Magnetometer + Kalibrasi
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -13,6 +13,8 @@ import {
   ScrollView,
   Platform,
   StatusBar,
+  Modal,
+  Dimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
@@ -26,6 +28,10 @@ import {
   Check,
   RotateCw,
   Info,
+  Crosshair,
+  Wifi,
+  WifiOff,
+  X,
 } from "lucide-react-native";
 import { Magnetometer } from "expo-sensors";
 import {
@@ -41,6 +47,161 @@ const getCardinal = (deg: number): string => {
   return CARDINALS[index];
 };
 
+// ─── Komponen Step ────────────────────────────────────────────────────────────
+const Step = ({ num, text }: { num: string; text: string }) => (
+  <View style={cal.step}>
+    <View style={cal.stepNum}>
+      <Text style={cal.stepNumText}>{num}</Text>
+    </View>
+    <Text style={cal.stepText}>{text}</Text>
+  </View>
+);
+
+// ─── Modal Kalibrasi ──────────────────────────────────────────────────────────
+const CalibrationModal = ({
+  visible,
+  accuracy,
+  onClose,
+}: {
+  visible: boolean;
+  accuracy: "low" | "medium" | "high";
+  onClose: () => void;
+}) => {
+  const figure8Anim = useRef(new Animated.Value(0)).current;
+  const successScale = useRef(new Animated.Value(0)).current;
+  const [isDone, setIsDone] = useState(false);
+
+  // Animasi loop figure-8
+  useEffect(() => {
+    if (!visible) {
+      setIsDone(false);
+      successScale.setValue(0);
+      return;
+    }
+    setIsDone(false);
+    successScale.setValue(0);
+    const loop = Animated.loop(
+      Animated.timing(figure8Anim, {
+        toValue: 1,
+        duration: 2800,
+        useNativeDriver: true,
+      })
+    );
+    loop.start();
+    return () => {
+      loop.stop();
+      figure8Anim.setValue(0);
+    };
+  }, [visible]);
+
+  // Auto-close saat akurasi tinggi
+  useEffect(() => {
+    if (visible && accuracy === "high" && !isDone) {
+      setIsDone(true);
+      Animated.spring(successScale, {
+        toValue: 1,
+        friction: 5,
+        tension: 80,
+        useNativeDriver: true,
+      }).start();
+      const t = setTimeout(() => onClose(), 1800);
+      return () => clearTimeout(t);
+    }
+  }, [accuracy, visible, isDone]);
+
+  // Posisi titik bergerak di pola angka 8 (lemniscate parametrik)
+  const A = 60;
+  const dotX = figure8Anim.interpolate({
+    inputRange:  [0,   0.125, 0.25, 0.375, 0.5,  0.625, 0.75,  0.875, 1],
+    outputRange: [0,   A,     0,    -A,    0,     A,     0,     -A,    0],
+  });
+  const dotY = figure8Anim.interpolate({
+    inputRange:  [0,    0.125,    0.25, 0.375,    0.5,  0.625,    0.75, 0.875,    1],
+    outputRange: [0,    -A * 0.5, 0,    A * 0.5,  0,    A * 0.5,  0,    -A * 0.5, 0],
+  });
+
+  const accuracyColor =
+    accuracy === "high" ? "#16A34A" : accuracy === "medium" ? "#D97706" : "#EF4444";
+  const accuracyLabel =
+    accuracy === "high" ? "Tinggi ✓" : accuracy === "medium" ? "Sedang" : "Rendah";
+  const accuracyBg =
+    accuracy === "high" ? "#DCFCE7" : accuracy === "medium" ? "#FEF3C7" : "#FEE2E2";
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
+      <View style={cal.overlay}>
+        <View style={cal.sheet}>
+          {/* Header */}
+          <View style={cal.modalHeader}>
+            <View style={cal.modalIconWrap}>
+              <Crosshair size={22} color="#162E6E" />
+            </View>
+            <View style={{ flex: 1, marginLeft: 10 }}>
+              <Text style={cal.modalTitle}>Kalibrasi Kompas</Text>
+              <Text style={cal.modalSub}>Gerakkan HP mengikuti pola angka 8</Text>
+            </View>
+            <TouchableOpacity style={cal.closeBtn} onPress={onClose}>
+              <X size={18} color="#64748B" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Badge Akurasi */}
+          <View style={[cal.accuracyBadge, { backgroundColor: accuracyBg }]}>
+            <Text style={[cal.accuracyLabel, { color: accuracyColor }]}>
+              Akurasi Kompas: {accuracyLabel}
+            </Text>
+          </View>
+
+          {/* Canvas Animasi Figure-8 */}
+          <View style={cal.figureCanvas}>
+            {/* Lingkaran atas (bagian kanan angka 8) */}
+            <View style={cal.figure8PathTop} />
+            {/* Lingkaran bawah (bagian kiri angka 8) */}
+            <View style={cal.figure8PathBot} />
+            {/* Label ∞ sebagai latar */}
+            <Text style={cal.figure8Label}>∞</Text>
+            {/* Titik bergerak */}
+            <Animated.View
+              style={[
+                cal.movingDot,
+                { transform: [{ translateX: dotX }, { translateY: dotY }] },
+              ]}
+            />
+          </View>
+
+          {/* Langkah-langkah */}
+          <View style={cal.stepsContainer}>
+            <Step num="1" text="Pegang HP mendatar (horizontal) sejajar lantai" />
+            <Step num="2" text="Gerakkan perlahan membentuk angka 8 di udara (3–5 kali)" />
+            <Step num="3" text="Akurasi berubah Tinggi → layar otomatis menutup" />
+          </View>
+
+          {/* Tombol / Banner */}
+          {isDone ? (
+            <Animated.View
+              style={[cal.successBanner, { transform: [{ scale: successScale }] }]}
+            >
+              <Check size={18} color="#15803D" />
+              <Text style={cal.successText}>Kalibrasi Berhasil! Kompas siap digunakan.</Text>
+            </Animated.View>
+          ) : (
+            <TouchableOpacity style={cal.skipBtn} onPress={onClose} activeOpacity={0.8}>
+              <Text style={cal.skipBtnText}>Tutup (Lanjut Tanpa Kalibrasi)</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+// ─── Screen Utama ─────────────────────────────────────────────────────────────
 export const ArahKiblatScreen = () => {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
@@ -58,11 +219,15 @@ export const ArahKiblatScreen = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [showCityList, setShowCityList] = useState<boolean>(false);
   const [citySearch, setCitySearch] = useState<string>("");
+  const [showCalibration, setShowCalibration] = useState(false);
+
+  // Buffer akurasi: simpan 12 pembacaan terakhir, hitung variance
+  const readingBuffer = useRef<number[]>([]);
+  const [accuracy, setAccuracy] = useState<"low" | "medium" | "high">("low");
 
   const dialAnim = useRef(new Animated.Value(0)).current;
   const currentDialAngleRef = useRef<number>(0);
 
-  // Ambil lokasi GPS otomatis saat halaman dibuka
   useEffect(() => {
     fetchCurrentLocation();
   }, []);
@@ -70,15 +235,22 @@ export const ArahKiblatScreen = () => {
   const dynamicPrayer = calculatePrayerTimes(selectedCity);
   const qiblaBearing = dynamicPrayer.qiblaBearing;
 
-  // Sudut kiblat relatif terhadap arah hadap perangkat (0° = tepat menghadap kiblat)
   const relativeAngle = (qiblaBearing - deviceHeading + 360) % 360;
   const isAligned = hasCompass && (relativeAngle <= 4 || relativeAngle >= 356);
 
-  // Instruksi putaran
   const diffDegrees = relativeAngle > 180 ? 360 - relativeAngle : relativeAngle;
   const turnDirection = relativeAngle > 180 ? "kiri" : "kanan";
 
-  // Setup sensor Magnetometer
+  const computeAccuracy = useCallback((buf: number[]): "low" | "medium" | "high" => {
+    if (buf.length < 5) return "low";
+    const mean = buf.reduce((a, b) => a + b, 0) / buf.length;
+    const variance = buf.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / buf.length;
+    if (variance < 25) return "high";
+    if (variance < 200) return "medium";
+    return "low";
+  }, []);
+
+  // Setup Magnetometer
   useEffect(() => {
     let subscription: any = null;
     let isMounted = true;
@@ -87,7 +259,6 @@ export const ArahKiblatScreen = () => {
       try {
         const available = await Magnetometer.isAvailableAsync();
         if (!isMounted) return;
-
         setHasCompass(available);
         setLoading(false);
 
@@ -95,45 +266,37 @@ export const ArahKiblatScreen = () => {
           Magnetometer.setUpdateInterval(100);
           subscription = Magnetometer.addListener((data) => {
             if (!isMounted) return;
-            // Hitung derajat sudut dari komponen x & y
             let angle = Math.atan2(data.y, data.x) * (180 / Math.PI) - 90;
-            if (angle < 0) {
-              angle += 360;
-            }
-            setDeviceHeading(Math.round(angle));
+            if (angle < 0) angle += 360;
+            const rounded = Math.round(angle);
+            setDeviceHeading(rounded);
+
+            // Update buffer & hitung akurasi
+            readingBuffer.current = [...readingBuffer.current.slice(-11), rounded];
+            setAccuracy(computeAccuracy(readingBuffer.current));
           });
         }
       } catch (err) {
         console.warn("Gagal menginisialisasi sensor Magnetometer:", err);
-        if (isMounted) {
-          setHasCompass(false);
-          setLoading(false);
-        }
+        if (isMounted) { setHasCompass(false); setLoading(false); }
       }
     };
 
     initSensor();
-
     return () => {
       isMounted = false;
-      if (subscription) {
-        subscription.remove();
-      }
+      if (subscription) subscription.remove();
     };
   }, []);
 
-  // Animasi rotasi piringan kompas secara halus tanpa spin terbalik (unwrapped angle)
+  // Animasi dial kompas (smooth unwrapped)
   useEffect(() => {
-    // Piringan kompas diputar berlawanan dengan arah hadap hp (-deviceHeading)
-    // sehingga huruf 'U' (Utara) selalu menunjuk ke arah Utara fisik sebenarnya
     const targetDial = (-deviceHeading + 360) % 360;
-
     const current = currentDialAngleRef.current;
     const currentMod = ((current % 360) + 360) % 360;
     let diff = targetDial - currentMod;
     if (diff > 180) diff -= 360;
     if (diff < -180) diff += 360;
-
     const nextAngle = current + diff;
     currentDialAngleRef.current = nextAngle;
 
@@ -156,10 +319,21 @@ export const ArahKiblatScreen = () => {
       c.province.toLowerCase().includes(citySearch.toLowerCase())
   );
 
+  // Warna badge akurasi
+  const accColor =
+    accuracy === "high" ? "#16A34A" : accuracy === "medium" ? "#D97706" : "#EF4444";
+  const accBg =
+    accuracy === "high" ? "#DCFCE7" : accuracy === "medium" ? "#FEF3C7" : "#FEE2E2";
+  const accBorder =
+    accuracy === "high" ? "#86EFAC" : accuracy === "medium" ? "#FDE68A" : "#FCA5A5";
+  const accLabel =
+    accuracy === "high" ? "Akurasi Tinggi" : accuracy === "medium" ? "Akurasi Sedang" : "Akurasi Rendah — Kalibrasi Diperlukan";
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
-      {/* Header */}
+
+      {/* ─── Header ─── */}
       <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <ChevronLeft size={22} color="#FFFFFF" />
@@ -168,11 +342,45 @@ export const ArahKiblatScreen = () => {
           <Text style={styles.headerTitle}>Arah Kiblat</Text>
           <Text style={styles.headerSub}>Kompas Penunjuk Ka'bah Makkah</Text>
         </View>
-        <View style={{ width: 36 }} />
+        {hasCompass ? (
+          <TouchableOpacity
+            style={styles.calibBtn}
+            onPress={() => setShowCalibration(true)}
+            activeOpacity={0.8}
+          >
+            <Crosshair size={15} color="#FFFFFF" />
+            <Text style={styles.calibBtnText}>Kalibrasi</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 36 }} />
+        )}
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Lokasi */}
+
+        {/* ─── Banner Akurasi ─── */}
+        {hasCompass && (
+          <TouchableOpacity
+            style={[styles.accuracyBanner, { backgroundColor: accBg, borderColor: accBorder }]}
+            onPress={() => accuracy !== "high" && setShowCalibration(true)}
+            activeOpacity={accuracy !== "high" ? 0.8 : 1}
+          >
+            {accuracy === "high"
+              ? <Wifi size={15} color={accColor} />
+              : accuracy === "medium"
+              ? <Wifi size={15} color={accColor} />
+              : <WifiOff size={15} color={accColor} />
+            }
+            <Text style={[styles.accuracyBannerText, { color: accColor }]}>{accLabel}</Text>
+            {accuracy !== "high" && (
+              <View style={[styles.calibHint, { borderColor: accColor }]}>
+                <Text style={[styles.calibHintText, { color: accColor }]}>Kalibrasi →</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        )}
+
+        {/* ─── Lokasi ─── */}
         <TouchableOpacity
           style={styles.locationCard}
           onPress={() => setShowCityList(!showCityList)}
@@ -198,10 +406,9 @@ export const ArahKiblatScreen = () => {
           <Text style={styles.changeText}>{showCityList ? "Tutup ▲" : "Ganti ▾"}</Text>
         </TouchableOpacity>
 
-        {/* City List Dropdown with Search */}
+        {/* ─── City Dropdown ─── */}
         {showCityList && (
           <View style={styles.cityListContainer}>
-            {/* Tombol Ambil GPS Saat Ini */}
             <TouchableOpacity
               style={styles.gpsRefreshBtn}
               onPress={async () => {
@@ -210,11 +417,10 @@ export const ArahKiblatScreen = () => {
               }}
               disabled={isLoadingGps}
             >
-              {isLoadingGps ? (
-                <ActivityIndicator size="small" color="#162E6E" />
-              ) : (
-                <Navigation size={16} color="#162E6E" />
-              )}
+              {isLoadingGps
+                ? <ActivityIndicator size="small" color="#162E6E" />
+                : <Navigation size={16} color="#162E6E" />
+              }
               <Text style={styles.gpsRefreshBtnText}>
                 {isLoadingGps ? "Mendeteksi Lokasi GPS..." : "Gunakan Lokasi GPS Terkini"}
               </Text>
@@ -261,7 +467,7 @@ export const ArahKiblatScreen = () => {
           </View>
         )}
 
-        {/* Info Kiblat & Sensor Status */}
+        {/* ─── Info Kiblat ─── */}
         <View style={styles.infoCard}>
           <View style={styles.infoRow}>
             <View style={styles.infoItem}>
@@ -280,17 +486,9 @@ export const ArahKiblatScreen = () => {
               <Text style={styles.infoLabel}>Status Sensor</Text>
               <View style={styles.sensorStatusWrap}>
                 <View
-                  style={[
-                    styles.sensorDot,
-                    { backgroundColor: hasCompass ? "#16A34A" : "#F59E0B" },
-                  ]}
+                  style={[styles.sensorDot, { backgroundColor: hasCompass ? "#16A34A" : "#F59E0B" }]}
                 />
-                <Text
-                  style={[
-                    styles.sensorStatusText,
-                    { color: hasCompass ? "#16A34A" : "#D97706" },
-                  ]}
-                >
+                <Text style={[styles.sensorStatusText, { color: hasCompass ? "#16A34A" : "#D97706" }]}>
                   {hasCompass ? "Aktif" : "Tidak Ada"}
                 </Text>
               </View>
@@ -298,60 +496,29 @@ export const ArahKiblatScreen = () => {
           </View>
         </View>
 
-        {/* Kompas Visual */}
+        {/* ─── Kompas Visual ─── */}
         <View style={styles.compassContainer}>
-          {/* Top Fixed Indicator (12 O'Clock Needle) */}
           <View style={styles.topMarker}>
-            <View
-              style={[
-                styles.topTriangle,
-                isAligned && { borderTopColor: "#16A34A" },
-              ]}
-            />
-            <View
-              style={[
-                styles.topMarkerLine,
-                isAligned && { backgroundColor: "#16A34A" },
-              ]}
-            />
+            <View style={[styles.topTriangle, isAligned && { borderTopColor: "#16A34A" }]} />
+            <View style={[styles.topMarkerLine, isAligned && { backgroundColor: "#16A34A" }]} />
           </View>
 
-          {/* Bezel Kompas */}
-          <View
-            style={[
-              styles.compassBezel,
-              isAligned && styles.compassBezelAligned,
-            ]}
-          >
-            {/* Piringan Kompas Berputar (Rotating Dial) */}
+          <View style={[styles.compassBezel, isAligned && styles.compassBezelAligned]}>
             <Animated.View
-              style={[
-                styles.compassDial,
-                { transform: [{ rotate: dialRotate }] },
-              ]}
+              style={[styles.compassDial, { transform: [{ rotate: dialRotate }] }]}
             >
-              {/* Garis-garis Derajat Kompas (Setiap 30 derajat) */}
               {[...Array(12)].map((_, i) => {
                 const deg = i * 30;
                 return (
                   <View
                     key={deg}
-                    style={[
-                      styles.tickWrapper,
-                      { transform: [{ rotate: `${deg}deg` }] },
-                    ]}
+                    style={[styles.tickWrapper, { transform: [{ rotate: `${deg}deg` }] }]}
                   >
-                    <View
-                      style={[
-                        styles.tick,
-                        deg % 90 === 0 ? styles.tickMajor : styles.tickMinor,
-                      ]}
-                    />
+                    <View style={[styles.tick, deg % 90 === 0 ? styles.tickMajor : styles.tickMinor]} />
                   </View>
                 );
               })}
 
-              {/* Titik Mata Angin Utama (U, T, S, B) */}
               {[
                 { label: "U", deg: 0, color: "#EF4444" },
                 { label: "T", deg: 90, color: "#162E6E" },
@@ -360,36 +527,22 @@ export const ArahKiblatScreen = () => {
               ].map((item) => {
                 const rad = ((item.deg - 90) * Math.PI) / 180;
                 const r = 90;
-                const x = r * Math.cos(rad);
-                const y = r * Math.sin(rad);
                 return (
                   <View
                     key={item.label}
                     style={[
                       styles.cardinalPoint,
-                      {
-                        transform: [
-                          { translateX: x },
-                          { translateY: y },
-                        ],
-                      },
+                      { transform: [{ translateX: r * Math.cos(rad) }, { translateY: r * Math.sin(rad) }] },
                     ]}
                   >
-                    <Text style={[styles.cardinalText, { color: item.color }]}>
-                      {item.label}
-                    </Text>
+                    <Text style={[styles.cardinalText, { color: item.color }]}>{item.label}</Text>
                   </View>
                 );
               })}
 
-              {/* Jarum Penunjuk Kiblat (Menunjuk ke qiblaBearing pada piringan) */}
               <View
-                style={[
-                  styles.qiblaPointerWrap,
-                  { transform: [{ rotate: `${qiblaBearing}deg` }] },
-                ]}
+                style={[styles.qiblaPointerWrap, { transform: [{ rotate: `${qiblaBearing}deg` }] }]}
               >
-                {/* Ujung Panah Kiblat */}
                 <View style={styles.qiblaArrowHead} />
                 <View style={styles.qiblaArrowStem} />
                 <View style={styles.qiblaKaabaIcon}>
@@ -397,14 +550,12 @@ export const ArahKiblatScreen = () => {
                 </View>
               </View>
 
-              {/* Pusat Kompas */}
               <View style={styles.compassCenterCircle}>
                 <Compass size={18} color="#162E6E" />
               </View>
             </Animated.View>
           </View>
 
-          {/* Badge Status Kelurusan Kiblat */}
           {hasCompass ? (
             isAligned ? (
               <View style={styles.alignedBadgeSuccess}>
@@ -431,7 +582,6 @@ export const ArahKiblatScreen = () => {
           )}
         </View>
 
-        {/* Warning / Catatan Jika Sensor Tidak Ada */}
         {!hasCompass && (
           <View style={styles.noteCard}>
             <AlertCircle size={18} color="#D97706" style={{ marginTop: 2 }} />
@@ -446,29 +596,164 @@ export const ArahKiblatScreen = () => {
           </View>
         )}
 
-        {/* Petunjuk Penggunaan */}
         <View style={styles.guideCard}>
           <Text style={styles.guideTitle}>💡 Petunjuk Penggunaan</Text>
           <Text style={styles.guideItem}>
-            1. <Text style={styles.guideBold}>Posisikan HP mendatar (horizontal)</Text> sejajar dengan lantai/meja untuk akurasi terbaik.
+            1. <Text style={styles.guideBold}>Posisikan HP mendatar (horizontal)</Text> sejajar lantai untuk akurasi terbaik.
           </Text>
           <Text style={styles.guideItem}>
-            2. Putar badan atau arahkan HP perlahan hingga panah hijau{" "}
-            <Text style={styles.guideBold}>🕋 lurus ke atas</Text> bertemu tanda penunjuk atas.
+            2. Putar badan hingga panah hijau <Text style={styles.guideBold}>🕋 lurus ke atas</Text> bertemu tanda penunjuk atas.
           </Text>
           <Text style={styles.guideItem}>
-            3. Saat tanda berubah hijau{" "}
-            <Text style={styles.guideBold}>"Menghadap Kiblat ✓"</Text>, Anda telah tepat menghadap Ka'bah.
+            3. Saat berubah hijau <Text style={styles.guideBold}>"Menghadap Kiblat ✓"</Text>, Anda tepat menghadap Ka'bah.
           </Text>
           <Text style={styles.guideItem}>
-            4. Jika kompas terasa tidak akurat, gerakkan HP membentuk angka <Text style={styles.guideBold}>8</Text> di udara untuk mengkalibrasi sensor.
+            4. Jika akurasi rendah, tekan <Text style={styles.guideBold}>tombol Kalibrasi</Text> di pojok kanan atas dan ikuti gerakan angka 8.
           </Text>
         </View>
       </ScrollView>
+
+      {/* ─── Modal Kalibrasi ─── */}
+      <CalibrationModal
+        visible={showCalibration}
+        accuracy={accuracy}
+        onClose={() => setShowCalibration(false)}
+      />
     </View>
   );
 };
 
+// ─── Styles Modal ─────────────────────────────────────────────────────────────
+const cal = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    justifyContent: "flex-end",
+  },
+  sheet: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 36,
+  },
+  modalHeader: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
+  modalIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#EFF6FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalTitle: { fontSize: 16, fontWeight: "800", color: "#162E6E" },
+  modalSub: { fontSize: 12, color: "#64748B", marginTop: 1 },
+  closeBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#F1F5F9",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  accuracyBadge: {
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    alignSelf: "center",
+    marginBottom: 16,
+  },
+  accuracyLabel: { fontSize: 13, fontWeight: "700" },
+  figureCanvas: {
+    width: 200,
+    height: 140,
+    alignSelf: "center",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 20,
+    position: "relative",
+  },
+  figure8PathTop: {
+    position: "absolute",
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 2.5,
+    borderColor: "#BFDBFE",
+    top: 5,
+    left: "50%",
+    marginLeft: -40,
+    transform: [{ translateX: 28 }],
+  },
+  figure8PathBot: {
+    position: "absolute",
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 2.5,
+    borderColor: "#BFDBFE",
+    bottom: 5,
+    left: "50%",
+    marginLeft: -40,
+    transform: [{ translateX: -28 }],
+  },
+  figure8Label: {
+    fontSize: 72,
+    color: "#DBEAFE",
+    fontWeight: "900",
+    position: "absolute",
+    lineHeight: 72,
+  },
+  movingDot: {
+    position: "absolute",
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "#162E6E",
+    shadowColor: "#162E6E",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  stepsContainer: { gap: 10, marginBottom: 20 },
+  step: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  stepNum: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "#162E6E",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 1,
+    flexShrink: 0,
+  },
+  stepNumText: { fontSize: 11, color: "#FFFFFF", fontWeight: "800" },
+  stepText: { flex: 1, fontSize: 13, color: "#334155", lineHeight: 20 },
+  successBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#DCFCE7",
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#86EFAC",
+    justifyContent: "center",
+  },
+  successText: { fontSize: 14, fontWeight: "700", color: "#15803D" },
+  skipBtn: {
+    alignItems: "center",
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+  },
+  skipBtnText: { fontSize: 13, color: "#64748B", fontWeight: "600" },
+});
+
+// ─── Styles Utama ─────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F8FAFC" },
   header: {
@@ -489,6 +774,36 @@ const styles = StyleSheet.create({
   headerCenter: { flex: 1, marginHorizontal: 12 },
   headerTitle: { fontSize: 16, fontWeight: "800", color: "#FFFFFF" },
   headerSub: { fontSize: 12, color: "rgba(255,255,255,0.75)", marginTop: 1 },
+  calibBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.3)",
+  },
+  calibBtnText: { fontSize: 12, color: "#FFFFFF", fontWeight: "700" },
+  accuracyBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 10,
+  },
+  accuracyBannerText: { flex: 1, fontSize: 13, fontWeight: "700" },
+  calibHint: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  calibHintText: { fontSize: 12, fontWeight: "700" },
   scrollContent: { padding: 16, paddingBottom: 36 },
   locationCard: {
     flexDirection: "row",
@@ -528,17 +843,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#BBF7D0",
   },
-  gpsDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#16A34A",
-  },
-  gpsBadgeText: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: "#15803D",
-  },
+  gpsDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#16A34A" },
+  gpsBadgeText: { fontSize: 10, fontWeight: "700", color: "#15803D" },
   gpsRefreshBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -550,11 +856,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#DBEAFE",
   },
-  gpsRefreshBtnText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#162E6E",
-  },
+  gpsRefreshBtnText: { fontSize: 13, fontWeight: "700", color: "#162E6E" },
   cityListContainer: {
     backgroundColor: "#FFFFFF",
     borderRadius: 14,
@@ -621,16 +923,8 @@ const styles = StyleSheet.create({
   sensorStatusWrap: { flexDirection: "row", alignItems: "center", gap: 5 },
   sensorDot: { width: 7, height: 7, borderRadius: 4 },
   sensorStatusText: { fontSize: 12, fontWeight: "700" },
-  compassContainer: {
-    alignItems: "center",
-    marginBottom: 18,
-    position: "relative",
-  },
-  topMarker: {
-    alignItems: "center",
-    marginBottom: 4,
-    zIndex: 10,
-  },
+  compassContainer: { alignItems: "center", marginBottom: 18, position: "relative" },
+  topMarker: { alignItems: "center", marginBottom: 4, zIndex: 10 },
   topTriangle: {
     width: 0,
     height: 0,
@@ -641,11 +935,7 @@ const styles = StyleSheet.create({
     borderRightColor: "transparent",
     borderTopColor: "#EF4444",
   },
-  topMarkerLine: {
-    width: 2,
-    height: 8,
-    backgroundColor: "#EF4444",
-  },
+  topMarkerLine: { width: 2, height: 8, backgroundColor: "#EF4444" },
   compassBezel: {
     width: 260,
     height: 260,
@@ -683,11 +973,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "flex-start",
   },
-  tick: {
-    backgroundColor: "#94A3B8",
-    borderRadius: 1,
-    marginTop: 6,
-  },
+  tick: { backgroundColor: "#94A3B8", borderRadius: 1, marginTop: 6 },
   tickMajor: { width: 3, height: 12, backgroundColor: "#475569" },
   tickMinor: { width: 1.5, height: 6, backgroundColor: "#CBD5E1" },
   cardinalPoint: {
@@ -697,10 +983,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  cardinalText: {
-    fontSize: 15,
-    fontWeight: "900",
-  },
+  cardinalText: { fontSize: 15, fontWeight: "900" },
   qiblaPointerWrap: {
     position: "absolute",
     width: "100%",
@@ -719,12 +1002,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "#16A34A",
     marginTop: 18,
   },
-  qiblaArrowStem: {
-    width: 6,
-    height: 70,
-    backgroundColor: "#16A34A",
-    borderRadius: 3,
-  },
+  qiblaArrowStem: { width: 6, height: 70, backgroundColor: "#16A34A", borderRadius: 3 },
   qiblaKaabaIcon: {
     position: "absolute",
     top: 46,
@@ -821,4 +1099,3 @@ const styles = StyleSheet.create({
   guideItem: { fontSize: 12, color: "#334155", lineHeight: 20, marginBottom: 4 },
   guideBold: { fontWeight: "700", color: "#162E6E" },
 });
-
