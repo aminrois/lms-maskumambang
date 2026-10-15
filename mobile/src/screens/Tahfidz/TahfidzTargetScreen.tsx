@@ -11,6 +11,7 @@ import {
   RefreshControl,
   Modal,
   Alert,
+  StatusBar,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useIsFocused } from "@react-navigation/native";
@@ -245,6 +246,7 @@ export const TahfidzTargetScreen = () => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={[]}>
+      <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
       <Header
         title="Target Hafalan"
         subtitle="Rencana & capaian target hafalan santri binaan"

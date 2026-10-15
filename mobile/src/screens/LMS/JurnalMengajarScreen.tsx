@@ -2,12 +2,15 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
+  Platform,
+  KeyboardAvoidingView,
   Text,
   StyleSheet,
   ScrollView,
   RefreshControl,
   ActivityIndicator,
   TextInput,
+  StatusBar,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useIsFocused } from "@react-navigation/native";
@@ -80,12 +83,14 @@ export const JurnalMengajarScreen = () => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={[]}>
+      <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
       <Header
         title="Jurnal Mengajar"
         subtitle="Riwayat aktivitas belajar mengajar di kelas"
         showBack={true}
       />
 
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <ScrollView
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
         refreshControl={
@@ -177,6 +182,7 @@ export const JurnalMengajarScreen = () => {
           })
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };

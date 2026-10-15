@@ -10,6 +10,7 @@ import {
   Modal,
   Switch,
   Platform,
+  StatusBar,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -178,6 +179,7 @@ export const ProfileScreen = () => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={[]}>
+      <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
       <Header title="Profil Saya" subtitle="Informasi akun & pengaturan" />
 
       <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]} showsVerticalScrollIndicator={false}>

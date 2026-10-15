@@ -11,6 +11,9 @@ import {
   TextInput,
   Modal,
   Alert,
+  StatusBar,
+  Platform,
+  KeyboardAvoidingView,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useIsFocused } from "@react-navigation/native";
@@ -481,12 +484,14 @@ export const VerifikasiLessonPlanScreen = () => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={[]}>
+      <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
       <Header
         title="Verifikasi RPP"
         subtitle="Pemeriksaan & Pengesahan Perangkat Ajar"
         showBack={true}
       />
 
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <ScrollView
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
         refreshControl={
@@ -1107,6 +1112,7 @@ export const VerifikasiLessonPlanScreen = () => {
           </>
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* ═════════════════════════════════════════════════════════════
           MODAL 1: INSPEKSI DOKUMEN RPP LENGKAP (View Mode - On Demand)

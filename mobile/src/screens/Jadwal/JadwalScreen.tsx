@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  StatusBar,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
@@ -86,6 +87,7 @@ export const JadwalScreen = () => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={[]}>
+      <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
       <Header
         title="Jadwal Mengajar Saya"
         subtitle="Sistem Akademik · Tahun Ajaran Aktif"

@@ -13,6 +13,7 @@ import {
   FlatList,
   RefreshControl,
   Platform,
+  KeyboardAvoidingView,
   StatusBar,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -711,6 +712,7 @@ export const TahfidzSetoranScreen = () => {
           <Text style={styles.loadingText}>Memuat data tahfidz...</Text>
         </View>
       ) : (
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <ScrollView
           contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
           showsVerticalScrollIndicator={false}
@@ -1371,6 +1373,7 @@ export const TahfidzSetoranScreen = () => {
             )
           }
         </ScrollView>
+        </KeyboardAvoidingView>
       )}
 
       {/* ─── MODAL 1: SANTRI PICKER (FOR INDIVIDU) ─── */}

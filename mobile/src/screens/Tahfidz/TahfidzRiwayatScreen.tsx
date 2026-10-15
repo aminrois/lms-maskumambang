@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   TextInput,
   RefreshControl,
+  StatusBar,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useIsFocused } from "@react-navigation/native";
@@ -108,6 +109,7 @@ export const TahfidzRiwayatScreen = () => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={[]}>
+      <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
       <Header
         title="Riwayat Hafalan"
         subtitle="Catatan riwayat setoran tahfidz santri"

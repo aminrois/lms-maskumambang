@@ -9,6 +9,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   TextInput,
+  StatusBar,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useIsFocused, useRoute } from "@react-navigation/native";
@@ -376,6 +377,7 @@ export const RekapAbsensiMapelScreen = () => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={[]}>
+      <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
       <Header
         title={step === "select_kelas" ? "Rekap Absensi Siswa" : `Rekap: ${selectedKelas?.nama_kelas}`}
         subtitle={

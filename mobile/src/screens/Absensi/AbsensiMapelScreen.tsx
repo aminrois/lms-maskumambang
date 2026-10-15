@@ -10,6 +10,7 @@ import {
   Alert,
   TextInput,
   RefreshControl,
+  StatusBar,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRoute, useNavigation } from "@react-navigation/native";
@@ -396,6 +397,7 @@ export const AbsensiMapelScreen = () => {
 
     return (
       <SafeAreaView style={styles.safeArea} edges={[]}>
+      <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
         <Header
           title="Absensi Mata Pelajaran"
           subtitle="Langkah 1 dari 3: Pilih Jadwal Mengajar"

@@ -2,6 +2,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   View,
+  Platform,
+  KeyboardAvoidingView,
   Text,
   StyleSheet,
   ScrollView,
@@ -9,6 +11,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   TextInput,
+  StatusBar,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useIsFocused } from "@react-navigation/native";
@@ -124,12 +127,14 @@ export const LessonPlanScreen = () => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={[]}>
+      <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
       <Header
         title="Lesson Plan"
         subtitle="Rencana Pelaksanaan Pembelajaran (RPP)"
         showBack={true}
       />
 
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <ScrollView
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
         refreshControl={
@@ -343,6 +348,7 @@ export const LessonPlanScreen = () => {
           })
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };

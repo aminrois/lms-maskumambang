@@ -2,6 +2,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   View,
+  Platform,
+  KeyboardAvoidingView,
   Text,
   StyleSheet,
   ScrollView,
@@ -12,6 +14,7 @@ import {
   Modal,
   Alert,
   FlatList,
+  StatusBar,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useIsFocused } from "@react-navigation/native";
@@ -397,12 +400,14 @@ export const TahfidzHalaqahScreen = () => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={[]}>
+      <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
       <Header
         title="Kelompok Halaqoh"
         subtitle="Manajemen pembagian kelompok & santri binaan"
         showBack={true}
       />
 
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <ScrollView
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]}
         refreshControl={
@@ -570,6 +575,7 @@ export const TahfidzHalaqahScreen = () => {
           })
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* ══════════════════════════════════════════════════════════
           MODAL FORM: TAMBAH / EDIT KELOMPOK HALAQOH

@@ -12,6 +12,7 @@ import {
   Platform,
   Alert,
   StatusBar,
+  KeyboardAvoidingView,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
@@ -193,6 +194,10 @@ export const InputNotifikasiScreen = () => {
         </SafeAreaView>
       </View>
 
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
       <ScrollView
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 36 }]}
         refreshControl={
@@ -377,6 +382,7 @@ export const InputNotifikasiScreen = () => {
           </View>
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
     </SwipeBackContainer>
   );
 };
