@@ -40,6 +40,7 @@ import {
 } from "lucide-react-native";
 import { Colors } from "../../constants/colors";
 import { newsService, WordPressPost } from "../../api/newsService";
+import { useNotificationStore } from "../../store/useNotificationStore";
 import { SwipeBackContainer } from "../../components/ui/SwipeBackContainer";
 
 const { width } = Dimensions.get("window");
@@ -55,6 +56,7 @@ const CATEGORIES = [
 
 export const BeritaScreen = () => {
   const navigation = useNavigation<any>();
+  const { hasUnread } = useNotificationStore();
 
   const [posts, setPosts] = useState<WordPressPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -200,11 +202,11 @@ export const BeritaScreen = () => {
 
           <TouchableOpacity
             style={styles.headerActionBtn}
-            onPress={() => onRefresh()}
+            onPress={() => navigation.navigate("Notifikasi")}
             activeOpacity={0.8}
           >
             <Bell size={19} color="#0F172A" />
-            <View style={styles.unreadDot} />
+            {hasUnread && <View style={styles.unreadDot} />}
           </TouchableOpacity>
         </View>
       </View>

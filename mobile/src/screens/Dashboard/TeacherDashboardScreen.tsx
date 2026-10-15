@@ -63,6 +63,7 @@ import {
 } from "lucide-react-native";
 import { Colors } from "../../constants/colors";
 import { useAuthStore } from "../../store/useAuthStore";
+import { useNotificationStore } from "../../store/useNotificationStore";
 import {
   canInputTahfidz,
   canViewTahfidz,
@@ -149,9 +150,17 @@ export const TeacherDashboardScreen = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Notifikasi unread indicator
+  const { hasUnread, fetchNotifications: fetchNotifCount } = useNotificationStore();
+
+  useEffect(() => {
+    fetchNotifCount();
+  }, [fetchNotifCount]);
+
   const onRefresh = async () => {
     setRefreshing(true);
     setPrayerData(getPrayerTimes());
+    fetchNotifCount();
     setTimeout(() => {
       setRefreshing(false);
     }, 600);
@@ -733,7 +742,7 @@ export const TeacherDashboardScreen = () => {
                   activeOpacity={0.8}
                 >
                   <Bell size={20} color="#FFFFFF" />
-                  <View style={styles.unreadDot} />
+                  {hasUnread && <View style={styles.unreadDot} />}
                 </TouchableOpacity>
               </View>
             </View>

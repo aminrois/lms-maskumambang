@@ -7,7 +7,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash-logo.png",
+      "image": "./assets/splash-simas-logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#FFFFFF"
     },
@@ -20,7 +20,7 @@
     },
     "android": {
       "splash": {
-        "image": "./assets/splash-logo.png",
+        "image": "./assets/splash-simas-logo.png",
         "resizeMode": "contain",
         "backgroundColor": "#FFFFFF"
       },
@@ -69,8 +69,8 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#FFFFFF",
-          "image": "./assets/splash-logo.png",
-          "imageWidth": 180,
+          "image": "./assets/splash-simas-logo.png",
+          "imageWidth": 200,
           "resizeMode": "contain"
         }
       ]

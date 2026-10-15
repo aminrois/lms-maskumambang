@@ -52,6 +52,7 @@ import {
 } from "lucide-react-native";
 import { useAuthStore } from "../../store/useAuthStore";
 import { useLocationStore } from "../../store/useLocationStore";
+import { useNotificationStore } from "../../store/useNotificationStore";
 import { RoleBadgeButton } from "../../components/RoleBadgeButton";
 import { RoleSwitcherModal } from "../../components/RoleSwitcherModal";
 import { waliService, AnakItem } from "../../api/waliService";
@@ -181,9 +182,17 @@ export const ParentDashboardScreen = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Notifikasi unread indicator
+  const { hasUnread, fetchNotifications: fetchNotifCount } = useNotificationStore();
+
+  useEffect(() => {
+    fetchNotifCount();
+  }, [fetchNotifCount]);
+
   const onRefresh = async () => {
     setRefreshing(true);
     setPrayerData(getPrayerTimes());
+    fetchNotifCount();
     await Promise.all([refetchAnak(), refetchPerkembangan(), refetchNews()]);
     setRefreshing(false);
   };
@@ -275,7 +284,7 @@ export const ParentDashboardScreen = () => {
                   activeOpacity={0.8}
                 >
                   <Bell size={20} color="#FFFFFF" />
-                  <View style={styles.unreadDot} />
+                  {hasUnread && <View style={styles.unreadDot} />}
                 </TouchableOpacity>
               </View>
             </View>

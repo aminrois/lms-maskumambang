@@ -26,6 +26,7 @@ import { ArahKiblatScreen } from "../screens/Quran/ArahKiblatScreen";
 import { DoaDzikirScreen } from "../screens/Quran/DoaDzikirScreen";
 import { DoaDzikirDetailScreen } from "../screens/Quran/DoaDzikirDetailScreen";
 import { NotifikasiScreen } from "../screens/Notifikasi/NotifikasiScreen";
+import { DetailNotifikasiScreen } from "../screens/Notifikasi/DetailNotifikasiScreen";
 import { TilawahScreen } from "../screens/Tilawah/TilawahScreen";
 import { LmsScreen } from "../screens/LMS/LmsScreen";
 import { LessonPlanScreen } from "../screens/LMS/LessonPlanScreen";
@@ -351,6 +352,11 @@ export const AppNavigator = () => {
             <Stack.Screen
               name="Notifikasi"
               component={NotifikasiScreen}
+              options={{ animation: "slide_from_right" }}
+            />
+            <Stack.Screen
+              name="DetailNotifikasi"
+              component={DetailNotifikasiScreen}
               options={{ animation: "slide_from_right" }}
             />
             <Stack.Screen

@@ -28,6 +28,7 @@ import { Button } from "../../components/ui/Button";
 import { Colors } from "../../constants/colors";
 import { apiClient } from "../../api/client";
 import { useAuthStore } from "../../store/useAuthStore";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface EditPegawaiModalProps {
   visible: boolean;
@@ -42,6 +43,7 @@ export const EditPegawaiModal: React.FC<EditPegawaiModalProps> = ({
   pegawaiId,
   onSuccess,
 }) => {
+  const insets = useSafeAreaInsets();
   const { updateUserPegawai } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -154,7 +156,8 @@ export const EditPegawaiModal: React.FC<EditPegawaiModalProps> = ({
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView
         style={styles.modalOverlay}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
       >
         <View style={styles.modalContainer}>
           {/* Header */}
@@ -174,7 +177,13 @@ export const EditPegawaiModal: React.FC<EditPegawaiModalProps> = ({
               <Text style={styles.loadingText}>Memuat data profil...</Text>
             </View>
           ) : (
-            <ScrollView style={styles.formScroll} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={styles.formScroll}
+              contentContainerStyle={styles.formScrollContent}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              showsVerticalScrollIndicator={false}
+            >
               {/* Notice Administrator Fields */}
               <View style={styles.infoBox}>
                 <ShieldAlert size={18} color="#D97706" style={{ marginTop: 2 }} />
@@ -370,7 +379,12 @@ export const EditPegawaiModal: React.FC<EditPegawaiModalProps> = ({
           )}
 
           {/* Action Buttons Footer */}
-          <View style={styles.modalFooter}>
+          <View
+            style={[
+              styles.modalFooter,
+              { paddingBottom: Math.max(insets.bottom + 12, Platform.OS === "android" ? 34 : 20) },
+            ]}
+          >
             <Button
               title="Batal"
               variant="outline"
@@ -402,8 +416,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: "90%",
-    paddingBottom: Platform.OS === "ios" ? 30 : 16,
+    maxHeight: "92%",
   },
   modalHeader: {
     flexDirection: "row",
@@ -443,6 +456,9 @@ const styles = StyleSheet.create({
   formScroll: {
     paddingHorizontal: 20,
     paddingTop: 14,
+  },
+  formScrollContent: {
+    paddingBottom: 140,
   },
   infoBox: {
     flexDirection: "row",
