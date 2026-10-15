@@ -2,6 +2,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   View,
+  Platform,
+  KeyboardAvoidingView,
   Text,
   StyleSheet,
   ScrollView,
@@ -253,6 +255,7 @@ export const TahfidzTargetScreen = () => {
         showBack={true}
       />
 
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <ScrollView
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
         refreshControl={
@@ -398,6 +401,7 @@ export const TahfidzTargetScreen = () => {
           })
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* ══════════════════════════════════════════════════════════
           MODAL FORM: SET / EDIT TARGET (MATCHING WEB TARGETSANTRI)

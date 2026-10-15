@@ -16,6 +16,7 @@ import {
   TextInput,
   Alert,
   Platform,
+  KeyboardAvoidingView,
   StatusBar,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -526,6 +527,7 @@ export const TilawahScreen = () => {
 
       {/* ─── TAB 2: FORM CATAT TILAWAH (Identik dengan Web) ─── */}
       {activeTab === "input" && (
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 60 }}>
           {/* Mode Switcher (Disembunyikan untuk Wali Murid karena hanya mencatat untuk anaknya sendiri) */}
           {!isWaliSantri && (
@@ -777,6 +779,7 @@ export const TilawahScreen = () => {
             )}
           </TouchableOpacity>
         </ScrollView>
+        </KeyboardAvoidingView>
       )}
 
       {/* ─── SURAH PICKER MODAL ─── */}

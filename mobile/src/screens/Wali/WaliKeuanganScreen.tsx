@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   Dimensions,
   Platform,
+  KeyboardAvoidingView,
   TextInput,
   Modal,
   Alert,
@@ -287,6 +288,7 @@ export const WaliKeuanganScreen = () => {
       {/* ═══════════════════════════════════════════════════════
           CONTENT BODY
       ════════════════════════════════════════════════════════ */}
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <ScrollView
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]}
         refreshControl={
@@ -886,6 +888,7 @@ export const WaliKeuanganScreen = () => {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* ═══════════════════════════════════════════════════════
           MODAL 1: INPUT NOMINAL CICILAN BEBAS

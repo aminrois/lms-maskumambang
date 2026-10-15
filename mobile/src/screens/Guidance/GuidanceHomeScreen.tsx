@@ -13,6 +13,8 @@ import {
   Modal,
   ScrollView,
   Alert,
+  Platform,
+  KeyboardAvoidingView,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -414,7 +416,10 @@ export const GuidanceHomeScreen = () => {
         animationType="slide"
         onRequestClose={() => setFollowUpModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <View>
@@ -504,7 +509,7 @@ export const GuidanceHomeScreen = () => {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
