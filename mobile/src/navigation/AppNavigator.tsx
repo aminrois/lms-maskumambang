@@ -1,6 +1,6 @@
 // mobile/src/navigation/AppNavigator.tsx
 import React, { useEffect } from "react";
-import { View, ActivityIndicator, StyleSheet, Image, StatusBar, AppState, Alert } from "react-native";
+import { View, Text, ActivityIndicator, StyleSheet, Image, StatusBar, AppState, Alert } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { LoginScreen } from "../screens/Auth/LoginScreen";
@@ -145,11 +145,15 @@ export const AppNavigator = () => {
     return (
       <View style={styles.splashContainer}>
         <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-        <Image
-          source={require("../../assets/splash-simas.webp")}
-          style={styles.splashImage}
-          resizeMode="contain"
-        />
+        <View style={styles.splashContent}>
+          <Image
+            source={require("../../assets/logo.webp")}
+            style={styles.splashLogo}
+            resizeMode="contain"
+          />
+          <Text style={styles.splashTitle}>SIMAS</Text>
+          <Text style={styles.splashSubtitle}>Sistem Informasi Madrasah Maskumambang</Text>
+        </View>
         <View style={styles.splashLoader}>
           <ActivityIndicator size="small" color="#162E6E" />
         </View>
@@ -410,9 +414,26 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  splashImage: {
-    width: "100%",
-    height: "100%",
+  splashContent: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  splashLogo: {
+    width: 110,
+    height: 110,
+    marginBottom: 16,
+  },
+  splashTitle: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: "#162E6E",
+    letterSpacing: 2,
+  },
+  splashSubtitle: {
+    fontSize: 12,
+    color: "#64748B",
+    marginTop: 6,
+    fontWeight: "500",
   },
   splashLoader: {
     position: "absolute",
