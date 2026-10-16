@@ -12,16 +12,17 @@ import {
   ActivityIndicator,
   StatusBar,
   Image,
+  ImageBackground,
   TextInput,
   Dimensions,
   Animated,
+  ScrollView,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import {
   Lock,
   User,
-  Check,
   FingerprintPattern,
   ScanFace,
   Eye,
@@ -33,37 +34,18 @@ import {
 } from "lucide-react-native";
 import { Colors } from "../../constants/colors";
 import { useAuthStore } from "../../store/useAuthStore";
-import { APP_CONFIG, PROD_API_BASE_URL, LOCAL_API_BASE_URL } from "../../constants/config";
+import { PROD_API_BASE_URL, LOCAL_API_BASE_URL } from "../../constants/config";
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
+// Header tinggi fixed agar tidak terpengaruh KAV
+const HEADER_H = Math.min(SCREEN_H * 0.37, 280);
 
-/* ─── Wave SVG divider ─── */
+/* ─── Wave SVG ─── */
 const WaveDivider = () => (
-  <Svg
-    width={SCREEN_W}
-    height={48}
-    viewBox={`0 0 ${SCREEN_W} 48`}
-    style={{ display: "flex" }}
-  >
+  <Svg width={SCREEN_W} height={44} viewBox={`0 0 ${SCREEN_W} 44`}>
     <Path
-      d={`M0,0 C${SCREEN_W * 0.3},48 ${SCREEN_W * 0.7},0 ${SCREEN_W},48 L${SCREEN_W},48 L0,48 Z`}
+      d={`M0,0 C${SCREEN_W * 0.3},44 ${SCREEN_W * 0.7},0 ${SCREEN_W},44 L${SCREEN_W},44 L0,44 Z`}
       fill="#FFFFFF"
-    />
-  </Svg>
-);
-
-/* ─── Sparkle SVG ─── */
-const Sparkle = ({ x, y, size = 12 }: { x: number; y: number; size?: number }) => (
-  <Svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    style={{ position: "absolute", left: x, top: y }}
-  >
-    <Path
-      d="M12 2 L13.5 9 L20 10.5 L13.5 12 L12 19 L10.5 12 L4 10.5 L10.5 9 Z"
-      fill="#7EAEFF"
-      opacity={0.85}
     />
   </Svg>
 );
@@ -132,7 +114,9 @@ export const LoginScreen = () => {
             { text: "Nanti Saja", style: "cancel" },
             {
               text: "Aktifkan",
-              onPress: async () => { await enableBiometric(identifier.trim(), kataSandi); },
+              onPress: async () => {
+                await enableBiometric(identifier.trim(), kataSandi);
+              },
             },
           ]
         );
@@ -180,34 +164,25 @@ export const LoginScreen = () => {
   };
 
   const isFaceId = biometricStatus?.biometricType === "faceid";
-  const bioName = biometricStatus?.biometricName || "Sidik Jari / Face ID";
+  const bioName = biometricStatus?.biometricName || "Passkey";
   const showBiometric = biometricStatus?.isEnabled;
 
   return (
-    <View style={styles.root}>
+    // KAV membungkus seluruh layar agar header tidak ikut bergeser
+    <KeyboardAvoidingView
+      style={styles.root}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
       <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
 
-      {/* ═══ HEADER: Navy + Pattern + Masjid ═══ */}
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        {/* Pattern overlay — ganti dengan file Anda */}
-        <Image
-          source={require("../../../assets/islamic_pattern.jpg")}
-          style={styles.patternBg}
-          resizeMode="repeat"
-        />
-        <View style={styles.patternDim} />
-
-        {/* Mosque silhouette */}
-        <Image
-          source={require("../../../assets/mosque_silhouette.jpg")}
-          style={styles.mosqueBg}
-          resizeMode="cover"
-        />
-
-        {/* Sparkle */}
-        <Sparkle x={SCREEN_W * 0.73} y={28} size={11} />
-        <Sparkle x={SCREEN_W * 0.80} y={46} size={7} />
-        <Sparkle x={SCREEN_W * 0.07} y={60} size={9} />
+      {/* ═══ HEADER: gambar dari user ═══ */}
+      <ImageBackground
+        source={require("../../../assets/headerlogin.webp")}
+        style={[styles.header, { paddingTop: insets.top + 8 }]}
+        resizeMode="cover"
+      >
+        {/* Dark overlay agar teks tetap terbaca */}
+        <View style={styles.headerOverlay} />
 
         {/* Brand */}
         <View style={styles.headerContent}>
@@ -225,25 +200,33 @@ export const LoginScreen = () => {
             Sistem Informasi Pondok Pesantren Maskumambang
           </Text>
         </View>
-      </View>
+      </ImageBackground>
 
       {/* Wave */}
       <View style={styles.waveWrap}>
         <WaveDivider />
       </View>
 
-      {/* ═══ FORM AREA: Fixed, no scroll ═══ */}
-      <KeyboardAvoidingView
-        style={styles.formArea}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      {/* ═══ FORM: ScrollView agar tidak tertutup keyboard ═══ */}
+      <ScrollView
+        style={styles.formScroll}
+        contentContainerStyle={[
+          styles.formContent,
+          { paddingBottom: insets.bottom + 20 },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        bounces={false}
       >
         <Animated.View
-          style={[styles.formInner, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}
+          style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
         >
           <Text style={styles.welcomeTitle}>Selamat Datang</Text>
-          <Text style={styles.welcomeSub}>Masuk untuk mengakses layanan siMas.</Text>
+          <Text style={styles.welcomeSub}>
+            Masuk untuk mengakses layanan siMas.
+          </Text>
 
-          {/* Error Banner */}
+          {/* Error */}
           {error ? (
             <View style={styles.errorBanner}>
               <Text style={styles.errorText}>⚠ {error}</Text>
@@ -258,7 +241,10 @@ export const LoginScreen = () => {
               placeholder="Masukkan username"
               placeholderTextColor="#94A3B8"
               value={identifier}
-              onChangeText={(t) => { setIdentifier(t); setError(""); }}
+              onChangeText={(t) => {
+                setIdentifier(t);
+                setError("");
+              }}
               autoCapitalize="none"
               autoCorrect={false}
             />
@@ -272,11 +258,21 @@ export const LoginScreen = () => {
               placeholder="Masukkan kata sandi"
               placeholderTextColor="#94A3B8"
               value={kataSandi}
-              onChangeText={(t) => { setKataSandi(t); setError(""); }}
+              onChangeText={(t) => {
+                setKataSandi(t);
+                setError("");
+              }}
               secureTextEntry={!showPass}
             />
-            <TouchableOpacity onPress={() => setShowPass(!showPass)} style={styles.eyeBtn}>
-              {showPass ? <Eye size={19} color="#94A3B8" /> : <EyeOff size={19} color="#94A3B8" />}
+            <TouchableOpacity
+              onPress={() => setShowPass(!showPass)}
+              style={styles.eyeBtn}
+            >
+              {showPass ? (
+                <Eye size={19} color="#94A3B8" />
+              ) : (
+                <EyeOff size={19} color="#94A3B8" />
+              )}
             </TouchableOpacity>
           </View>
 
@@ -304,42 +300,44 @@ export const LoginScreen = () => {
             <View style={styles.dividerLine} />
           </View>
 
-          {/* Passkey */}
-          <TouchableOpacity
-            style={styles.passkeyBtn}
-            onPress={showBiometric ? handleBiometricLogin : undefined}
-            disabled={isBioAuthenticating || isLoading}
-            activeOpacity={0.85}
-          >
-            {isBioAuthenticating ? (
-              <ActivityIndicator size="small" color="#162E6E" />
-            ) : (
-              <>
-                {isFaceId
-                  ? <ScanFace size={21} color="#162E6E" />
-                  : <FingerprintPattern size={21} color="#162E6E" />}
-                <Text style={styles.passkeyBtnText}>
-                  {showBiometric ? `Login dengan ${bioName}` : "Login dengan Passkey"}
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
+          {/* ─── PASSKEY + MODE TAMU: 1 baris 2 kolom ─── */}
+          <View style={styles.bottomBtnRow}>
+            {/* Passkey */}
+            <TouchableOpacity
+              style={styles.halfBtn}
+              onPress={showBiometric ? handleBiometricLogin : undefined}
+              disabled={isBioAuthenticating || isLoading}
+              activeOpacity={0.85}
+            >
+              {isBioAuthenticating ? (
+                <ActivityIndicator size="small" color="#162E6E" />
+              ) : (
+                <>
+                  {isFaceId ? (
+                    <ScanFace size={20} color="#162E6E" />
+                  ) : (
+                    <FingerprintPattern size={20} color="#162E6E" />
+                  )}
+                  <Text style={styles.halfBtnText}>Passkey</Text>
+                </>
+              )}
+            </TouchableOpacity>
 
-          {/* Mode Tamu */}
-          <TouchableOpacity style={styles.tamuBtn} activeOpacity={0.8}>
-            <UserCircle size={21} color="#162E6E" />
-            <Text style={styles.tamuBtnText}>Mode Tamu</Text>
-            <ChevronRight size={19} color="#162E6E" style={{ marginLeft: "auto" }} />
-          </TouchableOpacity>
+            {/* Mode Tamu */}
+            <TouchableOpacity style={[styles.halfBtn, styles.halfBtnTamu]} activeOpacity={0.8}>
+              <UserCircle size={20} color="#162E6E" />
+              <Text style={styles.halfBtnText}>Mode Tamu</Text>
+            </TouchableOpacity>
+          </View>
 
           {/* Footer */}
-          <Text style={[styles.footerText, { paddingBottom: insets.bottom + 4 }]}>
+          <Text style={styles.footerText}>
             © {new Date().getFullYear()} Maskumambang Creative Center
           </Text>
         </Animated.View>
-      </KeyboardAvoidingView>
+      </ScrollView>
 
-      {/* ═══ Modal Server ═══ */}
+      {/* ═══ Modal Server (7x tap logo) ═══ */}
       <Modal
         visible={showServerModal}
         transparent
@@ -369,7 +367,9 @@ export const LoginScreen = () => {
                 style={[styles.presetChip, { backgroundColor: "#ECFDF5" }]}
                 onPress={() => setCustomUrlInput(PROD_API_BASE_URL)}
               >
-                <Text style={[styles.presetChipText, { color: "#059669" }]}>🌐 Production</Text>
+                <Text style={[styles.presetChipText, { color: "#059669" }]}>
+                  🌐 Production
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.presetChip}
@@ -383,7 +383,9 @@ export const LoginScreen = () => {
                 style={[styles.modalBtn, styles.modalBtnOutline]}
                 onPress={() => setShowServerModal(false)}
               >
-                <Text style={[styles.modalBtnText, { color: Colors.primary }]}>Batal</Text>
+                <Text style={[styles.modalBtnText, { color: Colors.primary }]}>
+                  Batal
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalBtn, styles.modalBtnFill]}
@@ -395,7 +397,7 @@ export const LoginScreen = () => {
           </View>
         </View>
       </Modal>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -405,32 +407,16 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
 
-  /* ─ Header (lebih compact: ~36% layar) ─ */
+  /* ─ Header ─ */
   header: {
     width: SCREEN_W,
-    height: SCREEN_H * 0.36,
+    height: HEADER_H,
     backgroundColor: "#162E6E",
     overflow: "hidden",
-    position: "relative",
   },
-  patternBg: {
-    position: "absolute",
-    width: SCREEN_W,
-    height: SCREEN_H * 0.36,
-    opacity: 0.15,
-  },
-  patternDim: {
-    position: "absolute",
-    width: SCREEN_W,
-    height: SCREEN_H * 0.36,
-  },
-  mosqueBg: {
-    position: "absolute",
-    right: -SCREEN_W * 0.12,
-    bottom: 0,
-    width: SCREEN_W * 0.65,
-    height: SCREEN_H * 0.28,
-    opacity: 0.15,
+  headerOverlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: "rgba(22, 46, 110, 0.35)",
   },
   headerContent: {
     flex: 1,
@@ -439,9 +425,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   logoWrapper: {
-    width: 70,
-    height: 70,
-    borderRadius: 20,
+    width: 68,
+    height: 68,
+    borderRadius: 19,
     backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
@@ -451,7 +437,7 @@ const styles = StyleSheet.create({
     shadowRadius: 14,
     elevation: 10,
     marginBottom: 10,
-    padding: 9,
+    padding: 8,
   },
   logoImage: {
     width: "100%",
@@ -467,7 +453,7 @@ const styles = StyleSheet.create({
   appSubtitle: {
     fontSize: 12,
     fontWeight: "500",
-    color: "rgba(255,255,255,0.75)",
+    color: "rgba(255,255,255,0.82)",
     textAlign: "center",
     marginTop: 3,
   },
@@ -475,17 +461,18 @@ const styles = StyleSheet.create({
   /* ─ Wave ─ */
   waveWrap: {
     backgroundColor: "#162E6E",
+    marginTop: -1,
   },
 
-  /* ─ Form: flex 1, no scroll ─ */
-  formArea: {
+  /* ─ Form ─ */
+  formScroll: {
     flex: 1,
     backgroundColor: "#FFFFFF",
   },
-  formInner: {
-    flex: 1,
+  formContent: {
+    flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: 12,
+    paddingTop: 8,
     justifyContent: "center",
   },
   welcomeTitle: {
@@ -581,38 +568,30 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
 
-  /* ─ Passkey ─ */
-  passkeyBtn: {
+  /* ─ Bottom Row: Passkey + Mode Tamu (1 baris 2 kolom) ─ */
+  bottomBtnRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 20,
+  },
+  halfBtn: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
+    gap: 8,
     borderWidth: 1.5,
     borderColor: "#CBD5E1",
     borderRadius: 50,
     paddingVertical: 14,
     backgroundColor: "#FFFFFF",
-    marginBottom: 10,
   },
-  passkeyBtnText: {
-    fontSize: 14.5,
-    fontWeight: "700",
-    color: "#162E6E",
-  },
-
-  /* ─ Mode Tamu ─ */
-  tamuBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
+  halfBtnTamu: {
     backgroundColor: "#EEF2FF",
-    borderRadius: 50,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    marginBottom: 16,
+    borderColor: "#C7D2FE",
   },
-  tamuBtnText: {
-    fontSize: 14.5,
+  halfBtnText: {
+    fontSize: 14,
     fontWeight: "700",
     color: "#162E6E",
   },
