@@ -17,7 +17,7 @@ import {
   Animated,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Path, Defs, LinearGradient as SvgGradient, Stop } from "react-native-svg";
+import Svg, { Path } from "react-native-svg";
 import {
   Lock,
   User,
@@ -34,34 +34,36 @@ import {
 import { Colors } from "../../constants/colors";
 import { useAuthStore } from "../../store/useAuthStore";
 import { APP_CONFIG, PROD_API_BASE_URL, LOCAL_API_BASE_URL } from "../../constants/config";
-import { Input } from "../../components/ui/Input";
-import { Button } from "../../components/ui/Button";
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
-const HEADER_H = SCREEN_H * 0.44;
 
 /* ─── Wave SVG divider ─── */
 const WaveDivider = () => (
   <Svg
     width={SCREEN_W}
-    height={54}
-    viewBox={`0 0 ${SCREEN_W} 54`}
-    style={{ marginTop: -1 }}
+    height={48}
+    viewBox={`0 0 ${SCREEN_W} 48`}
+    style={{ display: "flex" }}
   >
     <Path
-      d={`M0,0 C${SCREEN_W * 0.25},54 ${SCREEN_W * 0.75},0 ${SCREEN_W},54 L${SCREEN_W},54 L0,54 Z`}
+      d={`M0,0 C${SCREEN_W * 0.3},48 ${SCREEN_W * 0.7},0 ${SCREEN_W},48 L${SCREEN_W},48 L0,48 Z`}
       fill="#FFFFFF"
     />
   </Svg>
 );
 
-/* ─── Sparkle decoration (SVG) ─── */
-const Sparkle = ({ x, y, size = 14 }: { x: number; y: number; size?: number }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" style={{ position: "absolute", left: x, top: y }}>
+/* ─── Sparkle SVG ─── */
+const Sparkle = ({ x, y, size = 12 }: { x: number; y: number; size?: number }) => (
+  <Svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    style={{ position: "absolute", left: x, top: y }}
+  >
     <Path
       d="M12 2 L13.5 9 L20 10.5 L13.5 12 L12 19 L10.5 12 L4 10.5 L10.5 9 Z"
       fill="#7EAEFF"
-      opacity={0.9}
+      opacity={0.85}
     />
   </Svg>
 );
@@ -78,7 +80,7 @@ export const LoginScreen = () => {
   const [customUrlInput, setCustomUrlInput] = useState("");
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(40)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
 
   const {
     login,
@@ -104,10 +106,9 @@ export const LoginScreen = () => {
     };
     initBiometrics();
 
-    // Entrance animation
     Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 0, duration: 600, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 500, useNativeDriver: true }),
     ]).start();
   }, []);
 
@@ -126,14 +127,12 @@ export const LoginScreen = () => {
       ) {
         Alert.alert(
           `Aktifkan ${biometricStatus.biometricName}?`,
-          `Apakah Anda ingin menggunakan ${biometricStatus.biometricName} untuk masuk lebih cepat?`,
+          `Gunakan ${biometricStatus.biometricName} untuk masuk lebih cepat?`,
           [
             { text: "Nanti Saja", style: "cancel" },
             {
               text: "Aktifkan",
-              onPress: async () => {
-                await enableBiometric(identifier.trim(), kataSandi);
-              },
+              onPress: async () => { await enableBiometric(identifier.trim(), kataSandi); },
             },
           ]
         );
@@ -188,33 +187,30 @@ export const LoginScreen = () => {
     <View style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
 
-      {/* ═══ HEADER: Navy Blue + Islamic Pattern + Masjid ═══ */}
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        {/* Pattern background */}
+      {/* ═══ HEADER: Navy + Pattern + Masjid ═══ */}
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        {/* Pattern overlay — ganti dengan file Anda */}
         <Image
           source={require("../../../assets/islamic_pattern.jpg")}
           style={styles.patternBg}
-          resizeMode="cover"
+          resizeMode="repeat"
         />
-        {/* Dark overlay agar pattern tidak terlalu dominan */}
-        <View style={styles.patternOverlay} />
+        <View style={styles.patternDim} />
 
-        {/* Mosque silhouette – right side */}
+        {/* Mosque silhouette */}
         <Image
           source={require("../../../assets/mosque_silhouette.jpg")}
           style={styles.mosqueBg}
           resizeMode="cover"
         />
-        <View style={styles.mosqueOverlay} />
 
-        {/* Sparkle decorations */}
-        <Sparkle x={SCREEN_W * 0.72} y={HEADER_H * 0.12} size={12} />
-        <Sparkle x={SCREEN_W * 0.78} y={HEADER_H * 0.22} size={8} />
-        <Sparkle x={SCREEN_W * 0.08} y={HEADER_H * 0.55} size={10} />
+        {/* Sparkle */}
+        <Sparkle x={SCREEN_W * 0.73} y={28} size={11} />
+        <Sparkle x={SCREEN_W * 0.80} y={46} size={7} />
+        <Sparkle x={SCREEN_W * 0.07} y={60} size={9} />
 
-        {/* Content */}
+        {/* Brand */}
         <View style={styles.headerContent}>
-          {/* Logo */}
           <TouchableOpacity onPress={handleLogoTap} activeOpacity={0.9}>
             <View style={styles.logoWrapper}>
               <Image
@@ -224,143 +220,126 @@ export const LoginScreen = () => {
               />
             </View>
           </TouchableOpacity>
-
           <Text style={styles.appName}>siMas</Text>
-          <Text style={styles.appSubtitle}>Sistem Informasi</Text>
-          <Text style={styles.appSubtitle}>Pondok Pesantren Maskumambang</Text>
+          <Text style={styles.appSubtitle}>
+            Sistem Informasi Pondok Pesantren Maskumambang
+          </Text>
         </View>
       </View>
 
-      {/* ═══ WAVE DIVIDER ═══ */}
-      <View style={styles.waveContainer}>
+      {/* Wave */}
+      <View style={styles.waveWrap}>
         <WaveDivider />
       </View>
 
-      {/* ═══ WHITE CARD: Form ═══ */}
+      {/* ═══ FORM AREA: Fixed, no scroll ═══ */}
       <KeyboardAvoidingView
-        style={styles.kav}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.formArea}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <Animated.ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={[styles.cardContent, { paddingBottom: insets.bottom + 24 }]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          scrollEventThrottle={16}
+        <Animated.View
+          style={[styles.formInner, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}
         >
-          <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-            <Text style={styles.welcomeTitle}>Selamat Datang</Text>
-            <Text style={styles.welcomeSub}>Masuk untuk mengakses layanan siMas.</Text>
+          <Text style={styles.welcomeTitle}>Selamat Datang</Text>
+          <Text style={styles.welcomeSub}>Masuk untuk mengakses layanan siMas.</Text>
 
-            {/* Error Banner */}
-            {error ? (
-              <View style={styles.errorBanner}>
-                <Text style={styles.errorText}>⚠ {error}</Text>
-              </View>
-            ) : null}
-
-            {/* Username Field */}
-            <View style={styles.inputPill}>
-              <User size={20} color="#94A3B8" style={styles.inputIcon} />
-              <TextInput
-                style={styles.inputText}
-                placeholder="Masukkan username"
-                placeholderTextColor="#94A3B8"
-                value={identifier}
-                onChangeText={(t) => { setIdentifier(t); setError(""); }}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
+          {/* Error Banner */}
+          {error ? (
+            <View style={styles.errorBanner}>
+              <Text style={styles.errorText}>⚠ {error}</Text>
             </View>
+          ) : null}
 
-            {/* Password Field */}
-            <View style={styles.inputPill}>
-              <Lock size={20} color="#94A3B8" style={styles.inputIcon} />
-              <TextInput
-                style={styles.inputText}
-                placeholder="Masukkan kata sandi"
-                placeholderTextColor="#94A3B8"
-                value={kataSandi}
-                onChangeText={(t) => { setKataSandi(t); setError(""); }}
-                secureTextEntry={!showPass}
-              />
-              <TouchableOpacity onPress={() => setShowPass(!showPass)} style={styles.eyeBtn}>
-                {showPass
-                  ? <Eye size={20} color="#94A3B8" />
-                  : <EyeOff size={20} color="#94A3B8" />}
-              </TouchableOpacity>
-            </View>
+          {/* Username */}
+          <View style={styles.inputPill}>
+            <User size={19} color="#94A3B8" style={styles.inputIcon} />
+            <TextInput
+              style={styles.inputText}
+              placeholder="Masukkan username"
+              placeholderTextColor="#94A3B8"
+              value={identifier}
+              onChangeText={(t) => { setIdentifier(t); setError(""); }}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
 
-            {/* Login Button */}
-            <TouchableOpacity
-              style={styles.loginBtn}
-              onPress={handleLogin}
-              activeOpacity={0.85}
-              disabled={isLoading && !isBioAuthenticating}
-            >
-              {isLoading && !isBioAuthenticating ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <>
-                  <Text style={styles.loginBtnText}>Login</Text>
-                  <ArrowRight size={20} color="#FFFFFF" />
-                </>
-              )}
+          {/* Password */}
+          <View style={styles.inputPill}>
+            <Lock size={19} color="#94A3B8" style={styles.inputIcon} />
+            <TextInput
+              style={styles.inputText}
+              placeholder="Masukkan kata sandi"
+              placeholderTextColor="#94A3B8"
+              value={kataSandi}
+              onChangeText={(t) => { setKataSandi(t); setError(""); }}
+              secureTextEntry={!showPass}
+            />
+            <TouchableOpacity onPress={() => setShowPass(!showPass)} style={styles.eyeBtn}>
+              {showPass ? <Eye size={19} color="#94A3B8" /> : <EyeOff size={19} color="#94A3B8" />}
             </TouchableOpacity>
+          </View>
 
-            {/* Divider ATAU */}
-            <View style={styles.dividerRow}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>ATAU</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            {/* Passkey / Biometric Button */}
-            {showBiometric ? (
-              <TouchableOpacity
-                style={styles.passkeyBtn}
-                onPress={handleBiometricLogin}
-                disabled={isBioAuthenticating || isLoading}
-                activeOpacity={0.85}
-              >
-                {isBioAuthenticating ? (
-                  <ActivityIndicator size="small" color="#162E6E" />
-                ) : (
-                  <>
-                    {isFaceId
-                      ? <ScanFace size={22} color="#162E6E" />
-                      : <FingerprintPattern size={22} color="#162E6E" />}
-                    <Text style={styles.passkeyBtnText}>Login dengan {bioName}</Text>
-                  </>
-                )}
-              </TouchableOpacity>
+          {/* Login Button */}
+          <TouchableOpacity
+            style={styles.loginBtn}
+            onPress={handleLogin}
+            activeOpacity={0.85}
+            disabled={isLoading && !isBioAuthenticating}
+          >
+            {isLoading && !isBioAuthenticating ? (
+              <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <TouchableOpacity
-                style={styles.passkeyBtn}
-                onPress={handleBiometricLogin}
-                activeOpacity={0.85}
-              >
-                <FingerprintPattern size={22} color="#162E6E" />
-                <Text style={styles.passkeyBtnText}>Login dengan Passkey</Text>
-              </TouchableOpacity>
+              <>
+                <Text style={styles.loginBtnText}>Login</Text>
+                <ArrowRight size={19} color="#FFFFFF" />
+              </>
             )}
+          </TouchableOpacity>
 
-            {/* Mode Tamu */}
-            <TouchableOpacity style={styles.tamuBtn} activeOpacity={0.8}>
-              <UserCircle size={22} color="#162E6E" />
-              <Text style={styles.tamuBtnText}>Mode Tamu</Text>
-              <ChevronRight size={20} color="#162E6E" style={{ marginLeft: "auto" }} />
-            </TouchableOpacity>
+          {/* Divider */}
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>ATAU</Text>
+            <View style={styles.dividerLine} />
+          </View>
 
-            {/* Footer */}
-            <Text style={styles.footerText}>
-              © {new Date().getFullYear()} Maskumambang Creative Center
-            </Text>
-          </Animated.View>
-        </Animated.ScrollView>
+          {/* Passkey */}
+          <TouchableOpacity
+            style={styles.passkeyBtn}
+            onPress={showBiometric ? handleBiometricLogin : undefined}
+            disabled={isBioAuthenticating || isLoading}
+            activeOpacity={0.85}
+          >
+            {isBioAuthenticating ? (
+              <ActivityIndicator size="small" color="#162E6E" />
+            ) : (
+              <>
+                {isFaceId
+                  ? <ScanFace size={21} color="#162E6E" />
+                  : <FingerprintPattern size={21} color="#162E6E" />}
+                <Text style={styles.passkeyBtnText}>
+                  {showBiometric ? `Login dengan ${bioName}` : "Login dengan Passkey"}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          {/* Mode Tamu */}
+          <TouchableOpacity style={styles.tamuBtn} activeOpacity={0.8}>
+            <UserCircle size={21} color="#162E6E" />
+            <Text style={styles.tamuBtnText}>Mode Tamu</Text>
+            <ChevronRight size={19} color="#162E6E" style={{ marginLeft: "auto" }} />
+          </TouchableOpacity>
+
+          {/* Footer */}
+          <Text style={[styles.footerText, { paddingBottom: insets.bottom + 4 }]}>
+            © {new Date().getFullYear()} Maskumambang Creative Center
+          </Text>
+        </Animated.View>
       </KeyboardAvoidingView>
 
-      {/* ═══ Modal Server Settings (hidden, 7x tap logo) ═══ */}
+      {/* ═══ Modal Server ═══ */}
       <Modal
         visible={showServerModal}
         transparent
@@ -374,7 +353,6 @@ export const LoginScreen = () => {
               <Text style={styles.modalTitle}>Pengaturan Server API</Text>
             </View>
             <Text style={styles.modalSub}>Tentukan endpoint backend API LMS</Text>
-
             <View style={styles.inputPillModal}>
               <TextInput
                 style={styles.inputTextModal}
@@ -386,7 +364,6 @@ export const LoginScreen = () => {
                 autoCorrect={false}
               />
             </View>
-
             <View style={styles.presetRow}>
               <TouchableOpacity
                 style={[styles.presetChip, { backgroundColor: "#ECFDF5" }]}
@@ -401,7 +378,6 @@ export const LoginScreen = () => {
                 <Text style={styles.presetChipText}>💻 Local Dev</Text>
               </TouchableOpacity>
             </View>
-
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={[styles.modalBtn, styles.modalBtnOutline]}
@@ -429,10 +405,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
 
-  /* ─ Header ─ */
+  /* ─ Header (lebih compact: ~36% layar) ─ */
   header: {
     width: SCREEN_W,
-    height: HEADER_H,
+    height: SCREEN_H * 0.36,
     backgroundColor: "#162E6E",
     overflow: "hidden",
     position: "relative",
@@ -440,28 +416,21 @@ const styles = StyleSheet.create({
   patternBg: {
     position: "absolute",
     width: SCREEN_W,
-    height: HEADER_H,
-    opacity: 0.18,
+    height: SCREEN_H * 0.36,
+    opacity: 0.15,
   },
-  patternOverlay: {
+  patternDim: {
     position: "absolute",
     width: SCREEN_W,
-    height: HEADER_H,
-    backgroundColor: "transparent",
+    height: SCREEN_H * 0.36,
   },
   mosqueBg: {
     position: "absolute",
-    right: -SCREEN_W * 0.15,
+    right: -SCREEN_W * 0.12,
     bottom: 0,
-    width: SCREEN_W * 0.75,
-    height: HEADER_H * 0.85,
-    opacity: 0.18,
-  },
-  mosqueOverlay: {
-    position: "absolute",
-    width: SCREEN_W,
-    height: HEADER_H,
-    backgroundColor: "transparent",
+    width: SCREEN_W * 0.65,
+    height: SCREEN_H * 0.28,
+    opacity: 0.15,
   },
   headerContent: {
     flex: 1,
@@ -470,92 +439,91 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   logoWrapper: {
-    width: 82,
-    height: 82,
-    borderRadius: 22,
+    width: 70,
+    height: 70,
+    borderRadius: 20,
     backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 14,
     elevation: 10,
-    marginBottom: 14,
-    padding: 10,
+    marginBottom: 10,
+    padding: 9,
   },
   logoImage: {
     width: "100%",
     height: "100%",
   },
   appName: {
-    fontSize: 30,
+    fontSize: 26,
     fontWeight: "900",
     color: "#FFFFFF",
     letterSpacing: 1.5,
     textAlign: "center",
   },
   appSubtitle: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "500",
-    color: "rgba(255,255,255,0.8)",
+    color: "rgba(255,255,255,0.75)",
     textAlign: "center",
-    lineHeight: 20,
+    marginTop: 3,
   },
 
   /* ─ Wave ─ */
-  waveContainer: {
+  waveWrap: {
     backgroundColor: "#162E6E",
-    marginTop: -1,
   },
 
-  /* ─ Card ─ */
-  kav: {
+  /* ─ Form: flex 1, no scroll ─ */
+  formArea: {
     flex: 1,
     backgroundColor: "#FFFFFF",
-    marginTop: -2,
   },
-  cardContent: {
-    flexGrow: 1,
+  formInner: {
+    flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 4,
+    paddingTop: 12,
+    justifyContent: "center",
   },
   welcomeTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "800",
     color: "#162E6E",
-    marginBottom: 4,
+    marginBottom: 3,
   },
   welcomeSub: {
-    fontSize: 14,
+    fontSize: 13,
     color: "#64748B",
-    marginBottom: 20,
+    marginBottom: 16,
   },
 
   /* ─ Error ─ */
   errorBanner: {
     backgroundColor: "#FEF2F2",
-    borderLeftWidth: 4,
+    borderLeftWidth: 3,
     borderLeftColor: "#EF4444",
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 12,
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 10,
   },
   errorText: {
-    fontSize: 13,
+    fontSize: 12.5,
     color: "#DC2626",
     fontWeight: "600",
   },
 
-  /* ─ Pill Input ─ */
+  /* ─ Input Pill ─ */
   inputPill: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#F1F5F9",
     borderRadius: 50,
     paddingHorizontal: 18,
-    paddingVertical: Platform.OS === "ios" ? 14 : 10,
-    marginBottom: 14,
+    paddingVertical: Platform.OS === "ios" ? 13 : 9,
+    marginBottom: 12,
     borderWidth: 1.5,
     borderColor: "#E2E8F0",
   },
@@ -564,7 +532,7 @@ const styles = StyleSheet.create({
   },
   inputText: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 14.5,
     color: "#1E293B",
   },
   eyeBtn: {
@@ -575,30 +543,30 @@ const styles = StyleSheet.create({
   loginBtn: {
     backgroundColor: "#162E6E",
     borderRadius: 50,
-    paddingVertical: 16,
+    paddingVertical: 15,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
-    marginTop: 4,
+    marginTop: 2,
     shadowColor: "#162E6E",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 7,
   },
   loginBtnText: {
     color: "#FFFFFF",
-    fontSize: 16,
+    fontSize: 15.5,
     fontWeight: "700",
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
 
   /* ─ Divider ─ */
   dividerRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 18,
+    marginVertical: 14,
     gap: 10,
   },
   dividerLine: {
@@ -613,7 +581,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
 
-  /* ─ Passkey Button ─ */
+  /* ─ Passkey ─ */
   passkeyBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -622,12 +590,12 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "#CBD5E1",
     borderRadius: 50,
-    paddingVertical: 15,
+    paddingVertical: 14,
     backgroundColor: "#FFFFFF",
-    marginBottom: 12,
+    marginBottom: 10,
   },
   passkeyBtnText: {
-    fontSize: 15,
+    fontSize: 14.5,
     fontWeight: "700",
     color: "#162E6E",
   },
@@ -639,12 +607,12 @@ const styles = StyleSheet.create({
     gap: 10,
     backgroundColor: "#EEF2FF",
     borderRadius: 50,
-    paddingVertical: 15,
+    paddingVertical: 14,
     paddingHorizontal: 20,
-    marginBottom: 24,
+    marginBottom: 16,
   },
   tamuBtnText: {
-    fontSize: 15,
+    fontSize: 14.5,
     fontWeight: "700",
     color: "#162E6E",
   },
@@ -652,12 +620,11 @@ const styles = StyleSheet.create({
   /* ─ Footer ─ */
   footerText: {
     textAlign: "center",
-    fontSize: 12,
+    fontSize: 11.5,
     color: "#94A3B8",
-    marginBottom: 8,
   },
 
-  /* ─ Server Modal ─ */
+  /* ─ Modal Server ─ */
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
