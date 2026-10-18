@@ -1,5 +1,5 @@
 // mobile/src/screens/Pegawai/DaftarPegawaiScreen.tsx
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { useNavigation } from "@react-navigation/native";
 import {
   ChevronLeft,
+  ChevronRight,
   Search,
   UserCheck,
   User,
@@ -24,8 +25,9 @@ import {
   Mail,
   Building2,
   Briefcase,
-  Sparkles,
   Users,
+  School,
+  ArrowRight,
 } from "lucide-react-native";
 import { Colors } from "../../constants/colors";
 import { useAuthStore } from "../../store/useAuthStore";
@@ -33,6 +35,7 @@ import { apiClient } from "../../api/client";
 import { SwipeBackContainer } from "../../components/ui/SwipeBackContainer";
 import { isDirekturRole, isKepalaSekolahRole } from "../../utils/permissions";
 import { getJenjangLembagaIds, getJenjangDisplayName } from "../../utils/lembagaUtil";
+import { FocusAwareStatusBar } from "../../components/ui/FocusAwareStatusBar";
 
 interface LembagaItem {
   lembaga_id: number;
@@ -49,13 +52,14 @@ interface PegawaiItem {
   jenis_kelamin?: string;
   no_hp?: string;
   email?: string;
-  foto?: string;
+  status?: string;
   pegawai_lembaga?: Array<{
     lembaga_id: number;
     lembaga?: LembagaItem;
   }>;
   user?: {
     username?: string;
+    email?: string;
     user_roles?: Array<{
       role?: {
         nama_role: string;
@@ -92,13 +96,13 @@ export const DaftarPegawaiScreen = () => {
 
   const [pegawaiList, setPegawaiList] = useState<PegawaiItem[]>([]);
   const [lembagaList, setLembagaList] = useState<LembagaItem[]>([]);
-  // null = Semua lembaga (khusus Direktur), number = filter lembaga tertentu
-  const [selectedLembagaId, setSelectedLembagaId] = useState<number | null>(
-    isDirektur ? null : kepsekLembagaId
-  );
+
+  // Baik Direktur maupun Kepala Sekolah:
+  // Halaman awal belum memilih lembaga (null), baru setelah memilih list muncul
+  const [selectedLembagaId, setSelectedLembagaId] = useState<number | null>(null);
   const [selectedGender, setSelectedGender] = useState<"ALL" | "L" | "P">("ALL");
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -107,10 +111,37 @@ export const DaftarPegawaiScreen = () => {
     return getJenjangLembagaIds(kepsekLembagaId, lembagaList);
   }, [kepsekLembagaId, lembagaList]);
 
+  // Daftar lembaga yang dapat diakses:
+  // Direktur: semua lembaga
+  // Kepala Sekolah: unit lembaga dalam jenjang binaannya (misal MI PA & MI PI)
+  const accessibleLembagas = useMemo(() => {
+    if (isDirektur) return lembagaList;
+    if (isKepsek) {
+      if (kepsekJenjangIds.length > 0) {
+        return lembagaList.filter((l) => kepsekJenjangIds.includes(l.lembaga_id));
+      }
+      if (kepsekLembagaId) {
+        return lembagaList.filter((l) => Number(l.lembaga_id) === Number(kepsekLembagaId));
+      }
+    }
+    return lembagaList;
+  }, [isDirektur, isKepsek, kepsekJenjangIds, kepsekLembagaId, lembagaList]);
+
+  // Nama lembaga yang sedang terpilih
+  const selectedLembagaObj = useMemo(() => {
+    if (!selectedLembagaId) return null;
+    return lembagaList.find((l) => Number(l.lembaga_id) === Number(selectedLembagaId)) || null;
+  }, [selectedLembagaId, lembagaList]);
+
   const displayJenjangTitle = useMemo(() => {
-    if (isDirektur) return "Semua Lembaga";
-    return getJenjangDisplayName(kepsekLembagaId, kepsekLembagaName);
-  }, [isDirektur, kepsekLembagaId, kepsekLembagaName]);
+    if (selectedLembagaObj) {
+      return selectedLembagaObj.singkatan || selectedLembagaObj.nama_lembaga;
+    }
+    if (isKepsek) {
+      return getJenjangDisplayName(kepsekLembagaId, kepsekLembagaName);
+    }
+    return "Pilih Lembaga";
+  }, [selectedLembagaObj, isKepsek, kepsekLembagaId, kepsekLembagaName]);
 
   // 1. Fetch Lembaga
   const fetchLembagas = useCallback(async () => {
@@ -125,47 +156,113 @@ export const DaftarPegawaiScreen = () => {
     }
   }, []);
 
-  // 2. Fetch Pegawai
-  const fetchPegawai = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await apiClient.get("/pegawai?limit=500&order=nama.asc");
-      const data: PegawaiItem[] = res.data?.data || res.data || [];
-      setPegawaiList(data);
-    } catch (err: any) {
-      console.warn("Gagal fetch pegawai:", err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // 2. Fetch Pegawai berdasarkan lembaga yang dipilih atau search
+  const fetchPegawai = useCallback(
+    async (lembagaId: number | null, query: string = "") => {
+      // Jika belum pilih lembaga dan belum ada kata kunci pencarian, jangan load data massal agar cepat
+      if (lembagaId === null && !query.trim()) {
+        setPegawaiList([]);
+        setLoading(false);
+        return;
+      }
 
+      try {
+        setLoading(true);
+
+        let endpoint = "/pegawai?limit=300&order=nama.asc";
+
+        if (lembagaId !== null) {
+          endpoint += `&lembaga_id=eq.${lembagaId}`;
+        } else if (isKepsek && kepsekJenjangIds.length > 0) {
+          endpoint += `&lembaga_id=in.(${kepsekJenjangIds.join(",")})`;
+        }
+
+        if (query.trim() && lembagaId === null) {
+          endpoint += `&nama=ilike.*${encodeURIComponent(query.trim())}*`;
+        }
+
+        const res = await apiClient.get(endpoint);
+        let data: PegawaiItem[] = res.data?.data || res.data || [];
+
+        // Fallback jika endpoint langsung /pegawai?lembaga_id kosong tapi ada di /pegawai_lembaga
+        if (lembagaId !== null && data.length === 0) {
+          try {
+            const plRes = await apiClient.get(`/pegawai_lembaga?lembaga_id=eq.${lembagaId}&limit=300`);
+            const plData = plRes.data?.data || plRes.data || [];
+            if (Array.isArray(plData) && plData.length > 0) {
+              const pList = plData
+                .map((pl: any) => pl.pegawai)
+                .filter(Boolean) as PegawaiItem[];
+              if (pList.length > 0) {
+                data = pList;
+              }
+            }
+          } catch (_) {}
+        }
+
+        setPegawaiList(data);
+      } catch (err: any) {
+        console.warn("Gagal fetch pegawai:", err.message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [isDirektur, isKepsek, kepsekJenjangIds]
+  );
+
+  // Inisialisasi awal
   useEffect(() => {
     fetchLembagas();
-    fetchPegawai();
-  }, [fetchLembagas, fetchPegawai]);
+  }, [fetchLembagas]);
+
+  // Fetch data pegawai ketika lembaga dipilih atau search berubah (debounced)
+  const searchTimeoutRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    if (selectedLembagaId !== null) {
+      // Jika lembaga sudah dipilih, fetch data lembaga tersebut
+      fetchPegawai(selectedLembagaId, searchQuery);
+    } else if (searchQuery.trim().length >= 2) {
+      // Jika belum pilih lembaga tapi mencari nama pegawai lintas lembaga
+      searchTimeoutRef.current = setTimeout(() => {
+        fetchPegawai(null, searchQuery);
+      }, 400);
+    } else {
+      setPegawaiList([]);
+    }
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [selectedLembagaId, searchQuery, fetchPegawai]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([fetchLembagas(), fetchPegawai()]);
+    await Promise.all([
+      fetchLembagas(),
+      fetchPegawai(selectedLembagaId, searchQuery),
+    ]);
     setRefreshing(false);
   };
 
-  // Filter Pegawai berdasarkan Lembaga (1 Jenjang untuk Kepsek), Gender, & Search
+  // Filter Pegawai di Client-side (Search & Gender)
   const filteredPegawai = useMemo(() => {
     return pegawaiList.filter((p) => {
-      // 1. Filter Lembaga
-      if (isKepsek && kepsekJenjangIds.length > 0) {
-        // Kepala Sekolah menampilkan pegawai yang tercatat pada 1 JENJANG yang dipimpin (Laki-laki & Perempuan, misal MIPA + MIPI)
-        const matchLembaga = p.pegawai_lembaga?.some((pl) =>
-          kepsekJenjangIds.includes(pl.lembaga_id)
+      // 1. Filter Lembaga (Validasi Ganda: pegawai_lembaga & user_roles)
+      if (selectedLembagaId !== null) {
+        const matchPl = p.pegawai_lembaga?.some(
+          (pl) => Number(pl.lembaga_id) === Number(selectedLembagaId)
         );
-        if (!matchLembaga) return false;
-      } else if (isDirektur && selectedLembagaId !== null) {
-        // Direktur memilih filter lembaga tertentu
-        const matchLembaga = p.pegawai_lembaga?.some(
-          (pl) => pl.lembaga_id === selectedLembagaId
+        const matchUr = p.user?.user_roles?.some(
+          (ur) => Number(ur.lembaga?.lembaga_id) === Number(selectedLembagaId)
         );
-        if (!matchLembaga) return false;
+        if (!matchPl && !matchUr) return false;
       }
 
       // 2. Filter Gender (L / P)
@@ -185,39 +282,19 @@ export const DaftarPegawaiScreen = () => {
       const matchJabatan = p.jabatan?.toLowerCase().includes(q);
       return matchNama || matchNip || matchNig || matchJabatan;
     });
-  }, [
-    pegawaiList,
-    isKepsek,
-    kepsekJenjangIds,
-    isDirektur,
-    selectedLembagaId,
-    selectedGender,
-    searchQuery,
-  ]);
+  }, [pegawaiList, selectedLembagaId, selectedGender, searchQuery]);
 
-  // Gender Stats dari daftar pegawai yang relevan
+  // Gender Stats
   const genderStats = useMemo(() => {
     let lk = 0;
     let pr = 0;
-    // Hitung berdasarkan filter lembaga yang aktif
-    const pool = pegawaiList.filter((p) => {
-      if (isKepsek && kepsekJenjangIds.length > 0) {
-        return p.pegawai_lembaga?.some((pl) => kepsekJenjangIds.includes(pl.lembaga_id));
-      }
-      if (isDirektur && selectedLembagaId !== null) {
-        return p.pegawai_lembaga?.some((pl) => pl.lembaga_id === selectedLembagaId);
-      }
-      return true;
-    });
-
-    pool.forEach((p) => {
+    filteredPegawai.forEach((p) => {
       const jk = (p.jenis_kelamin || "").toUpperCase();
       if (jk === "L" || jk.includes("LAKI")) lk += 1;
       else if (jk === "P" || jk.includes("PEREMPUAN")) pr += 1;
     });
-
-    return { total: pool.length, lk, pr };
-  }, [pegawaiList, isKepsek, kepsekJenjangIds, isDirektur, selectedLembagaId]);
+    return { total: filteredPegawai.length, lk, pr };
+  }, [filteredPegawai]);
 
   const handleCall = (phone?: string) => {
     if (!phone) return;
@@ -230,9 +307,17 @@ export const DaftarPegawaiScreen = () => {
     Linking.openURL(`mailto:${email}`).catch(() => {});
   };
 
+  const handleSelectPegawai = (item: PegawaiItem) => {
+    navigation.navigate("DetailPegawai", {
+      pegawaiId: item.pegawai_id,
+      pegawai: item,
+    });
+  };
+
   return (
     <SwipeBackContainer style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
+      <FocusAwareStatusBar barStyle="light-content" backgroundColor="#162E6E" />
+
       {/* ─── HEADER ─── */}
       <View style={styles.header}>
         <SafeAreaView edges={["top"]} style={styles.headerSafe}>
@@ -259,129 +344,128 @@ export const DaftarPegawaiScreen = () => {
         </SafeAreaView>
       </View>
 
-      {/* ─── FILTER LEMBAGA (KHUSUS DIREKTUR) ─── */}
-      {isDirektur && lembagaList.length > 0 && (
-        <View style={styles.filterLembagaBar}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 16 }}
-          >
-            <TouchableOpacity
-              style={[
-                styles.chip,
-                selectedLembagaId === null && styles.chipActive,
-              ]}
-              onPress={() => setSelectedLembagaId(null)}
-            >
-              <Text
-                style={[
-                  styles.chipText,
-                  selectedLembagaId === null && styles.chipTextActive,
-                ]}
-              >
-                Semua Lembaga
-              </Text>
-            </TouchableOpacity>
-
-            {lembagaList.map((lem) => (
-              <TouchableOpacity
-                key={lem.lembaga_id}
-                style={[
-                  styles.chip,
-                  selectedLembagaId === lem.lembaga_id && styles.chipActive,
-                ]}
-                onPress={() => setSelectedLembagaId(lem.lembaga_id)}
-              >
-                <Text
-                  style={[
-                    styles.chipText,
-                    selectedLembagaId === lem.lembaga_id && styles.chipTextActive,
-                  ]}
-                >
-                  {lem.singkatan || lem.nama_lembaga}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      )}
-
-      {/* ─── SEARCH & GENDER FILTER BAR ─── */}
+      {/* ─── SEARCH BAR (Utama di bagian atas) ─── */}
       <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
           <Search size={16} color="#64748B" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Cari nama, NIP, NIG, atau jabatan..."
+            placeholder={
+              selectedLembagaId
+                ? `Cari pegawai di ${selectedLembagaObj?.singkatan || "lembaga ini"}...`
+                : "Cari nama, NIP, NIG, atau jabatan pegawai..."
+            }
             placeholderTextColor="#94A3B8"
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery("")}>
-              <Text style={{ fontSize: 13, color: "#94A3B8", fontWeight: "600" }}>✕</Text>
+              <Text style={{ fontSize: 13, color: "#94A3B8", fontWeight: "600", paddingHorizontal: 4 }}>
+                ✕
+              </Text>
             </TouchableOpacity>
           )}
         </View>
 
-        {/* Gender Filter Chips */}
-        <View style={styles.genderRow}>
-          <TouchableOpacity
-            style={[styles.genderChip, selectedGender === "ALL" && styles.genderChipActive]}
-            onPress={() => setSelectedGender("ALL")}
-          >
-            <Text
-              style={[
-                styles.genderChipText,
-                selectedGender === "ALL" && styles.genderChipTextActive,
-              ]}
+        {/* ─── FILTER LEMBAGA (DIREKTUR & KEPALA SEKOLAH - Tab Semua Lembaga Dihilangkan) ─── */}
+        {accessibleLembagas.length > 0 && (
+          <View style={styles.filterLembagaBar}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 2, gap: 8 }}
             >
-              Semua ({genderStats.total})
-            </Text>
-          </TouchableOpacity>
+              {accessibleLembagas.map((lem) => {
+                const isSelected = selectedLembagaId === lem.lembaga_id;
+                return (
+                  <TouchableOpacity
+                    key={lem.lembaga_id}
+                    style={[styles.chip, isSelected && styles.chipActive]}
+                    onPress={() => {
+                      // Toggle jika diklik ulang
+                      if (isSelected) {
+                        setSelectedLembagaId(null);
+                      } else {
+                        setSelectedLembagaId(lem.lembaga_id);
+                      }
+                    }}
+                    activeOpacity={0.75}
+                  >
+                    <Building2
+                      size={12}
+                      color={isSelected ? "#FFFFFF" : "#64748B"}
+                      style={{ marginRight: 5 }}
+                    />
+                    <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
+                      {lem.singkatan || lem.nama_lembaga}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
 
-          <TouchableOpacity
-            style={[
-              styles.genderChip,
-              styles.genderChipMale,
-              selectedGender === "L" && styles.genderChipMaleActive,
-            ]}
-            onPress={() => setSelectedGender("L")}
-          >
-            <Text
-              style={[
-                styles.genderChipText,
-                { color: "#1D4ED8" },
-                selectedGender === "L" && styles.genderChipTextActive,
-              ]}
+        {/* Gender Filter Chips (Hanya tampil jika lembaga sudah dipilih atau hasil pencarian ada) */}
+        {(selectedLembagaId !== null || searchQuery.trim().length > 0) && (
+          <View style={styles.genderRow}>
+            <TouchableOpacity
+              style={[styles.genderChip, selectedGender === "ALL" && styles.genderChipActive]}
+              onPress={() => setSelectedGender("ALL")}
             >
-              Laki-laki ({genderStats.lk})
-            </Text>
-          </TouchableOpacity>
+              <Text
+                style={[
+                  styles.genderChipText,
+                  selectedGender === "ALL" && styles.genderChipTextActive,
+                ]}
+              >
+                Semua ({genderStats.total})
+              </Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[
-              styles.genderChip,
-              styles.genderChipFemale,
-              selectedGender === "P" && styles.genderChipFemaleActive,
-            ]}
-            onPress={() => setSelectedGender("P")}
-          >
-            <Text
+            <TouchableOpacity
               style={[
-                styles.genderChipText,
-                { color: "#BE185D" },
-                selectedGender === "P" && styles.genderChipTextActive,
+                styles.genderChip,
+                styles.genderChipMale,
+                selectedGender === "L" && styles.genderChipMaleActive,
               ]}
+              onPress={() => setSelectedGender("L")}
             >
-              Perempuan ({genderStats.pr})
-            </Text>
-          </TouchableOpacity>
-        </View>
+              <Text
+                style={[
+                  styles.genderChipText,
+                  { color: "#1D4ED8" },
+                  selectedGender === "L" && styles.genderChipTextActive,
+                ]}
+              >
+                Laki-laki ({genderStats.lk})
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.genderChip,
+                styles.genderChipFemale,
+                selectedGender === "P" && styles.genderChipFemaleActive,
+              ]}
+              onPress={() => setSelectedGender("P")}
+            >
+              <Text
+                style={[
+                  styles.genderChipText,
+                  { color: "#BE185D" },
+                  selectedGender === "P" && styles.genderChipTextActive,
+                ]}
+              >
+                Perempuan ({genderStats.pr})
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
-      {/* ─── LIST PEGAWAI ─── */}
+      {/* ─── KONTEN UTAMA ─── */}
       <ScrollView
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 32 }]}
         refreshControl={
@@ -396,29 +480,82 @@ export const DaftarPegawaiScreen = () => {
         {loading ? (
           <View style={styles.centerLoading}>
             <ActivityIndicator size="large" color={Colors.primary} />
-            <Text style={styles.loadingText}>Memuat data pegawai...</Text>
+            <Text style={styles.loadingText}>Memuat data pegawai lembaga...</Text>
+          </View>
+        ) : selectedLembagaId === null && !searchQuery.trim() ? (
+          /* ─── HALAMAN AWAL (BELUM MEMILIH LEMBAGA - BERLAKU UNTUK DIREKTUR & KEPALA SEKOLAH) ─── */
+          <View style={styles.initialStateContainer}>
+            <View style={styles.initialCardHero}>
+              <View style={styles.initialIconCircle}>
+                <School size={36} color="#162E6E" />
+              </View>
+              <Text style={styles.initialTitle}>Pilih Unit Lembaga</Text>
+              <Text style={styles.initialSubtitle}>
+                {isDirektur
+                  ? "Silakan pilih salah satu unit lembaga di bawah untuk memuat data pegawai dan guru, atau gunakan kolom pencarian di atas untuk mencari nama langsung."
+                  : "Silakan pilih salah satu unit lembaga binaan Anda di bawah untuk memuat data pegawai dan guru, atau gunakan kolom pencarian di atas untuk mencari nama langsung."}
+              </Text>
+            </View>
+
+            {/* Quick Grid Lembaga Cards */}
+            <Text style={styles.lembagaSectionTitle}>
+              {isDirektur ? "Daftar Unit Lembaga Maskumambang" : "Unit Lembaga Binaan Anda"}
+            </Text>
+            <View style={styles.lembagaGrid}>
+              {accessibleLembagas.map((lem) => (
+                <TouchableOpacity
+                  key={lem.lembaga_id}
+                  style={styles.lembagaCard}
+                  onPress={() => setSelectedLembagaId(lem.lembaga_id)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.lembagaCardIcon}>
+                    <Building2 size={20} color="#162E6E" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.lembagaCardTitle} numberOfLines={1}>
+                      {lem.singkatan || lem.nama_lembaga}
+                    </Text>
+                    <Text style={styles.lembagaCardSub} numberOfLines={1}>
+                      {lem.nama_lembaga}
+                    </Text>
+                  </View>
+                  <ChevronRight size={16} color="#94A3B8" />
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
         ) : filteredPegawai.length === 0 ? (
+          /* ─── EMPTY STATE JIKA HASIL TIDAK DITEMUKAN ─── */
           <View style={styles.emptyCard}>
             <Users size={36} color="#94A3B8" />
             <Text style={styles.emptyTitle}>Pegawai Tidak Ditemukan</Text>
             <Text style={styles.emptySubtitle}>
-              Tidak ada data pegawai yang sesuai dengan pencarian atau filter lembaga ini.
+              {searchQuery.trim()
+                ? `Tidak ada pegawai dengan kata kunci "${searchQuery}".`
+                : "Belum ada data pegawai yang terdaftar pada lembaga ini."}
             </Text>
           </View>
         ) : (
+          /* ─── LIST PEGAWAI (DAPAT DIKLIK KE DETAIL) ─── */
           <View style={styles.pegawaiListContainer}>
             {filteredPegawai.map((item) => {
               const jk = (item.jenis_kelamin || "").toUpperCase();
               const isMale = jk === "L" || jk.includes("LAKI");
 
               // Lembaga badges
-              const lembagas = item.pegawai_lembaga
-                ?.map((pl) => pl.lembaga?.singkatan || pl.lembaga?.nama_lembaga)
-                .filter(Boolean) || [];
+              const lembagas =
+                item.pegawai_lembaga
+                  ?.map((pl) => pl.lembaga?.singkatan || pl.lembaga?.nama_lembaga)
+                  .filter(Boolean) || [];
 
               return (
-                <View key={item.pegawai_id} style={styles.pegawaiCard}>
+                <TouchableOpacity
+                  key={item.pegawai_id}
+                  style={styles.pegawaiCard}
+                  onPress={() => handleSelectPegawai(item)}
+                  activeOpacity={0.8}
+                >
                   <View style={styles.cardTopRow}>
                     {/* Avatar */}
                     <View
@@ -439,9 +576,12 @@ export const DaftarPegawaiScreen = () => {
 
                     {/* Main Info */}
                     <View style={styles.cardInfoCol}>
-                      <Text style={styles.pegawaiName} numberOfLines={2}>
-                        {item.nama}
-                      </Text>
+                      <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
+                        <Text style={styles.pegawaiName} numberOfLines={2}>
+                          {item.nama}
+                        </Text>
+                        <ChevronRight size={18} color="#CBD5E1" style={{ marginTop: 2 }} />
+                      </View>
 
                       {/* Jabatan & NIP */}
                       <View style={styles.metaRow}>
@@ -501,7 +641,7 @@ export const DaftarPegawaiScreen = () => {
                       ) : null}
                     </View>
                   )}
-                </View>
+                </TouchableOpacity>
               );
             })}
           </View>
@@ -518,11 +658,11 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: "#162E6E",
-    paddingBottom: 16,
+    paddingBottom: 14,
   },
   headerSafe: {
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === "android" ? 12 : 6,
+    paddingTop: Platform.OS === "android" ? 8 : 0,
   },
   headerRow: {
     flexDirection: "row",
@@ -530,10 +670,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.15)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -542,54 +682,37 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "700",
+    fontSize: 17,
+    fontWeight: "800",
     color: "#FFFFFF",
   },
   headerSubtitle: {
-    fontSize: 13,
+    fontSize: 11.5,
     color: "#93C5FD",
-    marginTop: 2,
+    marginTop: 1,
   },
   headerRightBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.12)",
     alignItems: "center",
     justifyContent: "center",
   },
-  filterLembagaBar: {
-    backgroundColor: "#FFFFFF",
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E2E8F0",
-  },
-  chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 20,
-    backgroundColor: "#F1F5F9",
-    marginRight: 8,
-  },
-  chipActive: {
-    backgroundColor: "#162E6E",
-  },
-  chipText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#475569",
-  },
-  chipTextActive: {
-    color: "#FFFFFF",
-  },
+
+  /* Search & Filter Bar */
   searchContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
     backgroundColor: "#FFFFFF",
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: "#EEF2F6",
-    gap: 10,
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 2,
   },
   searchBar: {
     flexDirection: "row",
@@ -598,175 +721,302 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 12,
     height: 42,
+    gap: 8,
   },
   searchInput: {
     flex: 1,
-    marginLeft: 8,
-    fontSize: 13.5,
-    color: "#1E293B",
+    fontSize: 13,
+    color: "#0F172A",
+    paddingVertical: 0,
+  },
+  filterLembagaBar: {
+    marginTop: 10,
+  },
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    backgroundColor: "#F1F5F9",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  chipActive: {
+    backgroundColor: "#162E6E",
+    borderColor: "#162E6E",
+  },
+  chipText: {
+    fontSize: 11.5,
+    fontWeight: "700",
+    color: "#475569",
+  },
+  chipTextActive: {
+    color: "#FFFFFF",
   },
   genderRow: {
     flexDirection: "row",
     gap: 8,
+    marginTop: 10,
   },
   genderChip: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 16,
+    borderRadius: 14,
     backgroundColor: "#F1F5F9",
   },
   genderChipActive: {
-    backgroundColor: "#162E6E",
+    backgroundColor: "#1E293B",
   },
   genderChipMale: {
     backgroundColor: "#EFF6FF",
   },
   genderChipMaleActive: {
-    backgroundColor: "#1D4ED8",
+    backgroundColor: "#2563EB",
   },
   genderChipFemale: {
     backgroundColor: "#FDF2F8",
   },
   genderChipFemaleActive: {
-    backgroundColor: "#BE185D",
+    backgroundColor: "#DB2777",
   },
   genderChipText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
-    color: "#475569",
+    color: "#64748B",
   },
   genderChipTextActive: {
     color: "#FFFFFF",
   },
+
+  /* Scroll Content */
   scrollContent: {
-    padding: 16,
-    paddingBottom: 32,
+    paddingHorizontal: 16,
+    paddingTop: 16,
   },
   centerLoading: {
-    paddingVertical: 48,
     alignItems: "center",
+    justifyContent: "center",
+    paddingTop: 60,
   },
   loadingText: {
     marginTop: 12,
     fontSize: 13,
     color: "#64748B",
+    fontWeight: "600",
   },
-  emptyCard: {
-    paddingVertical: 48,
-    paddingHorizontal: 24,
+
+  /* Initial State (Direktur belum pilih lembaga) */
+  initialStateContainer: {
+    paddingTop: 4,
+  },
+  initialCardHero: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 16,
+    borderRadius: 20,
+    padding: 20,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: "#EEF2F6",
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 2,
+    marginBottom: 20,
+  },
+  initialIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#EEF2FF",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  initialTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#0F172A",
+    marginBottom: 6,
+  },
+  initialSubtitle: {
+    fontSize: 12,
+    color: "#64748B",
+    textAlign: "center",
+    lineHeight: 18,
+  },
+  lembagaSectionTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#1E293B",
+    marginBottom: 10,
+    marginLeft: 2,
+  },
+  lembagaGrid: {
+    gap: 8,
+  },
+  lembagaCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#EEF2F6",
+    gap: 12,
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  lembagaCardIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: "#EFF6FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  lembagaCardTitle: {
+    fontSize: 13.5,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  lembagaCardSub: {
+    fontSize: 11,
+    color: "#64748B",
+    marginTop: 1,
+  },
+
+  /* Empty State */
+  emptyCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 20,
+    borderWidth: 1,
+    borderColor: "#EEF2F6",
   },
   emptyTitle: {
     fontSize: 15,
-    fontWeight: "700",
-    color: "#334155",
+    fontWeight: "800",
+    color: "#0F172A",
     marginTop: 12,
+    marginBottom: 4,
   },
   emptySubtitle: {
-    fontSize: 12.5,
+    fontSize: 12,
     color: "#64748B",
     textAlign: "center",
-    marginTop: 4,
     lineHeight: 18,
   },
+
+  /* Pegawai Cards */
   pegawaiListContainer: {
     gap: 12,
   },
   pegawaiCard: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 14,
     borderWidth: 1,
     borderColor: "#EEF2F6",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.04,
-    shadowRadius: 3,
+    shadowRadius: 8,
     elevation: 2,
   },
   cardTopRow: {
     flexDirection: "row",
     alignItems: "flex-start",
+    gap: 12,
   },
   avatarCircle: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
+    marginTop: 2,
   },
   avatarText: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "800",
   },
   cardInfoCol: {
     flex: 1,
   },
   pegawaiName: {
-    fontSize: 14.5,
-    fontWeight: "700",
+    fontSize: 14,
+    fontWeight: "800",
     color: "#0F172A",
-    lineHeight: 20,
+    lineHeight: 19,
+    flex: 1,
+    paddingRight: 6,
   },
   metaRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 4,
+    gap: 5,
+    marginTop: 3,
   },
   metaText: {
-    fontSize: 12,
+    fontSize: 11.5,
     color: "#475569",
-    fontWeight: "500",
-    marginLeft: 4,
+    fontWeight: "600",
+    flex: 1,
   },
   subMetaText: {
-    fontSize: 11.5,
-    color: "#64748B",
+    fontSize: 10.5,
+    color: "#94A3B8",
     marginTop: 2,
+    fontWeight: "500",
   },
   lembagaTagsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 6,
-    marginTop: 8,
+    gap: 5,
+    marginTop: 6,
   },
   lembagaTag: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 3,
     backgroundColor: "#EFF6FF",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
     borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "#BFDBFE",
-    gap: 4,
   },
   lembagaTagText: {
-    fontSize: 11,
-    fontWeight: "600",
+    fontSize: 10,
+    fontWeight: "700",
     color: "#1E40AF",
   },
   cardFooter: {
     flexDirection: "row",
-    flexWrap: "wrap",
+    alignItems: "center",
     gap: 12,
     marginTop: 12,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: "#F1F5F9",
+    borderTopColor: "#F8FAFC",
   },
   contactBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
+    backgroundColor: "#F8FAFC",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    maxWidth: "60%",
   },
   contactBtnText: {
-    fontSize: 12,
-    fontWeight: "500",
+    fontSize: 11,
+    fontWeight: "600",
   },
 });

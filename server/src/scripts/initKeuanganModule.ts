@@ -4,6 +4,16 @@ export async function initKeuanganModule() {
   try {
     console.log('🔄 Checking & Initializing Keuangan Module...');
 
+    // 0. Ensure Keuangan Roles: Bendahara & Petugas Loket
+    const financeRoles = ['Bendahara', 'Petugas Loket'];
+    for (const roleName of financeRoles) {
+      await prisma.role.upsert({
+        where: { nama_role: roleName },
+        update: {},
+        create: { nama_role: roleName },
+      });
+    }
+
     // 1. Inisialisasi Rekening Pesantren Resmi
     const countRekening = await prisma.rekeningPesantren.count();
     if (countRekening === 0) {
@@ -109,6 +119,125 @@ export async function initKeuanganModule() {
           });
         }
         console.log(`✅ Pos Pembayaran '${item.nama_pos}' created with default tariffs.`);
+      }
+    }
+
+    // 2b. Inisialisasi Sub-Komponen untuk Pos SPP Bulanan (Composite Bundling)
+    const posSppRecord = await prisma.posPembayaran.findFirst({
+      where: { kode_pos: 'SPP' },
+      include: { sub_komponen: true },
+    });
+
+    let subSppMadrasahId: number | null = null;
+    if (posSppRecord) {
+      if (posSppRecord.sub_komponen.length === 0) {
+        const sub1 = await prisma.posSubKomponen.create({
+          data: {
+            pos_id: posSppRecord.pos_id,
+            nama_sub: 'SPP Pendidikan Madrasah',
+            nominal_default: 400000,
+            kode_akun: 'KAS_MADRASAH',
+            urutan: 1,
+          },
+        });
+        subSppMadrasahId = sub1.sub_id;
+
+        await prisma.posSubKomponen.create({
+          data: {
+            pos_id: posSppRecord.pos_id,
+            nama_sub: 'Uang Makan & Dapur Pondok',
+            nominal_default: 550000,
+            kode_akun: 'KAS_DAPUR',
+            urutan: 2,
+          },
+        });
+
+        await prisma.posSubKomponen.create({
+          data: {
+            pos_id: posSppRecord.pos_id,
+            nama_sub: 'Fasilitas Asrama & Air/Listrik',
+            nominal_default: 150000,
+            kode_akun: 'KAS_ASRAMA',
+            urutan: 3,
+          },
+        });
+        console.log('✅ Default Sub-Komponen for SPP Bulanan initialized.');
+      } else {
+        const found = posSppRecord.sub_komponen.find((s) => s.nama_sub.includes('SPP'));
+        if (found) subSppMadrasahId = found.sub_id;
+      }
+    }
+
+    // 2c. Inisialisasi Master Kategori Diskon / Keringanan
+    const countDiskon = await prisma.masterKategoriDiskon.count();
+    if (countDiskon === 0) {
+      const diskonTahfidz = await prisma.masterKategoriDiskon.create({
+        data: {
+          nama_diskon: 'Beasiswa Tahfidz Mutqin (Gratis SPP 100%)',
+          kode_diskon: 'TAHFIDZ',
+          tipe_potongan: 'PERSEN',
+          nilai_potongan: 100,
+          target_cakupan: subSppMadrasahId ? 'SPECIFIC_SUB' : 'GLOBAL_POS',
+          target_sub_id: subSppMadrasahId,
+          keterangan: 'Gratis biaya pendidikan madrasah untuk santri hafalan mutqin. Biaya makan asrama tetap berlaku.',
+        },
+      });
+
+      const diskonAnakGuru = await prisma.masterKategoriDiskon.create({
+        data: {
+          nama_diskon: 'Anak Guru / Pegawai Yayasan (Diskon 50% SPP)',
+          kode_diskon: 'ANAK_GURU',
+          tipe_potongan: 'PERSEN',
+          nilai_potongan: 50,
+          target_cakupan: subSppMadrasahId ? 'SPECIFIC_SUB' : 'GLOBAL_POS',
+          target_sub_id: subSppMadrasahId,
+          keterangan: 'Potongan 50% SPP madrasah bagi putra/putri guru atau staf aktif di Yayasan Maskumambang.',
+        },
+      });
+
+      await prisma.masterKategoriDiskon.create({
+        data: {
+          nama_diskon: 'Keluarga Alumni Maskumambang (Diskon 10%)',
+          kode_diskon: 'ALUMNI',
+          tipe_potongan: 'PERSEN',
+          nilai_potongan: 10,
+          target_cakupan: 'GLOBAL_POS',
+          keterangan: 'Potongan 10% total tagihan bulanan untuk santri dari keluarga alumni.',
+        },
+      });
+
+      await prisma.masterKategoriDiskon.create({
+        data: {
+          nama_diskon: 'Keringanan Yatim / Dhuafa (Flat Rp 300.000)',
+          kode_diskon: 'DHUAFA',
+          tipe_potongan: 'NOMINAL',
+          nilai_potongan: 300000,
+          target_cakupan: 'GLOBAL_POS',
+          keterangan: 'Bantuan keringanan biaya hidup pesantren untuk santri yatim/dhuafa.',
+        },
+      });
+
+      console.log('✅ Master Kategori Diskon & Keringanan initialized.');
+
+      // Assign sample discounts to 2 students
+      const studentsForDiscount = await prisma.siswa.findMany({ take: 3, orderBy: { siswa_id: 'asc' } });
+      if (studentsForDiscount.length >= 2) {
+        await prisma.siswaKategoriDiskon.create({
+          data: {
+            siswa_id: studentsForDiscount[0].siswa_id,
+            diskon_id: diskonTahfidz.diskon_id,
+            catatan_sk: 'SK Beasiswa Tahfidz No. 04/YMK/2026',
+          },
+        });
+
+        await prisma.siswaKategoriDiskon.create({
+          data: {
+            siswa_id: studentsForDiscount[1].siswa_id,
+            diskon_id: diskonAnakGuru.diskon_id,
+            catatan_sk: 'Anak dari Ustadz Pengampu MA',
+          },
+        });
+        console.log('✅ Sample student discounts assigned.');
       }
     }
 

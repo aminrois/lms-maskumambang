@@ -24,7 +24,7 @@ model User {
 
 model Role {
   role_id    Int        @id @default(autoincrement())
-  nama_role  String     @unique // 'Super Admin' | 'Direktur' | 'Kepala Sekolah' | 'Admin Lembaga' | 'WaKa Kurikulum' | 'Wali Kelas' | 'Guru' | 'Guru Tahfidz' | 'Wali Murid'
+  nama_role  String     @unique // 'Super Admin' | 'Direktur' | 'Kepala Sekolah' | 'Admin Lembaga' | 'Bendahara' | 'Petugas Loket' | 'WaKa Kurikulum' | 'Wali Kelas' | 'Guru' | 'Guru Tahfidz' | 'Wali Murid'
   user_roles UserRole[]
 
   @@map("roles")
@@ -65,6 +65,7 @@ model Lembaga {
   tahfidz_halaqah   TahfidzHalaqah[]
   pos_pembayaran    PosPembayaran[]
   rekening_pesantren RekeningPesantren[]
+  tarif_pembayaran  TarifPembayaran[]
 
   @@map("lembaga")
 }
@@ -176,6 +177,7 @@ model Siswa {
   kode_pos            String?
   status              String?           @default("Aktif") // 'Aktif' | 'Tidak Aktif'
   keterangan_asrama   String            @default("Mukim") // 'Mukim' | 'Non-Mukim'
+  kategori_santri     String?           @default("Umum")  // 'Umum' | 'Alumni / Anak Guru'
   golongan_darah      String?           // 'A' | 'B' | 'AB' | 'O' | '-'
   anak_ke             Int?
   jumlah_saudara      Int?
@@ -209,6 +211,7 @@ model Siswa {
   pembayaran_transaksi PembayaranTransaksi[]
   guidance_detail     SiswaGuidanceDetail?
   konseling_sesi      SiswaKonselingSesi[]
+  kategori_diskon     SiswaKategoriDiskon[]
 
   @@index([kelas_id])
   @@index([status])
@@ -231,6 +234,7 @@ model TahunAjaran {
   tahfidz_halaqah   TahfidzHalaqah[]
   pos_pembayaran    PosPembayaran[]
   tagihan_siswa     TagihanSiswa[]
+  siswa_diskon      SiswaKategoriDiskon[]
 
   @@map("tahun_ajaran")
 }
@@ -620,12 +624,14 @@ model TahfidzModalAwal {
 // ═══════════════════════════════════════════════════════
 
 model PosPembayaran {
-  pos_id           Int               @id @default(autoincrement())
-  lembaga_id       Int?
-  tahun_id         Int?
+  pos_id             Int               @id @default(autoincrement())
+  lembaga_id         Int?
+  target_lembaga_ids Int[]             @default([])
+  tahun_id           Int?
   nama_pos         String            // 'Uang Pangkal' | 'SPP Bulanan' | 'Kegiatan & Ujian' | 'Seragam & Perlengkapan' | dll
   kode_pos         String?           // 'PANGKAL' | 'SPP' | 'KEGIATAN' | 'SERAGAM'
   tipe_pembayaran  String            @default("Bulanan") // 'Bulanan' | 'Bebas' | 'Tahunan' | 'Sekali'
+  has_kuota        Boolean           @default(false)     // True jika memiliki variasi Kuota 1, Kuota 2, Kuota 3 (Uang Pangkal)
   deskripsi        String?
   is_active        Boolean           @default(true)
   created_at       DateTime          @default(now())
@@ -634,6 +640,7 @@ model PosPembayaran {
   tahun_ajaran     TahunAjaran?      @relation(fields: [tahun_id], references: [tahun_id], onDelete: SetNull)
   tarif            TarifPembayaran[]
   tagihan          TagihanSiswa[]
+  sub_komponen     PosSubKomponen[]
 
   @@index([lembaga_id])
   @@index([tipe_pembayaran])
@@ -643,16 +650,22 @@ model PosPembayaran {
 model TarifPembayaran {
   tarif_id         Int            @id @default(autoincrement())
   pos_id           Int
-  nama_tarif       String         // e.g. "Uang Pangkal - Kuota 1", "SPP Kelas VII", "Seragam Putra"
+  lembaga_id       Int?
+  nama_tarif       String         // e.g. "Uang Pangkal Kuota 1 Asrama Umum", "SPP Asrama", "Seragam Putra"
   kuota            String?        // 'Kuota 1' | 'Kuota 2' | 'Kuota 3' | null
+  asrama           String?        // 'Asrama' | 'Non-Asrama' | null
+  kategori_santri  String?        // 'Umum' | 'Alumni / Anak Guru' | null
+  jenis_kelamin    String?        // 'L' | 'P' | null
   nominal          Float
   kelas_tingkat    Int?           // 7, 8, 9, 10, 11, 12, dll
   keterangan       String?
   created_at       DateTime       @default(now())
 
   pos              PosPembayaran  @relation(fields: [pos_id], references: [pos_id], onDelete: Cascade)
+  lembaga          Lembaga?       @relation(fields: [lembaga_id], references: [lembaga_id], onDelete: Cascade)
 
   @@index([pos_id])
+  @@index([lembaga_id])
   @@map("tarif_pembayaran")
 }
 
@@ -664,7 +677,13 @@ model TagihanSiswa {
   bulan            Int?           // 1 - 12 (untuk SPP)
   tahun_periode    Int?           // misal 2026
   nama_tagihan     String         // e.g. "SPP September 2026", "Uang Pangkal (Kuota 1)", "Kegiatan & Ujian TA 2026/2027"
+  kuota            String?        // 'Kuota 1' | 'Kuota 2' | 'Kuota 3' | null
+  asrama           String?        // 'Asrama' | 'Non-Asrama' | null
+  kategori_santri  String?        // 'Umum' | 'Alumni / Anak Guru' | null
+  jenis_kelamin    String?        // 'L' | 'P' | null
   nominal_total    Float
+  nominal_diskon   Float          @default(0)
+  keterangan_diskon String?
   nominal_terbayar Float          @default(0)
   sisa_tagihan     Float
   status           String         @default("Belum Bayar") // 'Belum Bayar' | 'Sebagian' | 'Lunas'
@@ -677,11 +696,84 @@ model TagihanSiswa {
   pos              PosPembayaran  @relation(fields: [pos_id], references: [pos_id], onDelete: Cascade)
   tahun_ajaran     TahunAjaran?   @relation(fields: [tahun_id], references: [tahun_id], onDelete: SetNull)
   transaksi_items  PembayaranTransaksiItem[]
+  sub_items        TagihanSubItem[]
 
   @@index([siswa_id])
   @@index([pos_id])
   @@index([status])
   @@map("tagihan_siswa")
+}
+
+model PosSubKomponen {
+  sub_id          Int                   @id @default(autoincrement())
+  pos_id          Int
+  nama_sub        String                // e.g. "SPP Madrasah", "Uang Makan Dapur", "Fasilitas Asrama", "Laundry"
+  nominal_default Float                 @default(0)
+  kode_akun       String?               // e.g. "KAS_MADRASAH", "KAS_DAPUR", "KAS_ASRAMA"
+  urutan          Int                   @default(1)
+  is_active       Boolean               @default(true)
+  created_at      DateTime              @default(now())
+
+  pos             PosPembayaran         @relation(fields: [pos_id], references: [pos_id], onDelete: Cascade)
+  target_diskon   MasterKategoriDiskon[]
+  tagihan_sub     TagihanSubItem[]
+
+  @@index([pos_id])
+  @@map("pos_sub_komponen")
+}
+
+model MasterKategoriDiskon {
+  diskon_id       Int                   @id @default(autoincrement())
+  nama_diskon     String                // e.g. "Tahfidz Mutqin 30 Juz", "Anak Guru/Pegawai", "Keluarga Alumni", "Yatim / Dhuafa"
+  kode_diskon     String?               // "TAHFIDZ", "ANAK_GURU", dll
+  tipe_potongan   String                @default("PERSEN") // 'PERSEN' | 'NOMINAL'
+  nilai_potongan  Float                 // 100 untuk 100%, 50 untuk 50%, atau 250000 untuk nominal flat
+  target_cakupan  String                @default("GLOBAL_POS") // 'GLOBAL_POS' | 'SPECIFIC_SUB'
+  target_sub_id   Int?                  // Jika memotong sub-komponen tertentu
+  keterangan      String?
+  is_active       Boolean               @default(true)
+  created_at      DateTime              @default(now())
+
+  target_sub      PosSubKomponen?       @relation(fields: [target_sub_id], references: [sub_id], onDelete: SetNull)
+  siswa_diskon    SiswaKategoriDiskon[]
+
+  @@map("master_kategori_diskon")
+}
+
+model SiswaKategoriDiskon {
+  id              Int                   @id @default(autoincrement())
+  siswa_id        Int
+  diskon_id       Int
+  tahun_id        Int?
+  catatan_sk      String?               // e.g. "SK Beasiswa Yayasan No. 102/2026"
+  is_active       Boolean               @default(true)
+  created_at      DateTime              @default(now())
+
+  siswa           Siswa                 @relation(fields: [siswa_id], references: [siswa_id], onDelete: Cascade)
+  diskon          MasterKategoriDiskon  @relation(fields: [diskon_id], references: [diskon_id], onDelete: Cascade)
+  tahun_ajaran    TahunAjaran?          @relation(fields: [tahun_id], references: [tahun_id], onDelete: SetNull)
+
+  @@index([siswa_id])
+  @@index([diskon_id])
+  @@map("siswa_kategori_diskon")
+}
+
+model TagihanSubItem {
+  tagihan_sub_id   Int             @id @default(autoincrement())
+  tagihan_id       Int
+  sub_id           Int?
+  nama_sub         String          // Snapshot nama sub-komponen
+  nominal_asli     Float           // Sebelum diskon
+  nominal_diskon   Float           @default(0) // Besaran potongan
+  nominal_final    Float           // Setelah diskon
+  keterangan_diskon String?        // Catatan diskon jika ada
+  kode_akun        String?         // Snapshot kode akun kas
+
+  tagihan          TagihanSiswa    @relation(fields: [tagihan_id], references: [tagihan_id], onDelete: Cascade)
+  sub_komponen     PosSubKomponen? @relation(fields: [sub_id], references: [sub_id], onDelete: SetNull)
+
+  @@index([tagihan_id])
+  @@map("tagihan_sub_item")
 }
 
 model RekeningPesantren {

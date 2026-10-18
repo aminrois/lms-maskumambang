@@ -33,6 +33,12 @@ export const permissionsMap: Record<string, Partial<Record<ResourcePage, Permiss
   'Admin Lembaga': {
     pengguna: crud, role: r, user_role: crud, lembaga: r, siswa: crud, pegawai: r, 'wali-murid': crud, kelas: r, mata_pelajaran: crud, jam_akademik: r, jadwal_pelajaran: r, kalender_akademik: r, tahfidz_pengampu: crud, tahfidz_setoran: crud, tahfidz_target: crud, tahfidz_tilawah: crud
   },
+  'Bendahara': {
+    role: r, lembaga: r, siswa: r, pegawai: r, 'wali-murid': r, kelas: r, kalender_akademik: r
+  },
+  'Petugas Loket': {
+    role: r, lembaga: r, siswa: r, pegawai: r, 'wali-murid': r, kelas: r, kalender_akademik: r
+  },
   'Wali Kelas': {
     role: r, lembaga: r, siswa: r, pegawai: r, 'wali-murid': crud, kelas: r, jam_akademik: r, jadwal_pelajaran: r, lesson_plan: crud, jurnal_mengajar: crud, absensi_pelajaran: crud, kalender_akademik: r, tahfidz_setoran: r, tahfidz_target: r, tahfidz_tilawah: crud
   },

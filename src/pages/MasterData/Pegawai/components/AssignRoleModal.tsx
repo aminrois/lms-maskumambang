@@ -20,7 +20,7 @@ interface AssignRoleModalProps {
 export default function AssignRoleModal({ isOpen, onClose, userId, pegawaiId, pegawaiName }: AssignRoleModalProps) {
   const queryClient = useQueryClient();
   const [selectedRoleId, setSelectedRoleId] = useState<number | "">("");
-  const [selectedLembagaId, setSelectedLembagaId] = useState<number | "">("");
+  const [selectedLembagaId, setSelectedLembagaId] = useState<number | "all" | "">("");
   const [isAdding, setIsAdding] = useState(false);
   
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
@@ -98,7 +98,58 @@ export default function AssignRoleModal({ isOpen, onClose, userId, pegawaiId, pe
         throw new Error("Lembaga wajib dipilih untuk role ini.");
       }
 
-      // Check if user already has this role (with same lembaga_id or both null)
+      // ── Handle "all" (Semua Lembaga Sekaligus) ──────────────
+      if (selectedLembagaId === "all") {
+        const targetLembagas = lembagas.filter((lembaga: any) => {
+          return !assignedRoles?.some(
+            (ar: any) =>
+              ar.role_id === Number(selectedRoleId) &&
+              Number(ar.lembaga_id) === Number(lembaga.lembaga_id)
+          );
+        });
+
+        if (targetLembagas.length === 0) {
+          throw new Error("Pegawai sudah memiliki role ini di seluruh lembaga.");
+        }
+
+        let successCount = 0;
+        for (const lembaga of targetLembagas) {
+          try {
+            await createUserRole({
+              user_id: userId,
+              role_id: Number(selectedRoleId),
+              lembaga_id: Number(lembaga.lembaga_id),
+            });
+            successCount++;
+          } catch (err) {
+            console.error(`Gagal membuat user_role untuk lembaga ${lembaga.lembaga_id}:`, err);
+          }
+
+          if (pegawaiId) {
+            try {
+              await restClient.post(
+                '/pegawai_lembaga',
+                {
+                  pegawai_id: Number(pegawaiId),
+                  lembaga_id: Number(lembaga.lembaga_id),
+                },
+                {
+                  headers: { 'Prefer': 'resolution=ignore-duplicates' },
+                }
+              );
+            } catch {
+              // ignore duplicate conflict
+            }
+          }
+        }
+
+        if (successCount === 0) {
+          throw new Error("Gagal menambahkan role ke lembaga. Silakan coba lagi.");
+        }
+        return;
+      }
+
+      // ── Handle Single Lembaga / Global Role ────────────────
       const isDuplicate = assignedRoles?.some((ar: any) => 
         ar.role_id === Number(selectedRoleId) && 
         (ar.lembaga_id === (selectedLembagaId ? Number(selectedLembagaId) : null))
@@ -153,9 +204,15 @@ export default function AssignRoleModal({ isOpen, onClose, userId, pegawaiId, pe
       }
     },
     onSuccess: () => {
-      toast.success("Role berhasil ditambahkan!");
+      toast.success(
+        selectedLembagaId === "all"
+          ? "Role berhasil ditambahkan ke seluruh lembaga!"
+          : "Role berhasil ditambahkan!"
+      );
       queryClient.invalidateQueries({ queryKey: ['user-roles', userId] });
       queryClient.invalidateQueries({ queryKey: ['user-roles-relation'] });
+      queryClient.invalidateQueries({ queryKey: ['pegawai-lembaga', pegawaiId] });
+      queryClient.invalidateQueries({ queryKey: ['master-data', 'pegawai-all'] });
       setIsAdding(false);
       setSelectedRoleId("");
       setSelectedLembagaId("");
@@ -298,7 +355,7 @@ export default function AssignRoleModal({ isOpen, onClose, userId, pegawaiId, pe
                   )}
                 </div>
                 
-                <ul className="divide-y max-h-48 overflow-y-auto">
+                <ul className="divide-y max-h-64 overflow-y-auto">
                   {assignedRoles && assignedRoles.length > 0 ? (
                     assignedRoles.map((ar: any) => {
                       const lembagaInfo = lembagas.find((l: any) => l.lembaga_id === ar.lembaga_id);
@@ -320,7 +377,7 @@ export default function AssignRoleModal({ isOpen, onClose, userId, pegawaiId, pe
                               onClick={() => {
                                 setRoleToDelete({
                                   id: ar.user_role_id,
-                                  name: ar.role?.nama_role || "Role"
+                                  name: `${ar.role?.nama_role || "Role"} - ${lembagaInfo ? lembagaInfo.nama_lembaga : "Global (Semua Lembaga)"}`
                                 });
                                 setIsDeleteConfirmOpen(true);
                               }}
@@ -416,16 +473,34 @@ export default function AssignRoleModal({ isOpen, onClose, userId, pegawaiId, pe
                         <select 
                           required
                           value={selectedLembagaId} 
-                          onChange={(e) => setSelectedLembagaId(e.target.value === "" ? "" : Number(e.target.value))}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setSelectedLembagaId(val === "all" ? "all" : val === "" ? "" : Number(val));
+                          }}
                           className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
                         >
                           <option value="">-- Pilih Lembaga --</option>
+                          <option value="all" className="font-bold text-blue-700 bg-blue-50">
+                            ⭐ Semua Lembaga ({lembagas.length} Lembaga Sekaligus)
+                          </option>
                           {lembagas.map((lembaga: any) => (
                             <option key={lembaga.lembaga_id} value={lembaga.lembaga_id}>
                               {lembaga.nama_lembaga} {lembaga.singkatan ? `(${lembaga.singkatan})` : ''}
                             </option>
                           ))}
                         </select>
+
+                        {selectedLembagaId === "all" && (
+                          <div className="text-xs text-blue-700 bg-blue-50 p-2.5 rounded-md border border-blue-200 flex items-start gap-2">
+                            <Building2 className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                            <div>
+                              <p className="font-semibold">Menugaskan ke Seluruh Lembaga</p>
+                              <p className="text-blue-600 mt-0.5">
+                                Pegawai akan langsung memiliki akses role ini untuk seluruh unit ({lembagas.length} lembaga) secara otomatis.
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })()}

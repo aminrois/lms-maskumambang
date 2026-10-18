@@ -445,7 +445,12 @@ function parseWhere(query: Record<string, any>, idField: string, idParam?: strin
         const val = item.trim();
         if (tableName === 'pegawai' && key === 'lembaga_id') {
           const condition = parseOpAndValue(val);
-          andList.push({ pegawai_lembaga: { some: { lembaga_id: condition } } });
+          andList.push({
+            OR: [
+              { pegawai_lembaga: { some: { lembaga_id: condition } } },
+              { user: { user_roles: { some: { lembaga_id: condition } } } },
+            ],
+          });
         } else if (tableName === 'siswa' && key === 'lembaga_id') {
           const condition = parseOpAndValue(val);
           andList.push({ kelas: { lembaga_id: condition } });
@@ -470,7 +475,12 @@ function parseWhere(query: Record<string, any>, idField: string, idParam?: strin
     // Special virtual relation field mappings
     if (tableName === 'pegawai' && key === 'lembaga_id') {
       const condition = parseOpAndValue(val);
-      andList.push({ pegawai_lembaga: { some: { lembaga_id: condition } } });
+      andList.push({
+        OR: [
+          { pegawai_lembaga: { some: { lembaga_id: condition } } },
+          { user: { user_roles: { some: { lembaga_id: condition } } } },
+        ],
+      });
       continue;
     }
 
@@ -605,8 +615,16 @@ export const getTableRecords = async (req: AuthRequest, res: Response, next: Nex
       res.setHeader('Access-Control-Expose-Headers', 'Content-Range, Prefer');
     }
 
-    // If single item was requested by /:id, return single or array as requested
-    if (idParam !== undefined && !Array.isArray(data)) {
+    // If single item was requested by /:id, return single object or 404
+    if (idParam !== undefined) {
+      if (Array.isArray(data)) {
+        if (data.length === 0) {
+          res.status(404).json({ success: false, message: 'Record not found' });
+          return;
+        }
+        res.json(data[0]);
+        return;
+      }
       res.json(data);
       return;
     }

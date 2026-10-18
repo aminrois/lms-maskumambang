@@ -19,6 +19,7 @@ import {
   ScrollView,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
 import Svg, { Path } from "react-native-svg";
 import {
   Lock,
@@ -52,6 +53,7 @@ const WaveDivider = () => (
 
 export const LoginScreen = () => {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<any>();
   const [identifier, setIdentifier] = useState("");
   const [kataSandi, setKataSandi] = useState("");
   const [showPass, setShowPass] = useState(false);
@@ -195,10 +197,11 @@ export const LoginScreen = () => {
               />
             </View>
           </TouchableOpacity>
-          <Text style={styles.appName}>siMas</Text>
-          <Text style={styles.appSubtitle}>
-            Sistem Informasi Pondok Pesantren Maskumambang
-          </Text>
+          <Image
+            source={require("../../../assets/simaslogoicon.webp")}
+            style={styles.brandImage}
+            resizeMode="contain"
+          />
         </View>
       </ImageBackground>
 
@@ -221,7 +224,7 @@ export const LoginScreen = () => {
         <Animated.View
           style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
         >
-          <Text style={styles.welcomeTitle}>Selamat Datang</Text>
+          <Text style={styles.welcomeTitle}>Assalamu'alaikum</Text>
           <Text style={styles.welcomeSub}>
             Masuk untuk mengakses layanan siMas.
           </Text>
@@ -324,7 +327,11 @@ export const LoginScreen = () => {
             </TouchableOpacity>
 
             {/* Mode Tamu */}
-            <TouchableOpacity style={[styles.halfBtn, styles.halfBtnTamu]} activeOpacity={0.8}>
+            <TouchableOpacity
+              style={[styles.halfBtn, styles.halfBtnTamu]}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate("GuestDashboard")}
+            >
               <UserCircle size={20} color="#162E6E" />
               <Text style={styles.halfBtnText}>Mode Tamu</Text>
             </TouchableOpacity>
@@ -443,19 +450,10 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
-  appName: {
-    fontSize: 26,
-    fontWeight: "900",
-    color: "#FFFFFF",
-    letterSpacing: 1.5,
-    textAlign: "center",
-  },
-  appSubtitle: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: "rgba(255,255,255,0.82)",
-    textAlign: "center",
-    marginTop: 3,
+  brandImage: {
+    width: SCREEN_W * 0.62,
+    height: 64,
+    marginTop: 10,
   },
 
   /* ─ Wave ─ */

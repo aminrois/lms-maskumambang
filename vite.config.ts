@@ -61,6 +61,10 @@ export default defineConfig(() => {
     },
     server: {
       proxy: {
+        '/api/v1': {
+          target: 'http://localhost:5001',
+          changeOrigin: true,
+        },
         // Proxy untuk wilayah.id agar tidak kena CORS di browser
         '/api/wilayah': {
           target: 'https://wilayah.id',

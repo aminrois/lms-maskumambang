@@ -8,6 +8,8 @@ export const SESSION_TIMEOUT_CONFIG: Record<string, {
   'Kepala Sekolah': { inactivityMs: 60 * 60_000, warningMs: 5 * 60_000, tabClosedGraceMs: 65 * 60_000 },
   'WaKa Kurikulum': { inactivityMs: 60 * 60_000, warningMs: 5 * 60_000, tabClosedGraceMs: 65 * 60_000 },
   'Admin Lembaga': { inactivityMs: 60 * 60_000, warningMs: 5 * 60_000, tabClosedGraceMs: 65 * 60_000 },
+  'Bendahara': { inactivityMs: 60 * 60_000, warningMs: 5 * 60_000, tabClosedGraceMs: 65 * 60_000 },
+  'Petugas Loket': { inactivityMs: 60 * 60_000, warningMs: 5 * 60_000, tabClosedGraceMs: 65 * 60_000 },
   'Wali Kelas': { inactivityMs: 60 * 60_000, warningMs: 5 * 60_000, tabClosedGraceMs: 65 * 60_000 },
   'Guru': { inactivityMs: 60 * 60_000, warningMs: 5 * 60_000, tabClosedGraceMs: 65 * 60_000 },
 };

@@ -39,12 +39,6 @@ export default function MasterDataPegawaiDetail() {
   const { canUpdate } = usePermissions('pegawai');
   const { canRead: canReadRole } = usePermissions('user_role');
 
-  const isSelf = Boolean(
-    (loggedInUser?.pegawai_id && Number(loggedInUser.pegawai_id) === Number(pegawai_id)) ||
-    (pegawai?.user_id && loggedInUser?.user_id && pegawai.user_id === loggedInUser.user_id)
-  );
-  const canEdit = canUpdate || isSelf;
-
   const [formData, setFormData] = useState<PEGAWAI_CREATE & { lembaga_ids: number[] }>({
     nig: "",
     nip: "",
@@ -81,6 +75,12 @@ export default function MasterDataPegawaiDetail() {
     },
     enabled: !!pegawai_id,
   });
+
+  const isSelf = Boolean(
+    (loggedInUser?.pegawai_id && Number(loggedInUser.pegawai_id) === Number(pegawai_id)) ||
+    (pegawai?.user_id && loggedInUser?.user_id && pegawai.user_id === loggedInUser.user_id)
+  );
+  const canEdit = canUpdate || isSelf;
 
   // Fetch User Account data if linked
   const userAccountQuery = useQuery({
@@ -123,15 +123,16 @@ export default function MasterDataPegawaiDetail() {
   const updatePegawaiMutation = useMutation({
     mutationFn: async (data: PEGAWAI_CREATE & { lembaga_ids: number[] }) => {
       const { lembaga_ids, ...payload } = data;
+      const editPayload: any = { ...payload };
       // Jika self-edit tanpa hak admin, kirim hanya field yang diperbolehkan
       if (!canUpdate && isSelf) {
-        delete payload.status;
-        delete payload.user_id;
-        delete payload.nig;
-        delete payload.jabatan;
-        delete payload.tugas_tambahan;
+        delete editPayload.status;
+        delete editPayload.user_id;
+        delete editPayload.nig;
+        delete editPayload.jabatan;
+        delete editPayload.tugas_tambahan;
       }
-      await updatePegawai(Number(pegawai_id), payload);
+      await updatePegawai(Number(pegawai_id), editPayload);
       if (canUpdate && lembaga_ids !== undefined) {
         await restClient.delete(`/pegawai_lembaga?pegawai_id=eq.${pegawai_id}`);
         if (lembaga_ids.length > 0) {

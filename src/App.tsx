@@ -67,10 +67,22 @@ const TahfidzHalaqah        = React.lazy(() => import("./pages/Tahfidz/Halaqah/I
 const TahfidzTilawah        = React.lazy(() => import("./pages/Tahfidz/Tilawah/Index"));
 
 // Keuangan & SPP
+const KeuanganDashboardIndex  = React.lazy(() => import("./pages/Keuangan/Dashboard/Index"));
 const LoketKasirIndex         = React.lazy(() => import("./pages/Keuangan/LoketKasir/Index"));
+const RiwayatTransaksiIndex   = React.lazy(() => import("./pages/Keuangan/RiwayatTransaksi/Index"));
 const TagihanSiswaIndex       = React.lazy(() => import("./pages/Keuangan/Tagihan/Index"));
 const VerifikasiTransferIndex = React.lazy(() => import("./pages/Keuangan/VerifikasiTransfer/Index"));
 const MasterTarifIndex        = React.lazy(() => import("./pages/Keuangan/MasterTarif/Index"));
+const BeasiswaIndex           = React.lazy(() => import("./pages/Keuangan/Beasiswa/Index"));
+const RekeningIndex           = React.lazy(() => import("./pages/Keuangan/Rekening/Index"));
+
+const KeuanganIndexRedirect = () => {
+  const role = useAuthStore((s) => s.role);
+  if (role === "Petugas Loket") {
+    return <Navigate to="/keuangan/loket-kasir" replace />;
+  }
+  return <KeuanganDashboardIndex />;
+};
 
 // Bimbingan & Konseling (Guidance)
 const GuidanceIndex           = React.lazy(() => import("./pages/Guidance/Index"));
@@ -684,26 +696,74 @@ const App: React.FC = () => {
 
               {/* --- ROUTING LINK KEUANGAN & SPP --- */}
               <Route path="/keuangan">
+                {/* 1. Akses Root /keuangan (Index) */}
                 <Route
                   element={
                     <ProtectedRoute
-                      allowedRoles={["Super Admin", "Direktur", "Admin Lembaga", "Kepala Sekolah"]}
+                      allowedRoles={[
+                        "Super Admin",
+                        "Direktur",
+                        "Admin Lembaga",
+                        "Kepala Sekolah",
+                        "Bendahara",
+                        "Petugas Loket",
+                      ]}
+                    />
+                  }
+                >
+                  <Route index element={<KeuanganIndexRedirect />} />
+                </Route>
+
+                {/* 2. Khusus Dashboard Keuangan (Kecuali Petugas Loket) */}
+                <Route
+                  element={
+                    <ProtectedRoute
+                      allowedRoles={["Super Admin", "Direktur", "Admin Lembaga", "Kepala Sekolah", "Bendahara"]}
+                    />
+                  }
+                >
+                  <Route path="dashboard" element={<KeuanganDashboardIndex />} />
+                </Route>
+
+                {/* 3. Operasional Loket, Riwayat, Tagihan & Verifikasi Transfer (Bendahara & Petugas Loket) */}
+                <Route
+                  element={
+                    <ProtectedRoute
+                      allowedRoles={[
+                        "Super Admin",
+                        "Direktur",
+                        "Admin Lembaga",
+                        "Kepala Sekolah",
+                        "Bendahara",
+                        "Petugas Loket",
+                      ]}
                     />
                   }
                 >
                   <Route path="loket-kasir" element={<LoketKasirIndex />} />
+                  <Route path="riwayat-transaksi" element={<RiwayatTransaksiIndex />} />
                   <Route path="tagihan" element={<TagihanSiswaIndex />} />
                   <Route path="verifikasi-transfer" element={<VerifikasiTransferIndex />} />
                 </Route>
 
+                {/* 4. Konfigurasi Master Tarif, Beasiswa & Rekening (Bendahara & Petugas Loket) */}
                 <Route
                   element={
                     <ProtectedRoute
-                      allowedRoles={["Super Admin", "Direktur", "Admin Lembaga"]}
+                      allowedRoles={[
+                        "Super Admin",
+                        "Direktur",
+                        "Admin Lembaga",
+                        "Bendahara",
+                        "Petugas Loket",
+                      ]}
                     />
                   }
                 >
                   <Route path="master-tarif" element={<MasterTarifIndex />} />
+                  <Route path="tarif" element={<MasterTarifIndex />} />
+                  <Route path="beasiswa" element={<BeasiswaIndex />} />
+                  <Route path="rekening" element={<RekeningIndex />} />
                 </Route>
               </Route>
 

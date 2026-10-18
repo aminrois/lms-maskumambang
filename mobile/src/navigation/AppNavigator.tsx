@@ -40,9 +40,11 @@ import { RekapAbsensiHarianScreen } from "../screens/Absensi/RekapAbsensiHarianS
 import { RekapAbsensiMapelScreen } from "../screens/Absensi/RekapAbsensiMapelScreen";
 import { DaftarSiswaKelasScreen } from "../screens/Siswa/DaftarSiswaKelasScreen";
 import { DaftarPegawaiScreen } from "../screens/Pegawai/DaftarPegawaiScreen";
+import { DetailPegawaiScreen } from "../screens/Pegawai/DetailPegawaiScreen";
 import { InputNotifikasiScreen } from "../screens/Notifikasi/InputNotifikasiScreen";
 import { JadwalSeluruhGuruScreen } from "../screens/Jadwal/JadwalSeluruhGuruScreen";
 import { MainTabNavigator } from "./MainTabNavigator";
+import { GuestDashboardScreen } from "../screens/Guest/GuestDashboardScreen";
 import { useAuthStore } from "../store/useAuthStore";
 import { Colors } from "../constants/colors";
 import * as Notifications from "expo-notifications";
@@ -174,10 +176,22 @@ export const AppNavigator = () => {
           gestureEnabled: true,
           fullScreenGestureEnabled: true,
           gestureDirection: "horizontal",
+          statusBarStyle: "light",
+          statusBarBackgroundColor: "#162E6E",
+          statusBarTranslucent: false,
         }}
       >
         {!isAuthenticated ? (
-          <Stack.Screen name="Login" component={LoginScreen} />
+          <>
+            <Stack.Screen name="Login" component={LoginScreen} />
+            {/* Screen yang bisa diakses mode tamu tanpa login */}
+            <Stack.Screen name="GuestDashboard" component={GuestDashboardScreen} options={{ animation: "slide_from_bottom" }} />
+            <Stack.Screen name="Quran" component={QuranScreen} options={{ animation: "slide_from_right", gestureEnabled: false, fullScreenGestureEnabled: false }} />
+            <Stack.Screen name="DoaDzikir" component={DoaDzikirScreen} options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="DoaDzikirDetail" component={DoaDzikirDetailScreen} options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="ArahKiblat" component={ArahKiblatScreen} options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="Berita" component={BeritaScreen} options={{ animation: "slide_from_right" }} />
+          </>
         ) : (
           <>
             <Stack.Screen name="MainTabs" component={MainTabNavigator} />
@@ -397,6 +411,11 @@ export const AppNavigator = () => {
             <Stack.Screen
               name="DaftarPegawai"
               component={DaftarPegawaiScreen}
+              options={{ animation: "slide_from_right" }}
+            />
+            <Stack.Screen
+              name="DetailPegawai"
+              component={DetailPegawaiScreen}
               options={{ animation: "slide_from_right" }}
             />
             <Stack.Screen

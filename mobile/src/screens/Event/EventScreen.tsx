@@ -1,6 +1,6 @@
 // mobile/src/screens/Event/EventScreen.tsx
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CalendarDays, Sparkles, Clock, BellRing, ArrowLeft } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
@@ -10,11 +10,11 @@ export const EventScreen = () => {
   const navigation = useNavigation<any>();
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
 
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + (Platform.OS === "android" ? 10 : 6) }]}>
         <View style={styles.headerContent}>
           <CalendarDays size={24} color="#FFFFFF" />
           <View style={styles.headerTextWrap}>
@@ -90,7 +90,6 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: "#162E6E",
     paddingHorizontal: 20,
-    paddingTop: 12,
     paddingBottom: 20,
   },
   headerContent: {

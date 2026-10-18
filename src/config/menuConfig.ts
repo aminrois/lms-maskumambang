@@ -3,7 +3,7 @@ import {
   Calendar, BarChart, FileText, BookOpen, Clock,
   PenTool, Clipboard, Eye, CalendarDays, BookMarked, RotateCcw,
   Sparkles, Target, History, UserCheck, Users, Wallet, ShieldCheck, Settings,
-  Compass, MessageSquare, Bell
+  Compass, MessageSquare, Bell, Landmark, Receipt
 } from "lucide-react";
 
 export type MenuItem = {
@@ -89,10 +89,14 @@ export const allMenuGroups: MenuGroup[] = [
   {
     category: "Keuangan & SPP",
     items: [
-      { name: "Loket Kasir", icon: Wallet, path: "/keuangan/loket-kasir", allowedRoles: ['Super Admin', 'Direktur', 'Admin Lembaga', 'Kepala Sekolah'], color: "emerald" },
-      { name: "Tagihan Santri", icon: FileText, path: "/keuangan/tagihan", allowedRoles: ['Super Admin', 'Direktur', 'Admin Lembaga', 'Kepala Sekolah'], color: "blue" },
-      { name: "Verifikasi Transfer", icon: ShieldCheck, path: "/keuangan/verifikasi-transfer", allowedRoles: ['Super Admin', 'Direktur', 'Admin Lembaga', 'Kepala Sekolah'], color: "amber" },
-      { name: "Master Tarif & Rekening", icon: Settings, path: "/keuangan/master-tarif", allowedRoles: ['Super Admin', 'Direktur', 'Admin Lembaga'], color: "purple" },
+      { name: "Dashboard Keuangan", icon: LayoutDashboard, path: "/keuangan/dashboard", allowedRoles: ['Super Admin', 'Direktur', 'Admin Lembaga', 'Kepala Sekolah', 'Bendahara'], color: "blue" },
+      { name: "Loket Kasir", icon: Wallet, path: "/keuangan/loket-kasir", allowedRoles: ['Super Admin', 'Direktur', 'Admin Lembaga', 'Kepala Sekolah', 'Bendahara', 'Petugas Loket'], color: "emerald" },
+      { name: "Riwayat Transaksi", icon: Receipt, path: "/keuangan/riwayat-transaksi", allowedRoles: ['Super Admin', 'Direktur', 'Admin Lembaga', 'Kepala Sekolah', 'Bendahara', 'Petugas Loket'], color: "indigo" },
+      { name: "Tagihan Santri", icon: FileText, path: "/keuangan/tagihan", allowedRoles: ['Super Admin', 'Direktur', 'Admin Lembaga', 'Kepala Sekolah', 'Bendahara', 'Petugas Loket'], color: "blue" },
+      { name: "Verifikasi Transfer", icon: ShieldCheck, path: "/keuangan/verifikasi-transfer", allowedRoles: ['Super Admin', 'Direktur', 'Admin Lembaga', 'Kepala Sekolah', 'Bendahara', 'Petugas Loket'], color: "amber" },
+      { name: "Jenis Pembayaran", icon: Settings, path: "/keuangan/master-tarif", allowedRoles: ['Super Admin', 'Direktur', 'Admin Lembaga', 'Bendahara', 'Petugas Loket'], color: "purple" },
+      { name: "Beasiswa & Potongan", icon: GraduationCap, path: "/keuangan/beasiswa", allowedRoles: ['Super Admin', 'Direktur', 'Admin Lembaga', 'Bendahara', 'Petugas Loket'], color: "indigo" },
+      { name: "Rekening Yayasan", icon: Landmark, path: "/keuangan/rekening", allowedRoles: ['Super Admin', 'Direktur', 'Admin Lembaga', 'Bendahara', 'Petugas Loket'], color: "cyan" },
     ]
   }
 ];

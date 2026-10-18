@@ -22,6 +22,6 @@ export const STORAGE_KEYS = {
 export const APP_CONFIG = {
   appName: "SIMAS",
   appFullName: "Sistem Informasi Maskumambang",
-  appVersion: "1.0.0",
+  appVersion: "1.2.0",
   schoolName: "Pondok Pesantren Maskumambang",
 };

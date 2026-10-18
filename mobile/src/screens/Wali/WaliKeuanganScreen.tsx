@@ -21,6 +21,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronLeft,
+  ChevronDown,
   Wallet,
   CreditCard,
   Receipt,
@@ -66,6 +67,11 @@ export const WaliKeuanganScreen = () => {
   const [cicilanModalVisible, setCicilanModalVisible] = useState(false);
   const [targetTagihanCicilan, setTargetTagihanCicilan] = useState<TagihanItem | null>(null);
   const [nominalCicilanInput, setNominalCicilanInput] = useState("");
+  const [expandedTagihanIds, setExpandedTagihanIds] = useState<{ [tagihan_id: number]: boolean }>({});
+
+  const toggleExpandTagihan = (tagihanId: number) => {
+    setExpandedTagihanIds((prev) => ({ ...prev, [tagihanId]: !prev[tagihanId] }));
+  };
 
   // Transfer Form State
   const [selectedBankId, setSelectedBankId] = useState<number | null>(null);
@@ -491,35 +497,81 @@ export const WaliKeuanganScreen = () => {
 
                 {kategori.spp.map((item) => {
                   const isLunas = item.status === "Lunas";
+                  const hasSub = item.sub_items && item.sub_items.length > 0;
+                  const isExpanded = !!expandedTagihanIds[item.tagihan_id];
 
                   return (
-                    <View key={item.tagihan_id} style={styles.sppItemRow}>
-                      <View style={[styles.sppStatusIndicator, { backgroundColor: isLunas ? "#16A34A" : "#DC2626" }]} />
-                      <View style={{ flex: 1, marginLeft: 12 }}>
-                        <Text style={styles.sppTitle}>{item.nama_tagihan}</Text>
-                        <Text style={styles.sppNominal}>{formatRupiah(item.nominal_total)}</Text>
-                        {item.jatuh_tempo && (
-                          <Text style={styles.sppTempo}>Jatuh Tempo: {item.jatuh_tempo}</Text>
-                        )}
-                      </View>
-
-                      <View style={{ alignItems: "flex-end" }}>
-                        <View style={[styles.tagihanStatusPill, isLunas ? styles.pillLunas : styles.pillBelum]}>
-                          <Text style={[styles.tagihanStatusText, isLunas ? styles.textLunas : styles.textBelum]}>
-                            {item.status}
-                          </Text>
+                    <View key={item.tagihan_id} style={styles.sppCardWrapper}>
+                      <View style={styles.sppItemRow}>
+                        <View style={[styles.sppStatusIndicator, { backgroundColor: isLunas ? "#16A34A" : "#DC2626" }]} />
+                        <View style={{ flex: 1, marginLeft: 12 }}>
+                          <Text style={styles.sppTitle}>{item.nama_tagihan}</Text>
+                          <Text style={styles.sppNominal}>{formatRupiah(item.nominal_total)}</Text>
+                          {item.nominal_diskon && item.nominal_diskon > 0 ? (
+                            <Text style={styles.sppDiskonNote}>
+                              Potongan Beasiswa: -{formatRupiah(item.nominal_diskon)}
+                            </Text>
+                          ) : null}
+                          {item.jatuh_tempo && (
+                            <Text style={styles.sppTempo}>Jatuh Tempo: {item.jatuh_tempo}</Text>
+                          )}
                         </View>
 
-                        {!isLunas && (
-                          <TouchableOpacity
-                            style={styles.btnBayarSppSmall}
-                            onPress={() => handleQuickPay(item)}
-                            activeOpacity={0.8}
-                          >
-                            <Text style={styles.btnBayarSppText}>Bayar</Text>
-                          </TouchableOpacity>
-                        )}
+                        <View style={{ alignItems: "flex-end" }}>
+                          <View style={[styles.tagihanStatusPill, isLunas ? styles.pillLunas : styles.pillBelum]}>
+                            <Text style={[styles.tagihanStatusText, isLunas ? styles.textLunas : styles.textBelum]}>
+                              {item.status}
+                            </Text>
+                          </View>
+
+                          {!isLunas && (
+                            <TouchableOpacity
+                              style={styles.btnBayarSppSmall}
+                              onPress={() => handleQuickPay(item)}
+                              activeOpacity={0.8}
+                            >
+                              <Text style={styles.btnBayarSppText}>Bayar</Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
                       </View>
+
+                      {/* Sub-Komponen Transparency Accordion */}
+                      {hasSub && (
+                        <View style={styles.subAccordionContainer}>
+                          <TouchableOpacity
+                            style={styles.btnToggleSubKomponen}
+                            onPress={() => toggleExpandTagihan(item.tagihan_id)}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={styles.btnToggleSubText}>
+                              {isExpanded ? "Sembunyikan Rincian" : `Lihat Rincian Paket (${item.sub_items?.length} item)`}
+                            </Text>
+                            <ChevronDown
+                              size={13}
+                              color="#1D4ED8"
+                              style={{ transform: [{ rotate: isExpanded ? "180deg" : "0deg" }] }}
+                            />
+                          </TouchableOpacity>
+
+                          {isExpanded && (
+                            <View style={styles.subItemBreakdownBox}>
+                              {item.sub_items?.map((sub) => (
+                                <View key={sub.tagihan_sub_id} style={styles.subItemRow}>
+                                  <Text style={styles.subItemName}>• {sub.nama_sub}</Text>
+                                  <Text style={styles.subItemPrice}>{formatRupiah(sub.nominal_final)}</Text>
+                                </View>
+                              ))}
+                              {item.keterangan_diskon ? (
+                                <View style={styles.subItemDiscountRow}>
+                                  <Text style={styles.subItemDiscountText}>Beasiswa: {item.keterangan_diskon}</Text>
+                                  <Text style={styles.subItemDiscountVal}>-{formatRupiah(item.nominal_diskon || 0)}</Text>
+                                </View>
+                              ) : null}
+                            </View>
+                          )}
+                        </View>
+                      )}
                     </View>
                   );
                 })}
@@ -2041,5 +2093,75 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     fontWeight: "700",
     color: "#FFFFFF",
+  },
+  sppCardWrapper: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    overflow: "hidden",
+  },
+  sppDiskonNote: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#16A34A",
+    marginTop: 1,
+  },
+  subAccordionContainer: {
+    borderTopWidth: 1,
+    borderTopColor: "#F1F5F9",
+    backgroundColor: "#F8FAFC",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  btnToggleSubKomponen: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 4,
+  },
+  btnToggleSubText: {
+    fontSize: 10.5,
+    fontWeight: "700",
+    color: "#1D4ED8",
+  },
+  subItemBreakdownBox: {
+    paddingTop: 4,
+    paddingBottom: 4,
+    gap: 3,
+  },
+  subItemRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  subItemName: {
+    fontSize: 10.5,
+    color: "#475569",
+  },
+  subItemPrice: {
+    fontSize: 10.5,
+    fontWeight: "700",
+    color: "#1E293B",
+  },
+  subItemDiscountRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: 3,
+    marginTop: 2,
+    borderTopWidth: 1,
+    borderTopColor: "#E2E8F0",
+  },
+  subItemDiscountText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#16A34A",
+  },
+  subItemDiscountVal: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#16A34A",
   },
 });

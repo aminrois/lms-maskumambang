@@ -68,10 +68,13 @@ export const deleteLembaga = async (req: Request, res: Response, next: NextFunct
 // SISWA
 export const getSiswas = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { kelas_id, status } = req.query;
+    const { kelas_id, status, lembaga_id } = req.query;
     const where: any = {};
     if (kelas_id) where.kelas_id = Number(kelas_id);
     if (status) where.status = String(status);
+    if (lembaga_id) {
+      where.kelas = { lembaga_id: Number(lembaga_id) };
+    }
 
     const siswas = await prisma.siswa.findMany({
       where,

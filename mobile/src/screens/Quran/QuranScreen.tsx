@@ -55,14 +55,6 @@ export const QuranScreen = () => {
         </View>
       </View>
 
-      {/* Progress / Loading Indicator */}
-      {loading && (
-        <View style={styles.loadingBarContainer}>
-          <ActivityIndicator size="small" color="#10B981" />
-          <Text style={styles.loadingText}>Memuat mushaf...</Text>
-        </View>
-      )}
-
       {/* Main WebView: Layar Penuh Maksimal */}
       <View style={styles.webviewContainer}>
         {hasError ? (

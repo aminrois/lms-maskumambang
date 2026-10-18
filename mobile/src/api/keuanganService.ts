@@ -9,6 +9,18 @@ export interface PosPembayaran {
   deskripsi?: string;
 }
 
+export interface TagihanSubItem {
+  tagihan_sub_id: number;
+  tagihan_id: number;
+  sub_id?: number | null;
+  nama_sub: string;
+  nominal_asli: number;
+  nominal_diskon: number;
+  nominal_final: number;
+  keterangan_diskon?: string | null;
+  kode_akun?: string | null;
+}
+
 export interface TagihanItem {
   tagihan_id: number;
   siswa_id: number;
@@ -17,12 +29,15 @@ export interface TagihanItem {
   tahun_periode?: number | null;
   nama_tagihan: string;
   nominal_total: number;
+  nominal_diskon?: number;
+  keterangan_diskon?: string | null;
   nominal_terbayar: number;
   sisa_tagihan: number;
   status: 'Belum Bayar' | 'Sebagian' | 'Lunas';
   jatuh_tempo?: string | null;
   keterangan?: string | null;
   pos: PosPembayaran;
+  sub_items?: TagihanSubItem[];
 }
 
 export interface RekeningPesantren {

@@ -2,7 +2,7 @@
   "expo": {
     "name": "siMas",
     "slug": "lms-maskumambang",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -30,7 +30,7 @@
       },
       "package": "com.maskumambang.simas",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 2,
+      "versionCode": 3,
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "USE_BIOMETRIC",

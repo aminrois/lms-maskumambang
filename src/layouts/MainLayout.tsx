@@ -81,6 +81,8 @@ const MainLayout: React.FC = () => {
       'Direktur',
       'Kepala Sekolah',
       'Admin Lembaga',
+      'Bendahara',
+      'Petugas Loket',
       'WaKa Kurikulum',
       'Wali Kelas',
       'Guru',

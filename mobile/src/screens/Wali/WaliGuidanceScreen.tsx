@@ -8,7 +8,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-  StatusBar
+  StatusBar,
+  Platform,
 } from "react-native";
 import {
   ChevronLeft,
@@ -24,8 +25,9 @@ import {
   User
 } from "lucide-react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { guidanceService, KonselingSesi } from "../../api/guidanceService";
+import { FocusAwareStatusBar } from "../../components/ui/FocusAwareStatusBar";
 
 export const WaliGuidanceScreen = () => {
   const route = useRoute<any>();
@@ -85,27 +87,31 @@ export const WaliGuidanceScreen = () => {
   );
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
+    <View style={styles.container}>
+      <FocusAwareStatusBar barStyle="light-content" backgroundColor="#162E6E" />
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-          activeOpacity={0.8}
-        >
-          <ChevronLeft size={22} color="#FFFFFF" />
-        </TouchableOpacity>
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>Bimbingan & Karakter Santri</Text>
-          <Text style={styles.headerSubtitle}>
-            {siswaDetail?.nama || "Santri"} • Kelas {siswaDetail?.kelas?.nama_kelas || "-"}
-          </Text>
-        </View>
-        <View style={styles.headerIconBox}>
-          <Compass size={22} color="#FFFFFF" />
-        </View>
+        <SafeAreaView edges={["top"]} style={styles.headerSafe}>
+          <View style={styles.headerRow}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+              activeOpacity={0.8}
+            >
+              <ChevronLeft size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+            <View style={styles.headerTitleContainer}>
+              <Text style={styles.headerTitle}>Bimbingan & Karakter Santri</Text>
+              <Text style={styles.headerSubtitle}>
+                {siswaDetail?.nama || "Santri"} • Kelas {siswaDetail?.kelas?.nama_kelas || "-"}
+              </Text>
+            </View>
+            <View style={styles.headerIconBox}>
+              <Compass size={22} color="#FFFFFF" />
+            </View>
+          </View>
+        </SafeAreaView>
       </View>
 
       {isLoading ? (
@@ -301,18 +307,22 @@ const styles = StyleSheet.create({
 },
   header: {
     backgroundColor: "#162E6E",
-    paddingTop: 12,
-    paddingBottom: 16,
+    paddingBottom: 14,
+  },
+  headerSafe: {
     paddingHorizontal: 16,
+    paddingTop: Platform.OS === "android" ? 8 : 0,
+  },
+  headerRow: {
     flexDirection: "row",
     alignItems: "center",
-},
+  },
   backButton: {
     padding: 8,
     borderRadius: 12,
     backgroundColor: "rgba(255, 255, 255, 0.15)",
-    marginRight: 12
-},
+    marginRight: 12,
+  },
   headerTitleContainer: {
     flex: 1
 },

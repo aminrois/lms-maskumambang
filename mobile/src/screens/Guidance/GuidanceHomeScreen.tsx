@@ -37,6 +37,7 @@ import {
 } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import { guidanceService, SiswaGuidanceItem, KonselingSesi } from "../../api/guidanceService";
+import { FocusAwareStatusBar } from "../../components/ui/FocusAwareStatusBar";
 
 export const GuidanceHomeScreen = () => {
   const navigation = useNavigation<any>();
@@ -158,19 +159,20 @@ export const GuidanceHomeScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={[]}>
-      <StatusBar barStyle="light-content" backgroundColor="#162E6E" />
+    <View style={styles.container}>
+      <FocusAwareStatusBar barStyle="light-content" backgroundColor="#162E6E" />
 
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <View style={styles.headerTop}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-            activeOpacity={0.8}
-          >
-            <ChevronLeft size={22} color="#FFFFFF" />
-          </TouchableOpacity>
+      <View style={styles.header}>
+        <SafeAreaView edges={["top"]} style={styles.headerSafe}>
+          <View style={styles.headerTop}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+              activeOpacity={0.8}
+            >
+              <ChevronLeft size={22} color="#FFFFFF" />
+            </TouchableOpacity>
           <View style={styles.headerTitleContainer}>
             <Text style={styles.headerTitle}>Bimbingan & Konseling</Text>
             <Text style={styles.headerSubtitle}>Profil 360° & Pemantauan Santri Binaan</Text>
@@ -204,6 +206,7 @@ export const GuidanceHomeScreen = () => {
             </Text>
           </TouchableOpacity>
         </View>
+        </SafeAreaView>
       </View>
 
       {/* Search & Filter Bar */}
@@ -511,7 +514,7 @@ export const GuidanceHomeScreen = () => {
           </View>
         </KeyboardAvoidingView>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -524,6 +527,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#162E6E",
     paddingBottom: 16,
     paddingHorizontal: 16,
+  },
+  headerSafe: {
+    paddingTop: Platform.OS === "android" ? 8 : 0,
   },
   headerTop: {
     flexDirection: "row",
