@@ -176,9 +176,6 @@ export const AppNavigator = () => {
           gestureEnabled: true,
           fullScreenGestureEnabled: true,
           gestureDirection: "horizontal",
-          statusBarStyle: "light",
-          statusBarBackgroundColor: "#162E6E",
-          statusBarTranslucent: false,
         }}
       >
         {!isAuthenticated ? (

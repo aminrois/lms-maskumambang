@@ -439,7 +439,7 @@ export const BeritaScreen = () => {
       >
         {selectedArticle && (
           <SwipeBackContainer onBack={() => setSelectedArticle(null)}>
-            <SafeAreaView style={styles.readerSafeArea}>
+            <View style={[styles.readerSafeArea, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
               {/* Reader Top Bar */}
               <View style={styles.readerTopBar}>
                 <TouchableOpacity
@@ -525,7 +525,7 @@ export const BeritaScreen = () => {
                   <Text style={styles.shareArticleBtnText}>Bagikan Berita</Text>
                 </TouchableOpacity>
               </ScrollView>
-            </SafeAreaView>
+            </View>
           </SwipeBackContainer>
         )}
       </Modal>

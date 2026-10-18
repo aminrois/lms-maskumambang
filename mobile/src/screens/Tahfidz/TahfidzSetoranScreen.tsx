@@ -1378,7 +1378,7 @@ export const TahfidzSetoranScreen = () => {
 
       {/* ─── MODAL 1: SANTRI PICKER (FOR INDIVIDU) ─── */}
       <Modal visible={isSantriModalOpen} animationType="slide" transparent>
-        <SafeAreaView style={styles.modalOverlay}>
+        <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Pilih Santri</Text>
@@ -1422,12 +1422,12 @@ export const TahfidzSetoranScreen = () => {
               }}
             />
           </View>
-        </SafeAreaView>
+        </View>
       </Modal>
 
       {/* ─── MODAL 2: SURAH PICKER (AL-QURAN) ─── */}
       <Modal visible={!!surahPickerTarget} animationType="slide" transparent>
-        <SafeAreaView style={styles.modalOverlay}>
+        <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Pilih Surat Al-Qur'an</Text>
@@ -1468,12 +1468,12 @@ export const TahfidzSetoranScreen = () => {
               )}
             />
           </View>
-        </SafeAreaView>
+        </View>
       </Modal>
 
       {/* ─── MODAL 3: HADITS PICKER ─── */}
       <Modal visible={isHaditsModalOpen} animationType="slide" transparent>
-        <SafeAreaView style={styles.modalOverlay}>
+        <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Pilih Kitab Hadits</Text>
@@ -1500,12 +1500,12 @@ export const TahfidzSetoranScreen = () => {
               )}
             />
           </View>
-        </SafeAreaView>
+        </View>
       </Modal>
 
       {/* ─── MODAL 4: MATAN PICKER ─── */}
       <Modal visible={isMatanModalOpen} animationType="slide" transparent>
-        <SafeAreaView style={styles.modalOverlay}>
+        <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Pilih Matan Ilmu</Text>
@@ -1532,7 +1532,7 @@ export const TahfidzSetoranScreen = () => {
               )}
             />
           </View>
-        </SafeAreaView>
+        </View>
       </Modal>
 
 

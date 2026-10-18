@@ -2,7 +2,7 @@
   "expo": {
     "name": "siMas",
     "slug": "lms-maskumambang",
-    "version": "1.2.0",
+    "version": "1.3.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -15,7 +15,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.maskumambang.simas",
       "infoPlist": {
-        "NSFaceIDUsageDescription": "Aplikasi memerlukan izin Face ID untuk memudahkan login cepat dan aman."
+        "NSFaceIDUsageDescription": "Aplikasi memerlukan izin Face ID untuk memudahkan login cepat dan aman.",
+        "UIViewControllerBasedStatusBarAppearance": true
       }
     },
     "android": {
@@ -30,7 +31,7 @@
       },
       "package": "com.maskumambang.simas",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 3,
+      "versionCode": 6,
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "USE_BIOMETRIC",
