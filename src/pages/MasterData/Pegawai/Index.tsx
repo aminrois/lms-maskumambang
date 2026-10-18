@@ -244,14 +244,64 @@ export default function PegawaiIndex() {
     }
   });
 
-  const [formData, setFormData] = useState<PEGAWAI_CREATE & { lembaga_ids: number[] }>({
+  const defaultPegawaiFormData: PEGAWAI_CREATE & { lembaga_ids: number[] } = {
     nig: "", nip: "", nik: "", nama: "", jenis_kelamin: "L",
-    tempat_lahir: "", tanggal_lahir: "", alamat: "", no_hp: "",
+    tempat_lahir: "", tanggal_lahir: "", alamat: "", no_hp: "", email: "",
     status: "Aktif", jabatan: "Guru", tugas_tambahan: "",
     jumlah_anak_laki: undefined, jumlah_anak_perempuan: undefined,
-    nama_ayah: "", nama_ibu: "", golongan_darah: "",
+    nama_ayah: "", nama_ibu: "", nama_pasangan: "", golongan_darah: "",
+    pendidikan_tk_nama: "", pendidikan_tk_tahun_masuk: "", pendidikan_tk_tahun_lulus: "",
+    pendidikan_sd_nama: "", pendidikan_sd_tahun_masuk: "", pendidikan_sd_tahun_lulus: "",
+    pendidikan_smp_nama: "", pendidikan_smp_tahun_masuk: "", pendidikan_smp_tahun_lulus: "",
+    pendidikan_sma_nama: "", pendidikan_sma_tahun_masuk: "", pendidikan_sma_tahun_lulus: "",
+    pt_jenjang: "", pt_universitas: "", pt_fakultas: "", pt_jurusan: "", pt_prodi: "", pt_tahun_masuk: "", pt_tahun_lulus: "",
     user_id: "", lembaga_ids: []
+  };
+
+  const mapPegawaiToFormData = (raw: any): PEGAWAI_CREATE & { lembaga_ids: number[] } => ({
+    nig: raw.nig || "",
+    nip: raw.nip || "",
+    nik: raw.nik || "",
+    nama: raw.nama || "",
+    jenis_kelamin: raw.jenis_kelamin || "L",
+    tempat_lahir: raw.tempat_lahir || "",
+    tanggal_lahir: raw.tanggal_lahir || "",
+    alamat: raw.alamat || "",
+    no_hp: raw.no_hp || "",
+    email: raw.email || "",
+    status: raw.status || "Aktif",
+    jabatan: raw.jabatan || "Guru",
+    tugas_tambahan: raw.tugas_tambahan || "",
+    jumlah_anak_laki: raw.jumlah_anak_laki ?? undefined,
+    jumlah_anak_perempuan: raw.jumlah_anak_perempuan ?? undefined,
+    nama_ayah: raw.nama_ayah || "",
+    nama_ibu: raw.nama_ibu || "",
+    nama_pasangan: raw.nama_pasangan || "",
+    golongan_darah: raw.golongan_darah || "",
+    pendidikan_tk_nama: raw.pendidikan_tk_nama || "",
+    pendidikan_tk_tahun_masuk: raw.pendidikan_tk_tahun_masuk || "",
+    pendidikan_tk_tahun_lulus: raw.pendidikan_tk_tahun_lulus || "",
+    pendidikan_sd_nama: raw.pendidikan_sd_nama || "",
+    pendidikan_sd_tahun_masuk: raw.pendidikan_sd_tahun_masuk || "",
+    pendidikan_sd_tahun_lulus: raw.pendidikan_sd_tahun_lulus || "",
+    pendidikan_smp_nama: raw.pendidikan_smp_nama || "",
+    pendidikan_smp_tahun_masuk: raw.pendidikan_smp_tahun_masuk || "",
+    pendidikan_smp_tahun_lulus: raw.pendidikan_smp_tahun_lulus || "",
+    pendidikan_sma_nama: raw.pendidikan_sma_nama || "",
+    pendidikan_sma_tahun_masuk: raw.pendidikan_sma_tahun_masuk || "",
+    pendidikan_sma_tahun_lulus: raw.pendidikan_sma_tahun_lulus || "",
+    pt_jenjang: raw.pt_jenjang || "",
+    pt_universitas: raw.pt_universitas || "",
+    pt_fakultas: raw.pt_fakultas || "",
+    pt_jurusan: raw.pt_jurusan || "",
+    pt_prodi: raw.pt_prodi || "",
+    pt_tahun_masuk: raw.pt_tahun_masuk || "",
+    pt_tahun_lulus: raw.pt_tahun_lulus || "",
+    user_id: raw.user_id || "",
+    lembaga_ids: []
   });
+
+  const [formData, setFormData] = useState<PEGAWAI_CREATE & { lembaga_ids: number[] }>(defaultPegawaiFormData);
 
   const { isDuplicate: isNigDuplikat } = useDuplicateCheck(
     formData.nig,
@@ -273,13 +323,34 @@ export default function PegawaiIndex() {
       tempat_lahir: formData.tempat_lahir || "",
       tanggal_lahir: formData.tanggal_lahir || null,
       alamat: formData.alamat || "", no_hp: formData.no_hp || "",
+      email: formData.email || "",
       status: formData.status, jabatan: formData.jabatan,
       tugas_tambahan: formData.tugas_tambahan || "",
-      jumlah_anak_laki: formData.jumlah_anak_laki !== undefined ? formData.jumlah_anak_laki : null,
-      jumlah_anak_perempuan: formData.jumlah_anak_perempuan !== undefined ? formData.jumlah_anak_perempuan : null,
+      jumlah_anak_laki: (formData.jumlah_anak_laki !== undefined && formData.jumlah_anak_laki !== null && String(formData.jumlah_anak_laki) !== "") ? Number(formData.jumlah_anak_laki) : null,
+      jumlah_anak_perempuan: (formData.jumlah_anak_perempuan !== undefined && formData.jumlah_anak_perempuan !== null && String(formData.jumlah_anak_perempuan) !== "") ? Number(formData.jumlah_anak_perempuan) : null,
       nama_ayah: formData.nama_ayah || "",
       nama_ibu: formData.nama_ibu || "",
-      golongan_darah: formData.golongan_darah || ""
+      nama_pasangan: formData.nama_pasangan || "",
+      golongan_darah: formData.golongan_darah || "",
+      pendidikan_tk_nama: formData.pendidikan_tk_nama || "",
+      pendidikan_tk_tahun_masuk: formData.pendidikan_tk_tahun_masuk || "",
+      pendidikan_tk_tahun_lulus: formData.pendidikan_tk_tahun_lulus || "",
+      pendidikan_sd_nama: formData.pendidikan_sd_nama || "",
+      pendidikan_sd_tahun_masuk: formData.pendidikan_sd_tahun_masuk || "",
+      pendidikan_sd_tahun_lulus: formData.pendidikan_sd_tahun_lulus || "",
+      pendidikan_smp_nama: formData.pendidikan_smp_nama || "",
+      pendidikan_smp_tahun_masuk: formData.pendidikan_smp_tahun_masuk || "",
+      pendidikan_smp_tahun_lulus: formData.pendidikan_smp_tahun_lulus || "",
+      pendidikan_sma_nama: formData.pendidikan_sma_nama || "",
+      pendidikan_sma_tahun_masuk: formData.pendidikan_sma_tahun_masuk || "",
+      pendidikan_sma_tahun_lulus: formData.pendidikan_sma_tahun_lulus || "",
+      pt_jenjang: formData.pt_jenjang || "",
+      pt_universitas: formData.pt_universitas || "",
+      pt_fakultas: formData.pt_fakultas || "",
+      pt_jurusan: formData.pt_jurusan || "",
+      pt_prodi: formData.pt_prodi || "",
+      pt_tahun_masuk: formData.pt_tahun_masuk || "",
+      pt_tahun_lulus: formData.pt_tahun_lulus || "",
     };
 
     if (dataPegawai.some(p => p.raw.nig.toLowerCase() === formData.nig.toLowerCase() && p.id !== selectedPegawai?.id)) {
@@ -377,7 +448,7 @@ export default function PegawaiIndex() {
         userRole={userRole}
         onOpenAddModal={() => {
           setSelectedPegawai(null);
-          setFormData({ nig: "", nip: "", nik: "", nama: "", jenis_kelamin: "L", tempat_lahir: "", tanggal_lahir: "", alamat: "", no_hp: "", status: "Aktif", jabatan: "Guru", tugas_tambahan: "", jumlah_anak_laki: undefined, jumlah_anak_perempuan: undefined, nama_ayah: "", nama_ibu: "", golongan_darah: "", user_id: "", lembaga_ids: [] });
+          setFormData(defaultPegawaiFormData);
           setIsModalOpen(true);
         }}
         onTemplateInfo={() => setIsTemplateInfoOpen(true)}
@@ -428,27 +499,7 @@ export default function PegawaiIndex() {
           onViewDetail={(pegawai) => navigate(`/master-data/pegawai/${pegawai.id}`)}
           onEdit={(pegawai) => {
             setSelectedPegawai(pegawai);
-            setFormData({
-              nig: pegawai.raw.nig || "",
-              nip: pegawai.raw.nip || "",
-              nik: pegawai.raw.nik || "",
-              nama: pegawai.raw.nama || "",
-              jenis_kelamin: pegawai.raw.jenis_kelamin || "L",
-              tempat_lahir: pegawai.raw.tempat_lahir || "",
-              tanggal_lahir: pegawai.raw.tanggal_lahir || "",
-              alamat: pegawai.raw.alamat || "",
-              no_hp: pegawai.raw.no_hp || "",
-              status: pegawai.raw.status || "Aktif",
-              jabatan: pegawai.raw.jabatan || "Guru",
-              tugas_tambahan: pegawai.raw.tugas_tambahan || "",
-              jumlah_anak_laki: pegawai.raw.jumlah_anak_laki ?? undefined,
-              jumlah_anak_perempuan: pegawai.raw.jumlah_anak_perempuan ?? undefined,
-              nama_ayah: pegawai.raw.nama_ayah || "",
-              nama_ibu: pegawai.raw.nama_ibu || "",
-              golongan_darah: pegawai.raw.golongan_darah || "",
-              user_id: pegawai.raw.user_id || "",
-              lembaga_ids: []
-            });
+            setFormData(mapPegawaiToFormData(pegawai.raw));
             setIsModalOpen(true);
           }}
           onDelete={(pegawai) => { setPegawaiToDelete(pegawai); setIsDeleteModalOpen(true); }}
@@ -491,7 +542,7 @@ export default function PegawaiIndex() {
         onEdit={(pegawai) => {
           setIsDetailModalOpen(false);
           setSelectedPegawai(pegawai);
-          setFormData({ nig: pegawai.raw.nig || "", nip: pegawai.raw.nip || "", nik: pegawai.raw.nik || "", nama: pegawai.raw.nama || "", jenis_kelamin: pegawai.raw.jenis_kelamin || "L", tempat_lahir: pegawai.raw.tempat_lahir || "", tanggal_lahir: pegawai.raw.tanggal_lahir || "", alamat: pegawai.raw.alamat || "", no_hp: pegawai.raw.no_hp || "", status: pegawai.raw.status || "Aktif", jabatan: pegawai.raw.jabatan || "Guru", tugas_tambahan: pegawai.raw.tugas_tambahan || "", user_id: pegawai.raw.user_id || "", lembaga_ids: [] });
+          setFormData(mapPegawaiToFormData(pegawai.raw));
           setIsModalOpen(true);
         }}
         onDelete={(pegawai) => {

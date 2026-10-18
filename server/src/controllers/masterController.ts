@@ -200,6 +200,13 @@ export const getPegawaiById = async (req: Request, res: Response, next: NextFunc
 export const createPegawai = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const data = { ...req.body };
+    if (!data.user_id) delete data.user_id;
+    if (data.tanggal_lahir === '') data.tanggal_lahir = null;
+    if (data.jumlah_anak_laki === '' || data.jumlah_anak_laki === undefined) data.jumlah_anak_laki = null;
+    else data.jumlah_anak_laki = Number(data.jumlah_anak_laki);
+    if (data.jumlah_anak_perempuan === '' || data.jumlah_anak_perempuan === undefined) data.jumlah_anak_perempuan = null;
+    else data.jumlah_anak_perempuan = Number(data.jumlah_anak_perempuan);
+
     const pegawai = await prisma.pegawai.create({ data });
     res.status(201).json(pegawai);
   } catch (error) {
@@ -210,9 +217,17 @@ export const createPegawai = async (req: Request, res: Response, next: NextFunct
 export const updatePegawai = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id } = req.params;
+    const data = { ...req.body };
+    if (!data.user_id) delete data.user_id;
+    if (data.tanggal_lahir === '') data.tanggal_lahir = null;
+    if (data.jumlah_anak_laki === '' || data.jumlah_anak_laki === undefined) data.jumlah_anak_laki = null;
+    else data.jumlah_anak_laki = Number(data.jumlah_anak_laki);
+    if (data.jumlah_anak_perempuan === '' || data.jumlah_anak_perempuan === undefined) data.jumlah_anak_perempuan = null;
+    else data.jumlah_anak_perempuan = Number(data.jumlah_anak_perempuan);
+
     const pegawai = await prisma.pegawai.update({
       where: { pegawai_id: Number(id) },
-      data: req.body,
+      data,
     });
     res.json(pegawai);
   } catch (error) {

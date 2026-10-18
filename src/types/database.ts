@@ -194,6 +194,7 @@ export interface PEGAWAI {
   tanggal_lahir?: string;
   alamat?: string;
   no_hp?: string;
+  email?: string;
   status: 'Aktif' | 'Tidak Aktif';
   jabatan: string;
   tugas_tambahan?: string;
@@ -201,7 +202,34 @@ export interface PEGAWAI {
   jumlah_anak_perempuan?: number;
   nama_ayah?: string;
   nama_ibu?: string;
+  nama_pasangan?: string;
   golongan_darah?: string;
+
+  // Riwayat Pendidikan Formal
+  pendidikan_tk_nama?: string;
+  pendidikan_tk_tahun_masuk?: string;
+  pendidikan_tk_tahun_lulus?: string;
+
+  pendidikan_sd_nama?: string;
+  pendidikan_sd_tahun_masuk?: string;
+  pendidikan_sd_tahun_lulus?: string;
+
+  pendidikan_smp_nama?: string;
+  pendidikan_smp_tahun_masuk?: string;
+  pendidikan_smp_tahun_lulus?: string;
+
+  pendidikan_sma_nama?: string;
+  pendidikan_sma_tahun_masuk?: string;
+  pendidikan_sma_tahun_lulus?: string;
+
+  // Perguruan Tinggi
+  pt_jenjang?: string;
+  pt_universitas?: string;
+  pt_fakultas?: string;
+  pt_jurusan?: string;
+  pt_prodi?: string;
+  pt_tahun_masuk?: string;
+  pt_tahun_lulus?: string;
 }
 
 export interface PEGAWAI_CREATE {
@@ -215,6 +243,7 @@ export interface PEGAWAI_CREATE {
   tanggal_lahir?: string;
   alamat?: string;
   no_hp?: string;
+  email?: string;
   status: 'Aktif' | 'Tidak Aktif';
   jabatan: string;
   tugas_tambahan?: string;
@@ -222,7 +251,34 @@ export interface PEGAWAI_CREATE {
   jumlah_anak_perempuan?: number;
   nama_ayah?: string;
   nama_ibu?: string;
+  nama_pasangan?: string;
   golongan_darah?: string;
+
+  // Riwayat Pendidikan Formal
+  pendidikan_tk_nama?: string;
+  pendidikan_tk_tahun_masuk?: string;
+  pendidikan_tk_tahun_lulus?: string;
+
+  pendidikan_sd_nama?: string;
+  pendidikan_sd_tahun_masuk?: string;
+  pendidikan_sd_tahun_lulus?: string;
+
+  pendidikan_smp_nama?: string;
+  pendidikan_smp_tahun_masuk?: string;
+  pendidikan_smp_tahun_lulus?: string;
+
+  pendidikan_sma_nama?: string;
+  pendidikan_sma_tahun_masuk?: string;
+  pendidikan_sma_tahun_lulus?: string;
+
+  // Perguruan Tinggi
+  pt_jenjang?: string;
+  pt_universitas?: string;
+  pt_fakultas?: string;
+  pt_jurusan?: string;
+  pt_prodi?: string;
+  pt_tahun_masuk?: string;
+  pt_tahun_lulus?: string;
 }
 
 export interface PEGAWAI_UPDATE {
@@ -236,6 +292,7 @@ export interface PEGAWAI_UPDATE {
   tanggal_lahir?: string;
   alamat?: string;
   no_hp?: string;
+  email?: string;
   status?: 'Aktif' | 'Tidak Aktif';
   jabatan?: string;
   tugas_tambahan?: string;
@@ -243,7 +300,34 @@ export interface PEGAWAI_UPDATE {
   jumlah_anak_perempuan?: number;
   nama_ayah?: string;
   nama_ibu?: string;
+  nama_pasangan?: string;
   golongan_darah?: string;
+
+  // Riwayat Pendidikan Formal
+  pendidikan_tk_nama?: string;
+  pendidikan_tk_tahun_masuk?: string;
+  pendidikan_tk_tahun_lulus?: string;
+
+  pendidikan_sd_nama?: string;
+  pendidikan_sd_tahun_masuk?: string;
+  pendidikan_sd_tahun_lulus?: string;
+
+  pendidikan_smp_nama?: string;
+  pendidikan_smp_tahun_masuk?: string;
+  pendidikan_smp_tahun_lulus?: string;
+
+  pendidikan_sma_nama?: string;
+  pendidikan_sma_tahun_masuk?: string;
+  pendidikan_sma_tahun_lulus?: string;
+
+  // Perguruan Tinggi
+  pt_jenjang?: string;
+  pt_universitas?: string;
+  pt_fakultas?: string;
+  pt_jurusan?: string;
+  pt_prodi?: string;
+  pt_tahun_masuk?: string;
+  pt_tahun_lulus?: string;
 }
 
 export interface PEGAWAI_LEMBAGA {

@@ -11,6 +11,8 @@ import {
   Building2,
   Users,
   Pencil,
+  GraduationCap,
+  School,
 } from "lucide-react";
 import { restClient } from "../../../lib/api/axios";
 import { getRoles, getUserById, updateUserAuth, createUserAuth } from "../../../lib/api/services/userService";
@@ -49,6 +51,7 @@ export default function MasterDataPegawaiDetail() {
     tanggal_lahir: "",
     alamat: "",
     no_hp: "",
+    email: "",
     status: "Aktif",
     jabatan: "Guru",
     tugas_tambahan: "",
@@ -56,7 +59,27 @@ export default function MasterDataPegawaiDetail() {
     jumlah_anak_perempuan: undefined,
     nama_ayah: "",
     nama_ibu: "",
+    nama_pasangan: "",
     golongan_darah: "",
+    pendidikan_tk_nama: "",
+    pendidikan_tk_tahun_masuk: "",
+    pendidikan_tk_tahun_lulus: "",
+    pendidikan_sd_nama: "",
+    pendidikan_sd_tahun_masuk: "",
+    pendidikan_sd_tahun_lulus: "",
+    pendidikan_smp_nama: "",
+    pendidikan_smp_tahun_masuk: "",
+    pendidikan_smp_tahun_lulus: "",
+    pendidikan_sma_nama: "",
+    pendidikan_sma_tahun_masuk: "",
+    pendidikan_sma_tahun_lulus: "",
+    pt_jenjang: "",
+    pt_universitas: "",
+    pt_fakultas: "",
+    pt_jurusan: "",
+    pt_prodi: "",
+    pt_tahun_masuk: "",
+    pt_tahun_lulus: "",
     user_id: "",
     lembaga_ids: [],
   });
@@ -132,6 +155,23 @@ export default function MasterDataPegawaiDetail() {
         delete editPayload.jabatan;
         delete editPayload.tugas_tambahan;
       }
+      // Jangan pernah kirim user_id kosong ke database
+      if (!editPayload.user_id) {
+        delete editPayload.user_id;
+      }
+      if (editPayload.tanggal_lahir === "") {
+        editPayload.tanggal_lahir = null;
+      }
+      if (editPayload.jumlah_anak_laki === undefined || editPayload.jumlah_anak_laki === "" || editPayload.jumlah_anak_laki === null) {
+        editPayload.jumlah_anak_laki = null;
+      } else {
+        editPayload.jumlah_anak_laki = Number(editPayload.jumlah_anak_laki);
+      }
+      if (editPayload.jumlah_anak_perempuan === undefined || editPayload.jumlah_anak_perempuan === "" || editPayload.jumlah_anak_perempuan === null) {
+        editPayload.jumlah_anak_perempuan = null;
+      } else {
+        editPayload.jumlah_anak_perempuan = Number(editPayload.jumlah_anak_perempuan);
+      }
       await updatePegawai(Number(pegawai_id), editPayload);
       if (canUpdate && lembaga_ids !== undefined) {
         await restClient.delete(`/pegawai_lembaga?pegawai_id=eq.${pegawai_id}`);
@@ -171,15 +211,36 @@ export default function MasterDataPegawaiDetail() {
       tanggal_lahir: pegawai.tanggal_lahir || "",
       alamat: pegawai.alamat || "",
       no_hp: pegawai.no_hp || "",
+      email: pegawai.email || "",
       status: pegawai.status || "Aktif",
       jabatan: pegawai.jabatan || "Guru",
       tugas_tambahan: pegawai.tugas_tambahan || "",
       user_id: pegawai.user_id || "",
       nama_ayah: pegawai.nama_ayah || "",
       nama_ibu: pegawai.nama_ibu || "",
+      nama_pasangan: pegawai.nama_pasangan || "",
       jumlah_anak_laki: pegawai.jumlah_anak_laki ?? undefined,
       jumlah_anak_perempuan: pegawai.jumlah_anak_perempuan ?? undefined,
       golongan_darah: pegawai.golongan_darah || "",
+      pendidikan_tk_nama: pegawai.pendidikan_tk_nama || "",
+      pendidikan_tk_tahun_masuk: pegawai.pendidikan_tk_tahun_masuk || "",
+      pendidikan_tk_tahun_lulus: pegawai.pendidikan_tk_tahun_lulus || "",
+      pendidikan_sd_nama: pegawai.pendidikan_sd_nama || "",
+      pendidikan_sd_tahun_masuk: pegawai.pendidikan_sd_tahun_masuk || "",
+      pendidikan_sd_tahun_lulus: pegawai.pendidikan_sd_tahun_lulus || "",
+      pendidikan_smp_nama: pegawai.pendidikan_smp_nama || "",
+      pendidikan_smp_tahun_masuk: pegawai.pendidikan_smp_tahun_masuk || "",
+      pendidikan_smp_tahun_lulus: pegawai.pendidikan_smp_tahun_lulus || "",
+      pendidikan_sma_nama: pegawai.pendidikan_sma_nama || "",
+      pendidikan_sma_tahun_masuk: pegawai.pendidikan_sma_tahun_masuk || "",
+      pendidikan_sma_tahun_lulus: pegawai.pendidikan_sma_tahun_lulus || "",
+      pt_jenjang: pegawai.pt_jenjang || "",
+      pt_universitas: pegawai.pt_universitas || "",
+      pt_fakultas: pegawai.pt_fakultas || "",
+      pt_jurusan: pegawai.pt_jurusan || "",
+      pt_prodi: pegawai.pt_prodi || "",
+      pt_tahun_masuk: pegawai.pt_tahun_masuk || "",
+      pt_tahun_lulus: pegawai.pt_tahun_lulus || "",
       lembaga_ids: lembagaIds,
     });
     setIsEditModalOpen(true);
@@ -288,6 +349,7 @@ export default function MasterDataPegawaiDetail() {
     <div class="row"><div class="label">Umur</div><div class="value">${calculateAge(pegawai.tanggal_lahir)}</div></div>
     <div class="row"><div class="label">Golongan Darah</div><div class="value">${fld(pegawai.golongan_darah)}</div></div>
     <div class="row"><div class="label">No. Handphone / WhatsApp</div><div class="value">${fld(pegawai.no_hp)}</div></div>
+    <div class="row"><div class="label">Email Pegawai</div><div class="value">${fld(pegawai.email)}</div></div>
   </div>
   <div class="row" style="margin-top:6px">
     <div class="label">Alamat Lengkap</div>
@@ -304,6 +366,7 @@ export default function MasterDataPegawaiDetail() {
 
   <h2>C. DATA KELUARGA</h2>
   <div class="grid">
+    <div class="row"><div class="label">Nama Pasangan (Istri / Suami)</div><div class="value">${fld(pegawai.nama_pasangan)}</div></div>
     <div class="row"><div class="label">Nama Ayah</div><div class="value">${fld(pegawai.nama_ayah)}</div></div>
     <div class="row"><div class="label">Nama Ibu</div><div class="value">${fld(pegawai.nama_ibu)}</div></div>
     <div class="row"><div class="label">Jumlah Anak (Laki-laki)</div><div class="value">${pegawai.jumlah_anak_laki ?? 0} anak</div></div>
@@ -316,6 +379,59 @@ export default function MasterDataPegawaiDetail() {
     <div class="row"><div class="label">Username Login</div><div class="value">${fld(userAccountQuery.data?.username || pegawai.nig)}</div></div>
     <div class="row"><div class="label">Status Akun</div><div class="value">${pegawai.user_id ? 'Terdaftar & Aktif' : 'Belum Memiliki Akun Login'}</div></div>
     <div class="row"><div class="label">Hak Akses / Roles</div><div class="value">${userRolesData.map((ur: any) => ur.role?.nama_role).filter(Boolean).join(', ') || 'Belum Ada Role'}</div></div>
+  </div>
+
+  <h2>E. RIWAYAT PENDIDIKAN</h2>
+  <div style="margin-bottom:8px">
+    <strong style="color:#162E6E;font-size:10px;text-transform:uppercase">Pendidikan Dasar & Menengah</strong>
+    <table style="width:100%;border-collapse:collapse;margin-top:4px;font-size:10px">
+      <thead>
+        <tr style="background:#f8fafc;border-bottom:1px solid #cbd5e1">
+          <th style="padding:4px;text-align:left;width:25%">Tingkat</th>
+          <th style="padding:4px;text-align:left">Nama Lembaga / Sekolah</th>
+          <th style="padding:4px;text-align:center;width:15%">Tahun Masuk</th>
+          <th style="padding:4px;text-align:center;width:15%">Tahun Lulus</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #f1f5f9">
+          <td style="padding:4px;font-weight:600">TK / RA</td>
+          <td style="padding:4px">${fld(pegawai.pendidikan_tk_nama)}</td>
+          <td style="padding:4px;text-align:center">${fld(pegawai.pendidikan_tk_tahun_masuk)}</td>
+          <td style="padding:4px;text-align:center">${fld(pegawai.pendidikan_tk_tahun_lulus)}</td>
+        </tr>
+        <tr style="border-bottom:1px solid #f1f5f9">
+          <td style="padding:4px;font-weight:600">SD / MI</td>
+          <td style="padding:4px">${fld(pegawai.pendidikan_sd_nama)}</td>
+          <td style="padding:4px;text-align:center">${fld(pegawai.pendidikan_sd_tahun_masuk)}</td>
+          <td style="padding:4px;text-align:center">${fld(pegawai.pendidikan_sd_tahun_lulus)}</td>
+        </tr>
+        <tr style="border-bottom:1px solid #f1f5f9">
+          <td style="padding:4px;font-weight:600">SMP / MTs</td>
+          <td style="padding:4px">${fld(pegawai.pendidikan_smp_nama)}</td>
+          <td style="padding:4px;text-align:center">${fld(pegawai.pendidikan_smp_tahun_masuk)}</td>
+          <td style="padding:4px;text-align:center">${fld(pegawai.pendidikan_smp_tahun_lulus)}</td>
+        </tr>
+        <tr style="border-bottom:1px solid #f1f5f9">
+          <td style="padding:4px;font-weight:600">SMA / MA / SMK</td>
+          <td style="padding:4px">${fld(pegawai.pendidikan_sma_nama)}</td>
+          <td style="padding:4px;text-align:center">${fld(pegawai.pendidikan_sma_tahun_masuk)}</td>
+          <td style="padding:4px;text-align:center">${fld(pegawai.pendidikan_sma_tahun_lulus)}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="margin-top:10px">
+    <strong style="color:#162E6E;font-size:10px;text-transform:uppercase">Pendidikan Tinggi</strong>
+    <div class="grid" style="margin-top:4px">
+      <div class="row"><div class="label">Jenjang</div><div class="value">${fld(pegawai.pt_jenjang)}</div></div>
+      <div class="row"><div class="label">Universitas / Institut</div><div class="value">${fld(pegawai.pt_universitas)}</div></div>
+      <div class="row"><div class="label">Fakultas</div><div class="value">${fld(pegawai.pt_fakultas)}</div></div>
+      <div class="row"><div class="label">Jurusan</div><div class="value">${fld(pegawai.pt_jurusan)}</div></div>
+      <div class="row"><div class="label">Program Studi</div><div class="value">${fld(pegawai.pt_prodi)}</div></div>
+      <div class="row"><div class="label">Periode Masuk - Lulus</div><div class="value">${pegawai.pt_tahun_masuk || '—'} s/d ${pegawai.pt_tahun_lulus || '—'}</div></div>
+    </div>
   </div>
 
   <div style="margin-top:24px;border-top:1px solid #e2e8f0;padding-top:10px;text-align:center;color:#94a3b8;font-size:10px">
@@ -508,6 +624,7 @@ export default function MasterDataPegawaiDetail() {
             <InfoField label="Umur" value={calculateAge(pegawai.tanggal_lahir)} />
             <InfoField label="Golongan Darah" value={pegawai.golongan_darah} />
             <InfoField label="No. Handphone / WA" value={pegawai.no_hp} />
+            <InfoField label="Email" value={pegawai.email} />
             <InfoField label="Status Kepegawaian" value={pegawai.status} />
             <div className="sm:col-span-2 md:col-span-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
               <span className="text-[10px] font-semibold text-slate-400 block mb-0.5 uppercase tracking-wide">
@@ -550,8 +667,9 @@ export default function MasterDataPegawaiDetail() {
 
         {/* C. DATA KELUARGA */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <SectionHeader label="C. Data Keluarga" sub="Informasi orang tua kandung dan tanggungan anak" />
+          <SectionHeader label="C. Data Keluarga" sub="Informasi pasangan, orang tua kandung, dan tanggungan anak" />
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            <InfoField label="Nama Pasangan (Istri / Suami)" value={pegawai.nama_pasangan} />
             <InfoField label="Nama Ayah" value={pegawai.nama_ayah} />
             <InfoField label="Nama Ibu" value={pegawai.nama_ibu} />
             <InfoField label="Jumlah Anak (Laki-laki)" value={`${pegawai.jumlah_anak_laki ?? 0} anak`} />
@@ -678,6 +796,97 @@ export default function MasterDataPegawaiDetail() {
                 )}
               </div>
             )}
+          </div>
+        </div>
+
+        {/* E. RIWAYAT PENDIDIKAN */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+          <SectionHeader label="E. Riwayat Pendidikan" sub="Riwayat pendidikan formal dasar, menengah, hingga jenjang tinggi" />
+          
+          <div className="space-y-6">
+            {/* Pendidikan Dasar & Menengah */}
+            <div>
+              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5 mb-3">
+                <School className="w-4 h-4 text-blue-600" />
+                Pendidikan Dasar & Menengah
+              </h4>
+              <div className="overflow-x-auto rounded-xl border border-slate-200">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                    <tr>
+                      <th className="py-2.5 px-3.5 w-1/4">Tingkat</th>
+                      <th className="py-2.5 px-3.5">Nama Lembaga / Sekolah</th>
+                      <th className="py-2.5 px-3.5 text-center w-28">Tahun Masuk</th>
+                      <th className="py-2.5 px-3.5 text-center w-28">Tahun Lulus</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-slate-700">
+                    <tr>
+                      <td className="py-2.5 px-3.5 font-semibold text-slate-900">TK / RA</td>
+                      <td className="py-2.5 px-3.5">{pegawai.pendidikan_tk_nama || "—"}</td>
+                      <td className="py-2.5 px-3.5 text-center">{pegawai.pendidikan_tk_tahun_masuk || "—"}</td>
+                      <td className="py-2.5 px-3.5 text-center">{pegawai.pendidikan_tk_tahun_lulus || "—"}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2.5 px-3.5 font-semibold text-slate-900">SD / MI</td>
+                      <td className="py-2.5 px-3.5">{pegawai.pendidikan_sd_nama || "—"}</td>
+                      <td className="py-2.5 px-3.5 text-center">{pegawai.pendidikan_sd_tahun_masuk || "—"}</td>
+                      <td className="py-2.5 px-3.5 text-center">{pegawai.pendidikan_sd_tahun_lulus || "—"}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2.5 px-3.5 font-semibold text-slate-900">SMP / MTs</td>
+                      <td className="py-2.5 px-3.5">{pegawai.pendidikan_smp_nama || "—"}</td>
+                      <td className="py-2.5 px-3.5 text-center">{pegawai.pendidikan_smp_tahun_masuk || "—"}</td>
+                      <td className="py-2.5 px-3.5 text-center">{pegawai.pendidikan_smp_tahun_lulus || "—"}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2.5 px-3.5 font-semibold text-slate-900">SMA / MA / SMK</td>
+                      <td className="py-2.5 px-3.5">{pegawai.pendidikan_sma_nama || "—"}</td>
+                      <td className="py-2.5 px-3.5 text-center">{pegawai.pendidikan_sma_tahun_masuk || "—"}</td>
+                      <td className="py-2.5 px-3.5 text-center">{pegawai.pendidikan_sma_tahun_lulus || "—"}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Perguruan Tinggi */}
+            <div className="pt-4 border-t border-slate-100">
+              <h4 className="text-xs font-bold text-indigo-950 uppercase tracking-wide flex items-center gap-1.5 mb-3">
+                <GraduationCap className="w-4 h-4 text-indigo-600" />
+                Pendidikan Tinggi
+              </h4>
+              <div className="bg-gradient-to-r from-indigo-50/50 via-slate-50 to-blue-50/40 p-4 rounded-xl border border-indigo-100/80">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  <div>
+                    <span className="text-[10px] font-semibold text-slate-400 block mb-0.5 uppercase tracking-wide">
+                      Jenjang
+                    </span>
+                    {pegawai.pt_jenjang ? (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-100 text-indigo-800 border border-indigo-200">
+                        {pegawai.pt_jenjang}
+                      </span>
+                    ) : (
+                      <span className="text-xs font-bold text-slate-400">—</span>
+                    )}
+                  </div>
+                  <InfoField label="Universitas / Institut" value={pegawai.pt_universitas} />
+                  <InfoField label="Fakultas" value={pegawai.pt_fakultas} />
+                  <InfoField label="Jurusan" value={pegawai.pt_jurusan} />
+                  <InfoField label="Program Studi (Prodi)" value={pegawai.pt_prodi} />
+                  <div>
+                    <span className="text-[10px] font-semibold text-slate-400 block mb-0.5 uppercase tracking-wide">
+                      Periode Masuk - Lulus
+                    </span>
+                    <span className="text-xs font-bold text-slate-800">
+                      {pegawai.pt_tahun_masuk || pegawai.pt_tahun_lulus
+                        ? `${pegawai.pt_tahun_masuk || "—"} s/d ${pegawai.pt_tahun_lulus || "—"}`
+                        : "—"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

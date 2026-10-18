@@ -640,7 +640,8 @@ const KNOWN_INT_FIELDS = new Set([
   'mapel_id', 'pegawai_id', 'jam_mulai_id', 'jam_selesai_id', 'jam_id', 'urutan_jam',
   'jadwal_id', 'lesson_plan_id', 'detail_id', 'pertemuan_ke', 'jurnal_id',
   'absensi_pel_id', 'absensi_harian_id', 'activity_id', 'kalender_id', 'wali_id',
-  'user_id', 'role_id', 'wali_kelas_id',
+  'role_id', 'wali_kelas_id',
+  'jumlah_anak_laki', 'jumlah_anak_perempuan', 'anak_ke', 'jumlah_saudara',
 ]);
 
 const KNOWN_BOOL_FIELDS = new Set(['is_active']);
@@ -655,13 +656,21 @@ function sanitizeData(raw: any): any {
       continue;
     }
 
-    if (KNOWN_INT_FIELDS.has(key) || key.endsWith('_id')) {
+    if (key === 'user_id') {
       if (val === '' || val === null || val === undefined) {
         clean[key] = null;
+      } else {
+        clean[key] = String(val).trim();
+      }
+    } else if (KNOWN_INT_FIELDS.has(key) || (key.endsWith('_id') && key !== 'user_id')) {
+      if (val === '' || val === null || val === undefined) {
+        clean[key] = null;
+      } else if (typeof val === 'number') {
+        clean[key] = isNaN(val) ? null : Math.round(val);
       } else if (typeof val === 'string' && /^-?\d+$/.test(val.trim())) {
         clean[key] = parseInt(val.trim(), 10);
       } else {
-        clean[key] = val;
+        clean[key] = null;
       }
     } else if (KNOWN_BOOL_FIELDS.has(key)) {
       if (typeof val === 'string') {

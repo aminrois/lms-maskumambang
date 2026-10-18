@@ -82,6 +82,7 @@ model Pegawai {
   tanggal_lahir           String?
   alamat                  String?
   no_hp                   String?
+  email                   String?
   status                  String           @default("Aktif") // 'Aktif' | 'Tidak Aktif'
   jabatan                 String
   tugas_tambahan          String?
@@ -89,7 +90,34 @@ model Pegawai {
   jumlah_anak_perempuan   Int?             @default(0)
   nama_ayah               String?
   nama_ibu                String?
+  nama_pasangan           String?
   golongan_darah          String?
+
+  // Riwayat Pendidikan Formal
+  pendidikan_tk_nama         String?
+  pendidikan_tk_tahun_masuk  String?
+  pendidikan_tk_tahun_lulus  String?
+
+  pendidikan_sd_nama         String?
+  pendidikan_sd_tahun_masuk  String?
+  pendidikan_sd_tahun_lulus  String?
+
+  pendidikan_smp_nama        String?
+  pendidikan_smp_tahun_masuk String?
+  pendidikan_smp_tahun_lulus String?
+
+  pendidikan_sma_nama        String?
+  pendidikan_sma_tahun_masuk String?
+  pendidikan_sma_tahun_lulus String?
+
+  // Perguruan Tinggi
+  pt_jenjang                 String?
+  pt_universitas             String?
+  pt_fakultas                String?
+  pt_jurusan                 String?
+  pt_prodi                   String?
+  pt_tahun_masuk             String?
+  pt_tahun_lulus             String?
 
   user                    User?            @relation(fields: [user_id], references: [user_id], onDelete: SetNull)
   pegawai_lembaga         PegawaiLembaga[]

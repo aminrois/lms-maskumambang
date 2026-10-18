@@ -109,6 +109,10 @@ export default function PegawaiDetailModal({
                 <span className="font-medium text-gray-800">{selectedPegawai.raw.no_hp || "—"}</span>
               </div>
               <div className="flex justify-between items-center border-b pb-2">
+                <span className="text-gray-500 font-medium">Email</span>
+                <span className="font-medium text-gray-800">{selectedPegawai.raw.email || "—"}</span>
+              </div>
+              <div className="flex justify-between items-center border-b pb-2">
                 <span className="text-gray-500 font-medium">Jabatan</span>
                 <span className="font-medium text-gray-800">{selectedPegawai.jabatan}</span>
               </div>
@@ -117,12 +121,8 @@ export default function PegawaiDetailModal({
                 <span className="font-medium text-gray-800 text-right wrap-break-word">{selectedPegawai.raw.tugas_tambahan || "—"}</span>
               </div>
               <div className="flex justify-between items-center border-b pb-2">
-                <span className="text-gray-500 font-medium">Jumlah Anak (L)</span>
-                <span className="font-medium text-gray-800">{selectedPegawai.raw.jumlah_anak_laki !== null && selectedPegawai.raw.jumlah_anak_laki !== undefined ? selectedPegawai.raw.jumlah_anak_laki : "—"}</span>
-              </div>
-              <div className="flex justify-between items-center border-b pb-2">
-                <span className="text-gray-500 font-medium">Jumlah Anak (P)</span>
-                <span className="font-medium text-gray-800">{selectedPegawai.raw.jumlah_anak_perempuan !== null && selectedPegawai.raw.jumlah_anak_perempuan !== undefined ? selectedPegawai.raw.jumlah_anak_perempuan : "—"}</span>
+                <span className="text-gray-500 font-medium">Nama Pasangan</span>
+                <span className="font-medium text-gray-800">{selectedPegawai.raw.nama_pasangan || "—"}</span>
               </div>
               <div className="flex justify-between items-center border-b pb-2">
                 <span className="text-gray-500 font-medium">Nama Ayah</span>
@@ -132,6 +132,22 @@ export default function PegawaiDetailModal({
                 <span className="text-gray-500 font-medium">Nama Ibu</span>
                 <span className="font-medium text-gray-800">{selectedPegawai.raw.nama_ibu || "—"}</span>
               </div>
+              <div className="flex justify-between items-center border-b pb-2">
+                <span className="text-gray-500 font-medium">Jumlah Anak (L)</span>
+                <span className="font-medium text-gray-800">{selectedPegawai.raw.jumlah_anak_laki !== null && selectedPegawai.raw.jumlah_anak_laki !== undefined ? selectedPegawai.raw.jumlah_anak_laki : "—"}</span>
+              </div>
+              <div className="flex justify-between items-center border-b pb-2">
+                <span className="text-gray-500 font-medium">Jumlah Anak (P)</span>
+                <span className="font-medium text-gray-800">{selectedPegawai.raw.jumlah_anak_perempuan !== null && selectedPegawai.raw.jumlah_anak_perempuan !== undefined ? selectedPegawai.raw.jumlah_anak_perempuan : "—"}</span>
+              </div>
+              {(selectedPegawai.raw.pt_jenjang || selectedPegawai.raw.pt_universitas || selectedPegawai.raw.pendidikan_sma_nama) && (
+                <div className="flex justify-between items-start border-b pb-2 gap-4">
+                  <span className="text-gray-500 font-medium shrink-0">Pendidikan Terakhir</span>
+                  <span className="font-medium text-gray-800 text-right wrap-break-word">
+                    {selectedPegawai.raw.pt_jenjang ? `${selectedPegawai.raw.pt_jenjang} ${selectedPegawai.raw.pt_universitas || ''}` : selectedPegawai.raw.pendidikan_sma_nama ? `SMA: ${selectedPegawai.raw.pendidikan_sma_nama}` : '—'}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between items-center border-b pb-2">
                 <span className="text-gray-500 font-medium">Golongan Darah</span>
                 <span className="font-medium text-gray-800">{selectedPegawai.raw.golongan_darah || "—"}</span>
