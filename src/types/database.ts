@@ -188,6 +188,7 @@ export interface PEGAWAI {
   nig: string;
   nip?: string;
   nik?: string;
+  no_kk?: string;
   nama: string;
   jenis_kelamin: 'L' | 'P';
   tempat_lahir?: string;
@@ -237,6 +238,7 @@ export interface PEGAWAI_CREATE {
   nig: string;
   nip?: string;
   nik?: string;
+  no_kk?: string;
   nama: string;
   jenis_kelamin: 'L' | 'P';
   tempat_lahir?: string;
@@ -286,6 +288,7 @@ export interface PEGAWAI_UPDATE {
   nig?: string;
   nip?: string;
   nik?: string;
+  no_kk?: string;
   nama?: string;
   jenis_kelamin?: 'L' | 'P';
   tempat_lahir?: string;

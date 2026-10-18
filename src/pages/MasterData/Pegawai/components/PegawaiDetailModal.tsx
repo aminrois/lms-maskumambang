@@ -66,6 +66,10 @@ export default function PegawaiDetailModal({
                 <span className="font-medium text-gray-800">{selectedPegawai.raw.nik || "—"}</span>
               </div>
               <div className="flex justify-between items-center border-b pb-2">
+                <span className="text-gray-500 font-medium">No. Kartu Keluarga (KK)</span>
+                <span className="font-medium text-gray-800">{selectedPegawai.raw.no_kk || "—"}</span>
+              </div>
+              <div className="flex justify-between items-center border-b pb-2">
                 <span className="text-gray-500 font-medium">Jenis Kelamin</span>
                 <span className="font-medium text-gray-800">{selectedPegawai.jenisKelamin}</span>
               </div>

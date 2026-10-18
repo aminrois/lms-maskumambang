@@ -58,7 +58,7 @@ export function usePegawaiExportImport() {
         const allData: any[] = response.data || [];
         if (allData.length === 0) { toast.error("Tidak ada data untuk diekspor"); return; }
         const exportData = allData.map((p) => ({
-          nig: p.nig || "", nip: p.nip || "", nik: p.nik || "",
+          nig: p.nig || "", nip: p.nip || "", nik: p.nik || "", no_kk: p.no_kk || "",
           nama: p.nama || "", jenis_kelamin: p.jenis_kelamin || "L",
           tempat_lahir: p.tempat_lahir || "", tanggal_lahir: p.tanggal_lahir || "",
           alamat: p.alamat || "", no_hp: p.no_hp || "", status: p.status || "Aktif",
@@ -88,6 +88,7 @@ export function usePegawaiExportImport() {
       nig: p.raw.nig || "",
       nip: p.raw.nip || "",
       nik: p.raw.nik || "",
+      no_kk: p.raw.no_kk || "",
       nama: p.raw.nama || "",
       jenis_kelamin: p.raw.jenis_kelamin || "L",
       tempat_lahir: p.raw.tempat_lahir || "",
@@ -118,6 +119,7 @@ export function usePegawaiExportImport() {
       nig: "P001",
       nip: "",
       nik: "",
+      no_kk: "",
       nama: "Ahmad Fauzi",
       jenis_kelamin: "L",
       tempat_lahir: "Gresik",
@@ -254,6 +256,7 @@ export function usePegawaiExportImport() {
           const rawNig = findValue(row, ["nig"]);
           const rawNip = findValue(row, ["nip"]);
           const rawNik = findValue(row, ["nik"]);
+          const rawNoKk = findValue(row, ["no_kk", "no kk", "nokk", "kk", "nomor_kk", "nomor kk"]);
           const rawNama = findValue(row, ["nama", "nama_pegawai", "nama pegawai"]);
           const rawTempatLahir = findValue(row, ["tempat_lahir", "tempat lahir", "tpt_lahir", "tempat"]);
           const rawTanggalLahir = findValue(row, ["tanggal_lahir", "tanggal lahir", "tgl_lahir", "tgl lahir", "tanggal"]);
@@ -273,6 +276,7 @@ export function usePegawaiExportImport() {
             nig: rawNig !== undefined && rawNig !== null ? String(rawNig).trim() : "",
             nip: rawNip !== undefined && rawNip !== null ? String(rawNip).trim() : "",
             nik: rawNik !== undefined && rawNik !== null ? String(rawNik).trim() : "",
+            no_kk: rawNoKk !== undefined && rawNoKk !== null ? String(rawNoKk).trim() : "",
             nama: rawNama !== undefined && rawNama !== null ? String(rawNama).trim() : "",
             jenis_kelamin: jk as "L" | "P",
             tempat_lahir: rawTempatLahir !== undefined && rawTempatLahir !== null ? String(rawTempatLahir).trim() : "",

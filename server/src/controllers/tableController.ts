@@ -678,7 +678,7 @@ function sanitizeData(raw: any): any {
       } else {
         clean[key] = Boolean(val);
       }
-    } else if (val === '' && (key.endsWith('_id') || key.startsWith('tanggal_') || key === 'nik' || key === 'pin' || key === 'no_un_sebelumnya' || key === 'ruangan')) {
+    } else if (val === '' && (key.endsWith('_id') || key.startsWith('tanggal_') || key === 'nik' || key === 'no_kk' || key === 'pin' || key === 'no_un_sebelumnya' || key === 'ruangan')) {
       clean[key] = null;
     } else {
       clean[key] = val;

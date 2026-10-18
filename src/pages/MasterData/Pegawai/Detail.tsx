@@ -45,6 +45,7 @@ export default function MasterDataPegawaiDetail() {
     nig: "",
     nip: "",
     nik: "",
+    no_kk: "",
     nama: "",
     jenis_kelamin: "L",
     tempat_lahir: "",
@@ -205,6 +206,7 @@ export default function MasterDataPegawaiDetail() {
       nig: pegawai.nig || "",
       nip: pegawai.nip || "",
       nik: pegawai.nik || "",
+      no_kk: pegawai.no_kk || "",
       nama: pegawai.nama || "",
       jenis_kelamin: pegawai.jenis_kelamin || "L",
       tempat_lahir: pegawai.tempat_lahir || "",
@@ -328,7 +330,7 @@ export default function MasterDataPegawaiDetail() {
     </div>
     <div>
       <h1>${fld(pegawai.nama)}</h1>
-      <p style="color:#475569;margin-bottom:6px">NIG: <strong>${fld(pegawai.nig)}</strong> &nbsp;|&nbsp; NIP: ${fld(pegawai.nip)} &nbsp;|&nbsp; NIK: ${fld(pegawai.nik)}</p>
+      <p style="color:#475569;margin-bottom:6px">NIG: <strong>${fld(pegawai.nig)}</strong> &nbsp;|&nbsp; NIP: ${fld(pegawai.nip)} &nbsp;|&nbsp; NIK: ${fld(pegawai.nik)} &nbsp;|&nbsp; No. KK: ${fld(pegawai.no_kk)}</p>
       <span class="badge ${pegawai.status === 'Aktif' ? 'badge-green' : 'badge-red'}">${fld(pegawai.status)}</span>
       &nbsp;
       <span class="badge badge-blue">Jabatan: ${fld(pegawai.jabatan)}</span>
@@ -344,6 +346,7 @@ export default function MasterDataPegawaiDetail() {
     <div class="row"><div class="label">NIG (Nomor Induk Guru)</div><div class="value">${fld(pegawai.nig)}</div></div>
     <div class="row"><div class="label">NIP</div><div class="value">${fld(pegawai.nip)}</div></div>
     <div class="row"><div class="label">NIK (KTP)</div><div class="value">${fld(pegawai.nik)}</div></div>
+    <div class="row"><div class="label">No. Kartu Keluarga (KK)</div><div class="value">${fld(pegawai.no_kk)}</div></div>
     <div class="row"><div class="label">Jenis Kelamin</div><div class="value">${pegawai.jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan'}</div></div>
     <div class="row"><div class="label">Tempat, Tanggal Lahir</div><div class="value">${fld(pegawai.tempat_lahir)}, ${fld(pegawai.tanggal_lahir)}</div></div>
     <div class="row"><div class="label">Umur</div><div class="value">${calculateAge(pegawai.tanggal_lahir)}</div></div>
@@ -607,6 +610,7 @@ export default function MasterDataPegawaiDetail() {
             <InfoField label="NIG (Nomor Induk Guru)" value={pegawai.nig} />
             <InfoField label="NIP" value={pegawai.nip} />
             <InfoField label="NIK (KTP)" value={pegawai.nik} />
+            <InfoField label="No. Kartu Keluarga (KK)" value={pegawai.no_kk} />
             <InfoField label="Jenis Kelamin" value={pegawai.jenis_kelamin === "L" ? "Laki-laki" : "Perempuan"} />
             <InfoField label="Tempat Lahir" value={pegawai.tempat_lahir} />
             <InfoField

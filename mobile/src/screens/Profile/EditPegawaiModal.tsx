@@ -23,6 +23,10 @@ import {
   Users,
   ShieldAlert,
   Check,
+  Mail,
+  GraduationCap,
+  School,
+  Building2,
 } from "lucide-react-native";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
@@ -49,24 +53,54 @@ export const EditPegawaiModal: React.FC<EditPegawaiModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  const [activeTab, setActiveTab] = useState<"biodata" | "keluarga" | "pendidikan">("biodata");
   const [formData, setFormData] = useState({
     nig: "",
     nip: "",
     nik: "",
+    no_kk: "",
     nama: "",
     jenis_kelamin: "L",
     tempat_lahir: "",
     tanggal_lahir: "",
     alamat: "",
     no_hp: "",
+    email: "",
     status: "Aktif",
     jabatan: "",
     tugas_tambahan: "",
     golongan_darah: "",
     nama_ayah: "",
     nama_ibu: "",
+    nama_pasangan: "",
     jumlah_anak_laki: "0",
     jumlah_anak_perempuan: "0",
+
+    // Riwayat Pendidikan Formal
+    pendidikan_tk_nama: "",
+    pendidikan_tk_tahun_masuk: "",
+    pendidikan_tk_tahun_lulus: "",
+
+    pendidikan_sd_nama: "",
+    pendidikan_sd_tahun_masuk: "",
+    pendidikan_sd_tahun_lulus: "",
+
+    pendidikan_smp_nama: "",
+    pendidikan_smp_tahun_masuk: "",
+    pendidikan_smp_tahun_lulus: "",
+
+    pendidikan_sma_nama: "",
+    pendidikan_sma_tahun_masuk: "",
+    pendidikan_sma_tahun_lulus: "",
+
+    // Perguruan Tinggi
+    pt_jenjang: "",
+    pt_universitas: "",
+    pt_fakultas: "",
+    pt_jurusan: "",
+    pt_prodi: "",
+    pt_tahun_masuk: "",
+    pt_tahun_lulus: "",
   });
 
   useEffect(() => {
@@ -89,20 +123,47 @@ export const EditPegawaiModal: React.FC<EditPegawaiModalProps> = ({
           nig: data.nig || "",
           nip: data.nip || "",
           nik: data.nik || "",
+          no_kk: data.no_kk || "",
           nama: data.nama || "",
           jenis_kelamin: data.jenis_kelamin === "P" ? "P" : "L",
           tempat_lahir: data.tempat_lahir || "",
           tanggal_lahir: data.tanggal_lahir ? String(data.tanggal_lahir).split("T")[0] : "",
           alamat: data.alamat || "",
           no_hp: data.no_hp || "",
+          email: data.email || "",
           status: data.status || "Aktif",
           jabatan: data.jabatan || "",
           tugas_tambahan: data.tugas_tambahan || "",
           golongan_darah: data.golongan_darah || "",
           nama_ayah: data.nama_ayah || "",
           nama_ibu: data.nama_ibu || "",
+          nama_pasangan: data.nama_pasangan || "",
           jumlah_anak_laki: data.jumlah_anak_laki !== null && data.jumlah_anak_laki !== undefined ? String(data.jumlah_anak_laki) : "0",
           jumlah_anak_perempuan: data.jumlah_anak_perempuan !== null && data.jumlah_anak_perempuan !== undefined ? String(data.jumlah_anak_perempuan) : "0",
+
+          pendidikan_tk_nama: data.pendidikan_tk_nama || "",
+          pendidikan_tk_tahun_masuk: data.pendidikan_tk_tahun_masuk || "",
+          pendidikan_tk_tahun_lulus: data.pendidikan_tk_tahun_lulus || "",
+
+          pendidikan_sd_nama: data.pendidikan_sd_nama || "",
+          pendidikan_sd_tahun_masuk: data.pendidikan_sd_tahun_masuk || "",
+          pendidikan_sd_tahun_lulus: data.pendidikan_sd_tahun_lulus || "",
+
+          pendidikan_smp_nama: data.pendidikan_smp_nama || "",
+          pendidikan_smp_tahun_masuk: data.pendidikan_smp_tahun_masuk || "",
+          pendidikan_smp_tahun_lulus: data.pendidikan_smp_tahun_lulus || "",
+
+          pendidikan_sma_nama: data.pendidikan_sma_nama || "",
+          pendidikan_sma_tahun_masuk: data.pendidikan_sma_tahun_masuk || "",
+          pendidikan_sma_tahun_lulus: data.pendidikan_sma_tahun_lulus || "",
+
+          pt_jenjang: data.pt_jenjang || "",
+          pt_universitas: data.pt_universitas || "",
+          pt_fakultas: data.pt_fakultas || "",
+          pt_jurusan: data.pt_jurusan || "",
+          pt_prodi: data.pt_prodi || "",
+          pt_tahun_masuk: data.pt_tahun_masuk || "",
+          pt_tahun_lulus: data.pt_tahun_lulus || "",
         });
       }
     } catch (err: any) {
@@ -125,6 +186,9 @@ export const EditPegawaiModal: React.FC<EditPegawaiModalProps> = ({
         nama: formData.nama.trim(),
         nip: formData.nip.trim() || null,
         nik: formData.nik.trim() || null,
+        no_kk: formData.no_kk.trim() || null,
+        email: formData.email.trim() || null,
+        nama_pasangan: formData.nama_pasangan.trim() || null,
         jenis_kelamin: formData.jenis_kelamin,
         tempat_lahir: formData.tempat_lahir.trim() || null,
         tanggal_lahir: formData.tanggal_lahir.trim() || null,
@@ -135,6 +199,30 @@ export const EditPegawaiModal: React.FC<EditPegawaiModalProps> = ({
         nama_ibu: formData.nama_ibu.trim() || null,
         jumlah_anak_laki: parseInt(formData.jumlah_anak_laki, 10) || 0,
         jumlah_anak_perempuan: parseInt(formData.jumlah_anak_perempuan, 10) || 0,
+
+        pendidikan_tk_nama: formData.pendidikan_tk_nama.trim() || null,
+        pendidikan_tk_tahun_masuk: formData.pendidikan_tk_tahun_masuk.trim() || null,
+        pendidikan_tk_tahun_lulus: formData.pendidikan_tk_tahun_lulus.trim() || null,
+
+        pendidikan_sd_nama: formData.pendidikan_sd_nama.trim() || null,
+        pendidikan_sd_tahun_masuk: formData.pendidikan_sd_tahun_masuk.trim() || null,
+        pendidikan_sd_tahun_lulus: formData.pendidikan_sd_tahun_lulus.trim() || null,
+
+        pendidikan_smp_nama: formData.pendidikan_smp_nama.trim() || null,
+        pendidikan_smp_tahun_masuk: formData.pendidikan_smp_tahun_masuk.trim() || null,
+        pendidikan_smp_tahun_lulus: formData.pendidikan_smp_tahun_lulus.trim() || null,
+
+        pendidikan_sma_nama: formData.pendidikan_sma_nama.trim() || null,
+        pendidikan_sma_tahun_masuk: formData.pendidikan_sma_tahun_masuk.trim() || null,
+        pendidikan_sma_tahun_lulus: formData.pendidikan_sma_tahun_lulus.trim() || null,
+
+        pt_jenjang: formData.pt_jenjang.trim() || null,
+        pt_universitas: formData.pt_universitas.trim() || null,
+        pt_fakultas: formData.pt_fakultas.trim() || null,
+        pt_jurusan: formData.pt_jurusan.trim() || null,
+        pt_prodi: formData.pt_prodi.trim() || null,
+        pt_tahun_masuk: formData.pt_tahun_masuk.trim() || null,
+        pt_tahun_lulus: formData.pt_tahun_lulus.trim() || null,
       };
 
       await apiClient.patch(`/pegawai?pegawai_id=eq.${pegawaiId}`, payload);
@@ -173,6 +261,39 @@ export const EditPegawaiModal: React.FC<EditPegawaiModalProps> = ({
             </TouchableOpacity>
           </View>
 
+          {/* Tab Navigation */}
+          <View style={styles.tabContainer}>
+            <TouchableOpacity
+              style={[styles.tabButton, activeTab === "biodata" && styles.tabButtonActive]}
+              onPress={() => setActiveTab("biodata")}
+            >
+              <User size={14} color={activeTab === "biodata" ? "#162E6E" : "#64748B"} />
+              <Text style={[styles.tabText, activeTab === "biodata" && styles.tabTextActive]}>
+                Biodata
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.tabButton, activeTab === "keluarga" && styles.tabButtonActive]}
+              onPress={() => setActiveTab("keluarga")}
+            >
+              <Users size={14} color={activeTab === "keluarga" ? "#162E6E" : "#64748B"} />
+              <Text style={[styles.tabText, activeTab === "keluarga" && styles.tabTextActive]}>
+                Keluarga
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.tabButton, activeTab === "pendidikan" && styles.tabButtonActive]}
+              onPress={() => setActiveTab("pendidikan")}
+            >
+              <GraduationCap size={14} color={activeTab === "pendidikan" ? "#162E6E" : "#64748B"} />
+              <Text style={[styles.tabText, activeTab === "pendidikan" && styles.tabTextActive]}>
+                Pendidikan
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           {isLoading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={Colors.primary} />
@@ -186,195 +307,430 @@ export const EditPegawaiModal: React.FC<EditPegawaiModalProps> = ({
               keyboardDismissMode="on-drag"
               showsVerticalScrollIndicator={false}
             >
-              {/* Notice Administrator Fields */}
-              <View style={styles.infoBox}>
-                <ShieldAlert size={18} color="#D97706" style={{ marginTop: 2 }} />
-                <View style={{ flex: 1, marginLeft: 8 }}>
-                  <Text style={styles.infoBoxTitle}>Identitas Kedinasan Resmi</Text>
-                  <Text style={styles.infoBoxText}>
-                    NIG ({formData.nig || "—"}), Jabatan ({formData.jabatan || "Pegawai"}), dan Status ({formData.status}) dikelola secara terpusat oleh administrator.
-                  </Text>
-                </View>
-              </View>
+              {/* ─── TAB 1: BIODATA & KONTAK ─── */}
+              {activeTab === "biodata" && (
+                <>
+                  {/* Notice Administrator Fields */}
+                  <View style={styles.infoBox}>
+                    <ShieldAlert size={18} color="#D97706" style={{ marginTop: 2 }} />
+                    <View style={{ flex: 1, marginLeft: 8 }}>
+                      <Text style={styles.infoBoxTitle}>Identitas Kedinasan Resmi</Text>
+                      <Text style={styles.infoBoxText}>
+                        NIG ({formData.nig || "—"}), Jabatan ({formData.jabatan || "Pegawai"}), dan Status ({formData.status}) dikelola secara terpusat oleh administrator.
+                      </Text>
+                    </View>
+                  </View>
 
-              {/* Data Pribadi Pokok */}
-              <Text style={styles.sectionTitle}>A. Identitas Pokok</Text>
-
-              <Input
-                label="Nama Lengkap *"
-                placeholder="Masukkan nama lengkap dengan gelar"
-                value={formData.nama}
-                onChangeText={(t) => setFormData({ ...formData, nama: t })}
-                leftIcon={<User size={18} color={Colors.textMuted} />}
-              />
-
-              <Input
-                label="Nomor HP / WhatsApp"
-                placeholder="Contoh: 081234567890"
-                value={formData.no_hp}
-                keyboardType="phone-pad"
-                onChangeText={(t) => setFormData({ ...formData, no_hp: t })}
-                leftIcon={<Phone size={18} color={Colors.textMuted} />}
-              />
-
-              <View style={styles.twoCol}>
-                <View style={{ flex: 1, marginRight: 6 }}>
                   <Input
-                    label="NIK (No. KTP)"
-                    placeholder="16 digit NIK"
-                    value={formData.nik}
-                    keyboardType="number-pad"
-                    onChangeText={(t) => setFormData({ ...formData, nik: t })}
+                    label="Nama Lengkap *"
+                    placeholder="Masukkan nama lengkap dengan gelar"
+                    value={formData.nama}
+                    onChangeText={(t) => setFormData({ ...formData, nama: t })}
+                    leftIcon={<User size={18} color={Colors.textMuted} />}
                   />
-                </View>
-                <View style={{ flex: 1, marginLeft: 6 }}>
+
+                  <Input
+                    label="Nomor HP / WhatsApp"
+                    placeholder="Contoh: 081234567890"
+                    value={formData.no_hp}
+                    keyboardType="phone-pad"
+                    onChangeText={(t) => setFormData({ ...formData, no_hp: t })}
+                    leftIcon={<Phone size={18} color={Colors.textMuted} />}
+                  />
+
+                  <Input
+                    label="Email Pegawai"
+                    placeholder="Contoh: nama@domain.com"
+                    value={formData.email}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    onChangeText={(t) => setFormData({ ...formData, email: t })}
+                    leftIcon={<Mail size={18} color={Colors.textMuted} />}
+                  />
+
+                  <View style={styles.twoCol}>
+                    <View style={{ flex: 1, marginRight: 6 }}>
+                      <Input
+                        label="NIK (No. KTP)"
+                        placeholder="16 digit NIK"
+                        value={formData.nik}
+                        keyboardType="number-pad"
+                        onChangeText={(t) => setFormData({ ...formData, nik: t })}
+                      />
+                    </View>
+                    <View style={{ flex: 1, marginLeft: 6 }}>
+                      <Input
+                        label="No. Kartu Keluarga"
+                        placeholder="16 digit No. KK"
+                        value={formData.no_kk}
+                        keyboardType="number-pad"
+                        onChangeText={(t) => setFormData({ ...formData, no_kk: t })}
+                      />
+                    </View>
+                  </View>
+
                   <Input
                     label="NIP (Opsional)"
-                    placeholder="Nomor NIP"
+                    placeholder="Nomor NIP pegawai"
                     value={formData.nip}
                     onChangeText={(t) => setFormData({ ...formData, nip: t })}
                   />
-                </View>
-              </View>
 
-              {/* Jenis Kelamin */}
-              <Text style={styles.fieldLabel}>Jenis Kelamin *</Text>
-              <View style={styles.genderRow}>
-                <TouchableOpacity
-                  style={[
-                    styles.genderButton,
-                    formData.jenis_kelamin === "L" && styles.genderButtonActive,
-                  ]}
-                  onPress={() => setFormData({ ...formData, jenis_kelamin: "L" })}
-                >
-                  <Text
-                    style={[
-                      styles.genderText,
-                      formData.jenis_kelamin === "L" && styles.genderTextActive,
-                    ]}
-                  >
-                    Laki-laki
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.genderButton,
-                    formData.jenis_kelamin === "P" && styles.genderButtonActive,
-                  ]}
-                  onPress={() => setFormData({ ...formData, jenis_kelamin: "P" })}
-                >
-                  <Text
-                    style={[
-                      styles.genderText,
-                      formData.jenis_kelamin === "P" && styles.genderTextActive,
-                    ]}
-                  >
-                    Perempuan
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Tempat & Tanggal Lahir */}
-              <View style={styles.twoCol}>
-                <View style={{ flex: 1, marginRight: 6 }}>
-                  <Input
-                    label="Tempat Lahir"
-                    placeholder="Kota kelahiran"
-                    value={formData.tempat_lahir}
-                    onChangeText={(t) => setFormData({ ...formData, tempat_lahir: t })}
-                  />
-                </View>
-                <View style={{ flex: 1, marginLeft: 6 }}>
-                  <Input
-                    label="Tanggal Lahir"
-                    placeholder="YYYY-MM-DD"
-                    value={formData.tanggal_lahir}
-                    onChangeText={(t) => setFormData({ ...formData, tanggal_lahir: t })}
-                    leftIcon={<Calendar size={18} color={Colors.textMuted} />}
-                  />
-                </View>
-              </View>
-
-              {/* Golongan Darah */}
-              <Text style={styles.fieldLabel}>Golongan Darah</Text>
-              <View style={styles.goldarRow}>
-                {["A+", "B+", "AB+", "O+", "A", "B", "AB", "O"].map((gd) => {
-                  const isSelected = formData.golongan_darah === gd;
-                  return (
+                  {/* Jenis Kelamin */}
+                  <Text style={styles.fieldLabel}>Jenis Kelamin *</Text>
+                  <View style={styles.genderRow}>
                     <TouchableOpacity
-                      key={gd}
-                      style={[styles.goldarBadge, isSelected && styles.goldarBadgeActive]}
-                      onPress={() =>
-                        setFormData({
-                          ...formData,
-                          golongan_darah: isSelected ? "" : gd,
-                        })
-                      }
+                      style={[
+                        styles.genderButton,
+                        formData.jenis_kelamin === "L" && styles.genderButtonActive,
+                      ]}
+                      onPress={() => setFormData({ ...formData, jenis_kelamin: "L" })}
                     >
                       <Text
-                        style={[styles.goldarText, isSelected && styles.goldarTextActive]}
+                        style={[
+                          styles.genderText,
+                          formData.jenis_kelamin === "L" && styles.genderTextActive,
+                        ]}
                       >
-                        {gd}
+                        Laki-laki
                       </Text>
                     </TouchableOpacity>
-                  );
-                })}
-              </View>
 
-              {/* Alamat Lengkap */}
-              <Input
-                label="Alamat Lengkap"
-                placeholder="Alamat tempat tinggal saat ini"
-                value={formData.alamat}
-                multiline
-                numberOfLines={3}
-                onChangeText={(t) => setFormData({ ...formData, alamat: t })}
-                leftIcon={<MapPin size={18} color={Colors.textMuted} />}
-              />
+                    <TouchableOpacity
+                      style={[
+                        styles.genderButton,
+                        formData.jenis_kelamin === "P" && styles.genderButtonActive,
+                      ]}
+                      onPress={() => setFormData({ ...formData, jenis_kelamin: "P" })}
+                    >
+                      <Text
+                        style={[
+                          styles.genderText,
+                          formData.jenis_kelamin === "P" && styles.genderTextActive,
+                        ]}
+                      >
+                        Perempuan
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
 
-              {/* Data Keluarga */}
-              <Text style={[styles.sectionTitle, { marginTop: 16 }]}>B. Data Keluarga</Text>
+                  {/* Tempat & Tanggal Lahir */}
+                  <View style={styles.twoCol}>
+                    <View style={{ flex: 1, marginRight: 6 }}>
+                      <Input
+                        label="Tempat Lahir"
+                        placeholder="Kota kelahiran"
+                        value={formData.tempat_lahir}
+                        onChangeText={(t) => setFormData({ ...formData, tempat_lahir: t })}
+                      />
+                    </View>
+                    <View style={{ flex: 1, marginLeft: 6 }}>
+                      <Input
+                        label="Tanggal Lahir"
+                        placeholder="YYYY-MM-DD"
+                        value={formData.tanggal_lahir}
+                        onChangeText={(t) => setFormData({ ...formData, tanggal_lahir: t })}
+                        leftIcon={<Calendar size={18} color={Colors.textMuted} />}
+                      />
+                    </View>
+                  </View>
 
-              <View style={styles.twoCol}>
-                <View style={{ flex: 1, marginRight: 6 }}>
-                  <Input
-                    label="Nama Ayah Kandung"
-                    placeholder="Nama ayah"
-                    value={formData.nama_ayah}
-                    onChangeText={(t) => setFormData({ ...formData, nama_ayah: t })}
-                  />
-                </View>
-                <View style={{ flex: 1, marginLeft: 6 }}>
-                  <Input
-                    label="Nama Ibu Kandung"
-                    placeholder="Nama ibu"
-                    value={formData.nama_ibu}
-                    onChangeText={(t) => setFormData({ ...formData, nama_ibu: t })}
-                  />
-                </View>
-              </View>
+                  {/* Golongan Darah */}
+                  <Text style={styles.fieldLabel}>Golongan Darah</Text>
+                  <View style={styles.goldarRow}>
+                    {["A+", "B+", "AB+", "O+", "A", "B", "AB", "O"].map((gd) => {
+                      const isSelected = formData.golongan_darah === gd;
+                      return (
+                        <TouchableOpacity
+                          key={gd}
+                          style={[styles.goldarBadge, isSelected && styles.goldarBadgeActive]}
+                          onPress={() =>
+                            setFormData({
+                              ...formData,
+                              golongan_darah: isSelected ? "" : gd,
+                            })
+                          }
+                        >
+                          <Text
+                            style={[styles.goldarText, isSelected && styles.goldarTextActive]}
+                          >
+                            {gd}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
 
-              <View style={styles.twoCol}>
-                <View style={{ flex: 1, marginRight: 6 }}>
+                  {/* Alamat Lengkap */}
                   <Input
-                    label="Jml Anak Laki-laki"
-                    placeholder="0"
-                    keyboardType="number-pad"
-                    value={formData.jumlah_anak_laki}
-                    onChangeText={(t) => setFormData({ ...formData, jumlah_anak_laki: t })}
+                    label="Alamat Lengkap"
+                    placeholder="Alamat domisili saat ini"
+                    value={formData.alamat}
+                    multiline
+                    numberOfLines={3}
+                    onChangeText={(t) => setFormData({ ...formData, alamat: t })}
+                    leftIcon={<MapPin size={18} color={Colors.textMuted} />}
                   />
-                </View>
-                <View style={{ flex: 1, marginLeft: 6 }}>
-                  <Input
-                    label="Jml Anak Perempuan"
-                    placeholder="0"
-                    keyboardType="number-pad"
-                    value={formData.jumlah_anak_perempuan}
-                    onChangeText={(t) => setFormData({ ...formData, jumlah_anak_perempuan: t })}
-                  />
-                </View>
-              </View>
+                </>
+              )}
+
+              {/* ─── TAB 2: DATA KELUARGA ─── */}
+              {activeTab === "keluarga" && (
+                <>
+                  <View style={styles.pasanganBox}>
+                    <Text style={styles.pasanganBoxTitle}>Nama Pasangan (Istri / Suami)</Text>
+                    <Text style={styles.pasanganBoxDesc}>
+                      Isi nama lengkap istri atau suami jika sudah berkeluarga.
+                    </Text>
+                    <Input
+                      placeholder="Masukkan nama lengkap pasangan"
+                      value={formData.nama_pasangan}
+                      onChangeText={(t) => setFormData({ ...formData, nama_pasangan: t })}
+                      leftIcon={<Heart size={18} color="#2563EB" />}
+                    />
+                  </View>
+
+                  <View style={styles.twoCol}>
+                    <View style={{ flex: 1, marginRight: 6 }}>
+                      <Input
+                        label="Nama Ayah Kandung"
+                        placeholder="Nama ayah"
+                        value={formData.nama_ayah}
+                        onChangeText={(t) => setFormData({ ...formData, nama_ayah: t })}
+                      />
+                    </View>
+                    <View style={{ flex: 1, marginLeft: 6 }}>
+                      <Input
+                        label="Nama Ibu Kandung"
+                        placeholder="Nama ibu"
+                        value={formData.nama_ibu}
+                        onChangeText={(t) => setFormData({ ...formData, nama_ibu: t })}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.twoCol}>
+                    <View style={{ flex: 1, marginRight: 6 }}>
+                      <Input
+                        label="Jml Anak Laki-laki"
+                        placeholder="0"
+                        keyboardType="number-pad"
+                        value={formData.jumlah_anak_laki}
+                        onChangeText={(t) => setFormData({ ...formData, jumlah_anak_laki: t })}
+                      />
+                    </View>
+                    <View style={{ flex: 1, marginLeft: 6 }}>
+                      <Input
+                        label="Jml Anak Perempuan"
+                        placeholder="0"
+                        keyboardType="number-pad"
+                        value={formData.jumlah_anak_perempuan}
+                        onChangeText={(t) => setFormData({ ...formData, jumlah_anak_perempuan: t })}
+                      />
+                    </View>
+                  </View>
+                </>
+              )}
+
+              {/* ─── TAB 3: RIWAYAT PENDIDIKAN ─── */}
+              {activeTab === "pendidikan" && (
+                <>
+                  <Text style={styles.sectionTitle}>Pendidikan Dasar & Menengah</Text>
+
+                  {/* TK / RA */}
+                  <View style={styles.eduCardBox}>
+                    <Text style={styles.eduCardTitle}>TK / RA</Text>
+                    <Input
+                      placeholder="Nama TK / RA"
+                      value={formData.pendidikan_tk_nama}
+                      onChangeText={(t) => setFormData({ ...formData, pendidikan_tk_nama: t })}
+                    />
+                    <View style={styles.twoCol}>
+                      <View style={{ flex: 1, marginRight: 6 }}>
+                        <Input
+                          placeholder="Tahun Masuk"
+                          value={formData.pendidikan_tk_tahun_masuk}
+                          keyboardType="number-pad"
+                          onChangeText={(t) => setFormData({ ...formData, pendidikan_tk_tahun_masuk: t })}
+                        />
+                      </View>
+                      <View style={{ flex: 1, marginLeft: 6 }}>
+                        <Input
+                          placeholder="Tahun Lulus"
+                          value={formData.pendidikan_tk_tahun_lulus}
+                          keyboardType="number-pad"
+                          onChangeText={(t) => setFormData({ ...formData, pendidikan_tk_tahun_lulus: t })}
+                        />
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* SD / MI */}
+                  <View style={styles.eduCardBox}>
+                    <Text style={styles.eduCardTitle}>SD / MI</Text>
+                    <Input
+                      placeholder="Nama SD / MI"
+                      value={formData.pendidikan_sd_nama}
+                      onChangeText={(t) => setFormData({ ...formData, pendidikan_sd_nama: t })}
+                    />
+                    <View style={styles.twoCol}>
+                      <View style={{ flex: 1, marginRight: 6 }}>
+                        <Input
+                          placeholder="Tahun Masuk"
+                          value={formData.pendidikan_sd_tahun_masuk}
+                          keyboardType="number-pad"
+                          onChangeText={(t) => setFormData({ ...formData, pendidikan_sd_tahun_masuk: t })}
+                        />
+                      </View>
+                      <View style={{ flex: 1, marginLeft: 6 }}>
+                        <Input
+                          placeholder="Tahun Lulus"
+                          value={formData.pendidikan_sd_tahun_lulus}
+                          keyboardType="number-pad"
+                          onChangeText={(t) => setFormData({ ...formData, pendidikan_sd_tahun_lulus: t })}
+                        />
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* SMP / MTs */}
+                  <View style={styles.eduCardBox}>
+                    <Text style={styles.eduCardTitle}>SMP / MTs</Text>
+                    <Input
+                      placeholder="Nama SMP / MTs"
+                      value={formData.pendidikan_smp_nama}
+                      onChangeText={(t) => setFormData({ ...formData, pendidikan_smp_nama: t })}
+                    />
+                    <View style={styles.twoCol}>
+                      <View style={{ flex: 1, marginRight: 6 }}>
+                        <Input
+                          placeholder="Tahun Masuk"
+                          value={formData.pendidikan_smp_tahun_masuk}
+                          keyboardType="number-pad"
+                          onChangeText={(t) => setFormData({ ...formData, pendidikan_smp_tahun_masuk: t })}
+                        />
+                      </View>
+                      <View style={{ flex: 1, marginLeft: 6 }}>
+                        <Input
+                          placeholder="Tahun Lulus"
+                          value={formData.pendidikan_smp_tahun_lulus}
+                          keyboardType="number-pad"
+                          onChangeText={(t) => setFormData({ ...formData, pendidikan_smp_tahun_lulus: t })}
+                        />
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* SMA / MA / SMK */}
+                  <View style={styles.eduCardBox}>
+                    <Text style={styles.eduCardTitle}>SMA / MA / SMK</Text>
+                    <Input
+                      placeholder="Nama SMA / MA / SMK"
+                      value={formData.pendidikan_sma_nama}
+                      onChangeText={(t) => setFormData({ ...formData, pendidikan_sma_nama: t })}
+                    />
+                    <View style={styles.twoCol}>
+                      <View style={{ flex: 1, marginRight: 6 }}>
+                        <Input
+                          placeholder="Tahun Masuk"
+                          value={formData.pendidikan_sma_tahun_masuk}
+                          keyboardType="number-pad"
+                          onChangeText={(t) => setFormData({ ...formData, pendidikan_sma_tahun_masuk: t })}
+                        />
+                      </View>
+                      <View style={{ flex: 1, marginLeft: 6 }}>
+                        <Input
+                          placeholder="Tahun Lulus"
+                          value={formData.pendidikan_sma_tahun_lulus}
+                          keyboardType="number-pad"
+                          onChangeText={(t) => setFormData({ ...formData, pendidikan_sma_tahun_lulus: t })}
+                        />
+                      </View>
+                    </View>
+                  </View>
+
+                  <Text style={[styles.sectionTitle, { marginTop: 10 }]}>Perguruan Tinggi</Text>
+
+                  <View style={styles.eduCardBox}>
+                    <Text style={styles.fieldLabel}>Jenjang Pendidikan</Text>
+                    <View style={styles.jenjangRow}>
+                      {["S1", "S2", "S3", "D3", "D4"].map((jj) => {
+                        const isSelected = formData.pt_jenjang === jj;
+                        return (
+                          <TouchableOpacity
+                            key={jj}
+                            style={[styles.jenjangButton, isSelected && styles.jenjangButtonActive]}
+                            onPress={() =>
+                              setFormData({
+                                ...formData,
+                                pt_jenjang: isSelected ? "" : jj,
+                              })
+                            }
+                          >
+                            <Text style={[styles.jenjangText, isSelected && styles.jenjangTextActive]}>
+                              {jj}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+
+                    <Input
+                      label="Nama Universitas / Institut"
+                      placeholder="Contoh: Universitas Indonesia"
+                      value={formData.pt_universitas}
+                      onChangeText={(t) => setFormData({ ...formData, pt_universitas: t })}
+                    />
+
+                    <View style={styles.twoCol}>
+                      <View style={{ flex: 1, marginRight: 6 }}>
+                        <Input
+                          label="Fakultas"
+                          placeholder="Contoh: Tarbiyah"
+                          value={formData.pt_fakultas}
+                          onChangeText={(t) => setFormData({ ...formData, pt_fakultas: t })}
+                        />
+                      </View>
+                      <View style={{ flex: 1, marginLeft: 6 }}>
+                        <Input
+                          label="Jurusan"
+                          placeholder="Contoh: PAI"
+                          value={formData.pt_jurusan}
+                          onChangeText={(t) => setFormData({ ...formData, pt_jurusan: t })}
+                        />
+                      </View>
+                    </View>
+
+                    <Input
+                      label="Program Studi"
+                      placeholder="Contoh: Pendidikan Agama Islam"
+                      value={formData.pt_prodi}
+                      onChangeText={(t) => setFormData({ ...formData, pt_prodi: t })}
+                    />
+
+                    <View style={styles.twoCol}>
+                      <View style={{ flex: 1, marginRight: 6 }}>
+                        <Input
+                          label="Tahun Masuk"
+                          placeholder="YYYY"
+                          value={formData.pt_tahun_masuk}
+                          keyboardType="number-pad"
+                          onChangeText={(t) => setFormData({ ...formData, pt_tahun_masuk: t })}
+                        />
+                      </View>
+                      <View style={{ flex: 1, marginLeft: 6 }}>
+                        <Input
+                          label="Tahun Lulus"
+                          placeholder="YYYY"
+                          value={formData.pt_tahun_lulus}
+                          keyboardType="number-pad"
+                          onChangeText={(t) => setFormData({ ...formData, pt_tahun_lulus: t })}
+                        />
+                      </View>
+                    </View>
+                  </View>
+                </>
+              )}
 
               <View style={{ height: 24 }} />
             </ScrollView>
@@ -562,5 +918,101 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: "#F1F5F9",
+  },
+  tabContainer: {
+    flexDirection: "row",
+    backgroundColor: "#F1F5F9",
+    borderRadius: 12,
+    padding: 3,
+    marginHorizontal: 20,
+    marginTop: 8,
+    marginBottom: 4,
+    gap: 4,
+  },
+  tabButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 8,
+    borderRadius: 9,
+    gap: 6,
+  },
+  tabButtonActive: {
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  tabText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#64748B",
+  },
+  tabTextActive: {
+    color: "#162E6E",
+    fontWeight: "700",
+  },
+  pasanganBox: {
+    backgroundColor: "#EFF6FF",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+  },
+  pasanganBoxTitle: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#1E40AF",
+    marginBottom: 2,
+  },
+  pasanganBoxDesc: {
+    fontSize: 11,
+    color: "#3B82F6",
+    marginBottom: 8,
+  },
+  eduCardBox: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  eduCardTitle: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#162E6E",
+    marginBottom: 6,
+  },
+  jenjangRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 12,
+  },
+  jenjangButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    backgroundColor: "#FFFFFF",
+  },
+  jenjangButtonActive: {
+    borderColor: "#162E6E",
+    backgroundColor: "#EFF6FF",
+  },
+  jenjangText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#64748B",
+  },
+  jenjangTextActive: {
+    color: "#162E6E",
+    fontWeight: "700",
   },
 });

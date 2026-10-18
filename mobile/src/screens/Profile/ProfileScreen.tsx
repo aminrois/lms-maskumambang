@@ -270,6 +270,11 @@ export const ProfileScreen = () => {
                   <Text style={styles.menuSubLabel}>
                     {pegawaiDetail?.no_hp ? `HP: ${pegawaiDetail.no_hp}` : "No. HP belum diisi"} • {pegawaiDetail?.jenis_kelamin === "P" ? "Perempuan" : "Laki-laki"}
                   </Text>
+                  {pegawaiDetail?.email && (
+                    <Text style={[styles.menuSubLabel, { marginTop: 2 }]} numberOfLines={1}>
+                      ✉️ {pegawaiDetail.email}
+                    </Text>
+                  )}
                   {pegawaiDetail?.alamat && (
                     <Text style={[styles.menuSubLabel, { marginTop: 2 }]} numberOfLines={1}>
                       📍 {pegawaiDetail.alamat}

@@ -245,7 +245,7 @@ export default function PegawaiIndex() {
   });
 
   const defaultPegawaiFormData: PEGAWAI_CREATE & { lembaga_ids: number[] } = {
-    nig: "", nip: "", nik: "", nama: "", jenis_kelamin: "L",
+    nig: "", nip: "", nik: "", no_kk: "", nama: "", jenis_kelamin: "L",
     tempat_lahir: "", tanggal_lahir: "", alamat: "", no_hp: "", email: "",
     status: "Aktif", jabatan: "Guru", tugas_tambahan: "",
     jumlah_anak_laki: undefined, jumlah_anak_perempuan: undefined,
@@ -262,6 +262,7 @@ export default function PegawaiIndex() {
     nig: raw.nig || "",
     nip: raw.nip || "",
     nik: raw.nik || "",
+    no_kk: raw.no_kk || "",
     nama: raw.nama || "",
     jenis_kelamin: raw.jenis_kelamin || "L",
     tempat_lahir: raw.tempat_lahir || "",
@@ -318,7 +319,7 @@ export default function PegawaiIndex() {
   const handleSimpan = (e: React.FormEvent) => {
     e.preventDefault();
     const payload: any = {
-      nig: formData.nig, nip: formData.nip || "", nik: formData.nik || "",
+      nig: formData.nig, nip: formData.nip || "", nik: formData.nik || "", no_kk: formData.no_kk || "",
       nama: formData.nama, jenis_kelamin: formData.jenis_kelamin,
       tempat_lahir: formData.tempat_lahir || "",
       tanggal_lahir: formData.tanggal_lahir || null,

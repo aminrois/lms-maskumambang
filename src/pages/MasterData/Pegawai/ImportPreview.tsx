@@ -621,6 +621,7 @@ export default function PegawaiImportPreview() {
           nig: cleanRow.nig,
           nip: isValidValue(cleanRow.nip) ? String(cleanRow.nip).trim() : null,
           nik: isValidValue(cleanRow.nik) ? String(cleanRow.nik).trim() : null,
+          no_kk: isValidValue(cleanRow.no_kk) ? String(cleanRow.no_kk).trim() : null,
           nama: cleanRow.nama,
           jenis_kelamin: cleanRow.jenis_kelamin,
           tempat_lahir: cleanRow.tempat_lahir || null,

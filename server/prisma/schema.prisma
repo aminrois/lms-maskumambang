@@ -76,6 +76,7 @@ model Pegawai {
   nig                     String           @unique
   nip                     String?
   nik                     String?
+  no_kk                   String?
   nama                    String
   jenis_kelamin           String           // 'L' | 'P'
   tempat_lahir            String?

@@ -32,6 +32,8 @@ import {
   Sparkles,
   School,
   IdCard,
+  GraduationCap,
+  BookOpen,
 } from "lucide-react-native";
 import { Colors } from "../../constants/colors";
 import { apiClient } from "../../api/client";
@@ -43,6 +45,9 @@ interface DetailPegawaiData {
   nig?: string;
   nip?: string;
   nik?: string;
+  no_kk?: string;
+  email?: string;
+  nama_pasangan?: string;
   jenis_kelamin?: string;
   tempat_lahir?: string;
   tanggal_lahir?: string;
@@ -56,6 +61,32 @@ interface DetailPegawaiData {
   nama_ayah?: string;
   nama_ibu?: string;
   golongan_darah?: string;
+
+  // Riwayat Pendidikan Formal
+  pendidikan_tk_nama?: string;
+  pendidikan_tk_tahun_masuk?: string;
+  pendidikan_tk_tahun_lulus?: string;
+
+  pendidikan_sd_nama?: string;
+  pendidikan_sd_tahun_masuk?: string;
+  pendidikan_sd_tahun_lulus?: string;
+
+  pendidikan_smp_nama?: string;
+  pendidikan_smp_tahun_masuk?: string;
+  pendidikan_smp_tahun_lulus?: string;
+
+  pendidikan_sma_nama?: string;
+  pendidikan_sma_tahun_masuk?: string;
+  pendidikan_sma_tahun_lulus?: string;
+
+  // Perguruan Tinggi
+  pt_jenjang?: string;
+  pt_universitas?: string;
+  pt_fakultas?: string;
+  pt_jurusan?: string;
+  pt_prodi?: string;
+  pt_tahun_masuk?: string;
+  pt_tahun_lulus?: string;
   pegawai_lembaga?: Array<{
     lembaga_id: number;
     lembaga?: {
@@ -456,6 +487,13 @@ export const DetailPegawaiScreen = () => {
               </View>
             ) : null}
 
+            {pegawai?.no_kk ? (
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Nomor Kartu Keluarga (KK)</Text>
+                <Text style={styles.infoValue}>{pegawai.no_kk}</Text>
+              </View>
+            ) : null}
+
             <View style={[styles.infoRow, { borderBottomWidth: 0, paddingBottom: 0 }]}>
               <Text style={styles.infoLabel}>Unit Lembaga Bertugas</Text>
               <View style={styles.lembagaTagsContainer}>
@@ -512,7 +550,7 @@ export const DetailPegawaiScreen = () => {
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Email</Text>
               <Text style={styles.infoValue}>
-                {pegawai?.user?.email || (pegawai as any)?.email || "-"}
+                {pegawai?.email || pegawai?.user?.email || (pegawai as any)?.email || "-"}
               </Text>
             </View>
 
@@ -537,7 +575,8 @@ export const DetailPegawaiScreen = () => {
           </View>
 
           {/* ─── SECTION 3: INFORMASI KELUARGA ─── */}
-          {(pegawai?.nama_ayah ||
+          {(pegawai?.nama_pasangan ||
+            pegawai?.nama_ayah ||
             pegawai?.nama_ibu ||
             pegawai?.jumlah_anak_laki !== undefined ||
             pegawai?.jumlah_anak_perempuan !== undefined) && (
@@ -546,6 +585,15 @@ export const DetailPegawaiScreen = () => {
                 <Users size={16} color="#162E6E" />
                 <Text style={styles.sectionTitle}>Informasi Keluarga</Text>
               </View>
+
+              {pegawai?.nama_pasangan ? (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Nama Pasangan (Istri / Suami)</Text>
+                  <Text style={[styles.infoValueBold, { color: "#1E40AF" }]}>
+                    {pegawai.nama_pasangan}
+                  </Text>
+                </View>
+              ) : null}
 
               {pegawai?.nama_ayah ? (
                 <View style={styles.infoRow}>
@@ -602,6 +650,122 @@ export const DetailPegawaiScreen = () => {
                   )}
                 </View>
               </View>
+            </View>
+          )}
+
+          {/* ─── SECTION 5: RIWAYAT PENDIDIKAN ─── */}
+          {(pegawai?.pendidikan_tk_nama ||
+            pegawai?.pendidikan_sd_nama ||
+            pegawai?.pendidikan_smp_nama ||
+            pegawai?.pendidikan_sma_nama ||
+            pegawai?.pt_universitas ||
+            pegawai?.pt_jenjang) && (
+            <View style={styles.cardSection}>
+              <View style={styles.sectionHeader}>
+                <GraduationCap size={16} color="#162E6E" />
+                <Text style={styles.sectionTitle}>Riwayat Pendidikan</Text>
+              </View>
+
+              {/* Pendidikan Dasar & Menengah */}
+              {(pegawai?.pendidikan_tk_nama ||
+                pegawai?.pendidikan_sd_nama ||
+                pegawai?.pendidikan_smp_nama ||
+                pegawai?.pendidikan_sma_nama) && (
+                <View style={{ marginBottom: 12 }}>
+                  <Text style={styles.subSectionTitle}>Pendidikan Dasar & Menengah</Text>
+
+                  {pegawai?.pendidikan_tk_nama ? (
+                    <View style={styles.eduCard}>
+                      <View style={styles.eduHeader}>
+                        <View style={styles.eduLevelBadge}>
+                          <Text style={styles.eduLevelText}>TK / RA</Text>
+                        </View>
+                        {(pegawai.pendidikan_tk_tahun_masuk || pegawai.pendidikan_tk_tahun_lulus) && (
+                          <Text style={styles.eduPeriodText}>
+                            {pegawai.pendidikan_tk_tahun_masuk || "—"} s/d {pegawai.pendidikan_tk_tahun_lulus || "—"}
+                          </Text>
+                        )}
+                      </View>
+                      <Text style={styles.eduSchoolName}>{pegawai.pendidikan_tk_nama}</Text>
+                    </View>
+                  ) : null}
+
+                  {pegawai?.pendidikan_sd_nama ? (
+                    <View style={styles.eduCard}>
+                      <View style={styles.eduHeader}>
+                        <View style={styles.eduLevelBadge}>
+                          <Text style={styles.eduLevelText}>SD / MI</Text>
+                        </View>
+                        {(pegawai.pendidikan_sd_tahun_masuk || pegawai.pendidikan_sd_tahun_lulus) && (
+                          <Text style={styles.eduPeriodText}>
+                            {pegawai.pendidikan_sd_tahun_masuk || "—"} s/d {pegawai.pendidikan_sd_tahun_lulus || "—"}
+                          </Text>
+                        )}
+                      </View>
+                      <Text style={styles.eduSchoolName}>{pegawai.pendidikan_sd_nama}</Text>
+                    </View>
+                  ) : null}
+
+                  {pegawai?.pendidikan_smp_nama ? (
+                    <View style={styles.eduCard}>
+                      <View style={styles.eduHeader}>
+                        <View style={styles.eduLevelBadge}>
+                          <Text style={styles.eduLevelText}>SMP / MTs</Text>
+                        </View>
+                        {(pegawai.pendidikan_smp_tahun_masuk || pegawai.pendidikan_smp_tahun_lulus) && (
+                          <Text style={styles.eduPeriodText}>
+                            {pegawai.pendidikan_smp_tahun_masuk || "—"} s/d {pegawai.pendidikan_smp_tahun_lulus || "—"}
+                          </Text>
+                        )}
+                      </View>
+                      <Text style={styles.eduSchoolName}>{pegawai.pendidikan_smp_nama}</Text>
+                    </View>
+                  ) : null}
+
+                  {pegawai?.pendidikan_sma_nama ? (
+                    <View style={styles.eduCard}>
+                      <View style={styles.eduHeader}>
+                        <View style={styles.eduLevelBadge}>
+                          <Text style={styles.eduLevelText}>SMA / MA / SMK</Text>
+                        </View>
+                        {(pegawai.pendidikan_sma_tahun_masuk || pegawai.pendidikan_sma_tahun_lulus) && (
+                          <Text style={styles.eduPeriodText}>
+                            {pegawai.pendidikan_sma_tahun_masuk || "—"} s/d {pegawai.pendidikan_sma_tahun_lulus || "—"}
+                          </Text>
+                        )}
+                      </View>
+                      <Text style={styles.eduSchoolName}>{pegawai.pendidikan_sma_nama}</Text>
+                    </View>
+                  ) : null}
+                </View>
+              )}
+
+              {/* Perguruan Tinggi */}
+              {(pegawai?.pt_universitas || pegawai?.pt_jenjang) && (
+                <View>
+                  <Text style={styles.subSectionTitle}>Perguruan Tinggi</Text>
+                  <View style={[styles.eduCard, { backgroundColor: "#F0FDF4", borderColor: "#BBF7D0" }]}>
+                    <View style={styles.eduHeader}>
+                      <View style={[styles.eduLevelBadge, { backgroundColor: "#DCFCE7" }]}>
+                        <Text style={[styles.eduLevelText, { color: "#15803D" }]}>
+                          {pegawai.pt_jenjang || "Perguruan Tinggi"}
+                        </Text>
+                      </View>
+                      {(pegawai.pt_tahun_masuk || pegawai.pt_tahun_lulus) && (
+                        <Text style={[styles.eduPeriodText, { color: "#166534" }]}>
+                          {pegawai.pt_tahun_masuk || "—"} s/d {pegawai.pt_tahun_lulus || "—"}
+                        </Text>
+                      )}
+                    </View>
+                    <Text style={styles.eduSchoolName}>{pegawai.pt_universitas || "—"}</Text>
+                    {(pegawai.pt_fakultas || pegawai.pt_jurusan || pegawai.pt_prodi) && (
+                      <Text style={styles.eduMajorText}>
+                        {[pegawai.pt_fakultas, pegawai.pt_jurusan, pegawai.pt_prodi].filter(Boolean).join(" • ")}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              )}
             </View>
           )}
         </ScrollView>
@@ -861,5 +1025,55 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
     color: "#1D4ED8",
+  },
+  subSectionTitle: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#162E6E",
+    marginTop: 4,
+    marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  eduCard: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    padding: 10,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  eduHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  eduLevelBadge: {
+    backgroundColor: "#DBEAFE",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  eduLevelText: {
+    fontSize: 10.5,
+    fontWeight: "700",
+    color: "#1E40AF",
+  },
+  eduPeriodText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#64748B",
+  },
+  eduSchoolName: {
+    fontSize: 12.5,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  eduMajorText: {
+    fontSize: 11.5,
+    fontWeight: "500",
+    color: "#475569",
+    marginTop: 2,
   },
 });
