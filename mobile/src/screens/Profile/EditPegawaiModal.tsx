@@ -53,7 +53,6 @@ export const EditPegawaiModal: React.FC<EditPegawaiModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<"biodata" | "keluarga" | "pendidikan">("biodata");
   const [formData, setFormData] = useState({
     nig: "",
     nip: "",
@@ -261,39 +260,6 @@ export const EditPegawaiModal: React.FC<EditPegawaiModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          {/* Tab Navigation */}
-          <View style={styles.tabContainer}>
-            <TouchableOpacity
-              style={[styles.tabButton, activeTab === "biodata" && styles.tabButtonActive]}
-              onPress={() => setActiveTab("biodata")}
-            >
-              <User size={14} color={activeTab === "biodata" ? "#162E6E" : "#64748B"} />
-              <Text style={[styles.tabText, activeTab === "biodata" && styles.tabTextActive]}>
-                Biodata
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.tabButton, activeTab === "keluarga" && styles.tabButtonActive]}
-              onPress={() => setActiveTab("keluarga")}
-            >
-              <Users size={14} color={activeTab === "keluarga" ? "#162E6E" : "#64748B"} />
-              <Text style={[styles.tabText, activeTab === "keluarga" && styles.tabTextActive]}>
-                Keluarga
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.tabButton, activeTab === "pendidikan" && styles.tabButtonActive]}
-              onPress={() => setActiveTab("pendidikan")}
-            >
-              <GraduationCap size={14} color={activeTab === "pendidikan" ? "#162E6E" : "#64748B"} />
-              <Text style={[styles.tabText, activeTab === "pendidikan" && styles.tabTextActive]}>
-                Pendidikan
-              </Text>
-            </TouchableOpacity>
-          </View>
-
           {isLoading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={Colors.primary} />
@@ -307,10 +273,18 @@ export const EditPegawaiModal: React.FC<EditPegawaiModalProps> = ({
               keyboardDismissMode="on-drag"
               showsVerticalScrollIndicator={false}
             >
-              {/* ─── TAB 1: BIODATA & KONTAK ─── */}
-              {activeTab === "biodata" && (
-                <>
-                  {/* Notice Administrator Fields */}
+              {/* ─── SEKSI 1: BIODATA & IDENTITAS ─── */}
+              <View style={styles.sectionHeaderBox}>
+                <View style={[styles.sectionIconBadge, { backgroundColor: "#DBEAFE" }]}>
+                  <User size={16} color="#1D4ED8" />
+                </View>
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Text style={styles.sectionHeaderTitle}>1. Biodata & Identitas</Text>
+                  <Text style={styles.sectionHeaderSub}>Informasi data pribadi dan kontak resmi</Text>
+                </View>
+              </View>
+
+              {/* Notice Administrator Fields */}
                   <View style={styles.infoBox}>
                     <ShieldAlert size={18} color="#D97706" style={{ marginTop: 2 }} />
                     <View style={{ flex: 1, marginLeft: 8 }}>
@@ -471,12 +445,17 @@ export const EditPegawaiModal: React.FC<EditPegawaiModalProps> = ({
                     onChangeText={(t) => setFormData({ ...formData, alamat: t })}
                     leftIcon={<MapPin size={18} color={Colors.textMuted} />}
                   />
-                </>
-              )}
 
-              {/* ─── TAB 2: DATA KELUARGA ─── */}
-              {activeTab === "keluarga" && (
-                <>
+              {/* ─── SEKSI 2: DATA KELUARGA ─── */}
+              <View style={[styles.sectionHeaderBox, { marginTop: 18 }]}>
+                <View style={[styles.sectionIconBadge, { backgroundColor: "#E0E7FF" }]}>
+                  <Users size={16} color="#4338CA" />
+                </View>
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Text style={styles.sectionHeaderTitle}>2. Data Keluarga</Text>
+                  <Text style={styles.sectionHeaderSub}>Informasi pasangan, orang tua, dan susunan keluarga</Text>
+                </View>
+              </View>
                   <View style={styles.pasanganBox}>
                     <Text style={styles.pasanganBoxTitle}>Nama Pasangan (Istri / Suami)</Text>
                     <Text style={styles.pasanganBoxDesc}>
@@ -529,12 +508,18 @@ export const EditPegawaiModal: React.FC<EditPegawaiModalProps> = ({
                       />
                     </View>
                   </View>
-                </>
-              )}
 
-              {/* ─── TAB 3: RIWAYAT PENDIDIKAN ─── */}
-              {activeTab === "pendidikan" && (
-                <>
+              {/* ─── SEKSI 3: RIWAYAT PENDIDIKAN ─── */}
+              <View style={[styles.sectionHeaderBox, { marginTop: 18 }]}>
+                <View style={[styles.sectionIconBadge, { backgroundColor: "#D1FAE5" }]}>
+                  <GraduationCap size={16} color="#059669" />
+                </View>
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Text style={styles.sectionHeaderTitle}>3. Riwayat Pendidikan</Text>
+                  <Text style={styles.sectionHeaderSub}>Pendidikan formal dasar hingga perguruan tinggi</Text>
+                </View>
+              </View>
+
                   <Text style={styles.sectionTitle}>Pendidikan Dasar & Menengah</Text>
 
                   {/* TK / RA */}
@@ -729,8 +714,6 @@ export const EditPegawaiModal: React.FC<EditPegawaiModalProps> = ({
                       </View>
                     </View>
                   </View>
-                </>
-              )}
 
               <View style={{ height: 24 }} />
             </ScrollView>
@@ -837,6 +820,33 @@ const styles = StyleSheet.create({
     color: "#B45309",
     marginTop: 2,
     lineHeight: 15,
+  },
+  sectionHeaderBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    padding: 10,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  sectionIconBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sectionHeaderTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  sectionHeaderSub: {
+    fontSize: 11,
+    color: "#64748B",
+    marginTop: 1,
   },
   sectionTitle: {
     fontSize: 13,

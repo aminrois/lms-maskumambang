@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../../../../components/ui/dialog";
 import { FieldError } from "../../../../components/ui/FieldError";
 import { Loader2, User, Users, GraduationCap, School } from "lucide-react";
@@ -35,64 +34,30 @@ export default function PegawaiFormModal({
   onSubmit,
   isSelfOnly = false,
 }: PegawaiFormModalProps) {
-  const [activeTab, setActiveTab] = useState<"profil" | "keluarga" | "pendidikan">("profil");
-
   const isFormValid = !!formData.nig && !!formData.nama && !!formData.jenis_kelamin && !!formData.jabatan;
   const isDisabled = isSaving || isPending || hasDuplicateError || !isFormValid;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl max-h-[92vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-lg font-bold text-slate-800">
             {isSelfOnly ? "Edit Data Profil Saya" : selectedPegawai ? "Edit Data Pegawai" : "Tambah Pegawai Baru"}
           </DialogTitle>
         </DialogHeader>
 
-        {/* Tab Navigation */}
-        <div className="flex border-b border-slate-200 mt-2 mb-2 bg-slate-100 p-1 rounded-xl gap-1">
-          <button
-            type="button"
-            onClick={() => setActiveTab("profil")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              activeTab === "profil"
-                ? "bg-white text-blue-700 shadow-sm"
-                : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
-            }`}
-          >
-            <User className="w-3.5 h-3.5" />
-            Biodata & Kepegawaian
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("keluarga")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              activeTab === "keluarga"
-                ? "bg-white text-blue-700 shadow-sm"
-                : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
-            }`}
-          >
-            <Users className="w-3.5 h-3.5" />
-            Data Keluarga
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("pendidikan")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              activeTab === "pendidikan"
-                ? "bg-white text-blue-700 shadow-sm"
-                : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
-            }`}
-          >
-            <GraduationCap className="w-3.5 h-3.5" />
-            Riwayat Pendidikan
-          </button>
-        </div>
-
-        <form onSubmit={onSubmit} className="space-y-4">
-          {/* ── TAB 1: BIODATA & KEPEGAWAIAN ────────────────────────────────── */}
-          {activeTab === "profil" && (
-            <div className="space-y-4">
+        <form onSubmit={onSubmit} className="space-y-6 pt-2">
+          {/* ── SEKSI 1: BIODATA & KEPEGAWAIAN ────────────────────────────────── */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-2.5 border-b border-slate-200">
+              <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">
+                <User className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-800">1. Biodata & Kepegawaian</h3>
+                <p className="text-[11px] text-slate-500">Informasi identitas pribadi dan penugasan kedinasan</p>
+              </div>
+            </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-slate-700">NIG <span className="text-red-500">*</span></label>
@@ -216,50 +181,65 @@ export default function PegawaiFormModal({
                 </div>
               </div>
             </div>
-          )}
 
-          {/* ── TAB 2: DATA KELUARGA ────────────────────────────────────────── */}
-          {activeTab === "keluarga" && (
-            <div className="space-y-4">
-              <div className="p-3.5 bg-blue-50/60 rounded-xl border border-blue-100 space-y-1.5">
-                <label className="text-xs font-bold text-blue-900 block">Nama Pasangan (Istri / Suami)</label>
-                <input
-                  type="text"
-                  value={formData.nama_pasangan || ""}
-                  onChange={e => setFormData({ ...formData, nama_pasangan: e.target.value })}
-                  className="w-full px-3 py-2 text-xs border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                  placeholder="Masukkan nama lengkap istri atau suami"
-                />
-                <p className="text-[11px] text-blue-700">Isi nama lengkap pasangan sah pegawai jika sudah menikah.</p>
+          {/* ── SEKSI 2: DATA KELUARGA ────────────────────────────────────────── */}
+          <div className="space-y-4 pt-3 border-t border-slate-200">
+            <div className="flex items-center gap-2 pb-2.5 border-b border-slate-200">
+              <div className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs">
+                <Users className="w-4 h-4" />
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-700">Nama Ayah</label>
-                  <input type="text" value={formData.nama_ayah || ""} onChange={e => setFormData({ ...formData, nama_ayah: e.target.value })} className="w-full px-3 py-2 text-xs border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nama Ayah Kandung" />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-700">Nama Ibu</label>
-                  <input type="text" value={formData.nama_ibu || ""} onChange={e => setFormData({ ...formData, nama_ibu: e.target.value })} className="w-full px-3 py-2 text-xs border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nama Ibu Kandung" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-700">Jumlah Anak Laki-Laki</label>
-                  <input type="number" min={0} value={formData.jumlah_anak_laki ?? ""} onChange={e => setFormData({ ...formData, jumlah_anak_laki: e.target.value !== "" ? parseInt(e.target.value) : undefined })} className="w-full px-3 py-2 text-xs border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Jumlah anak laki-laki" />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-700">Jumlah Anak Perempuan</label>
-                  <input type="number" min={0} value={formData.jumlah_anak_perempuan ?? ""} onChange={e => setFormData({ ...formData, jumlah_anak_perempuan: e.target.value !== "" ? parseInt(e.target.value) : undefined })} className="w-full px-3 py-2 text-xs border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Jumlah anak perempuan" />
-                </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-800">2. Data Keluarga</h3>
+                <p className="text-[11px] text-slate-500">Informasi pasangan, orang tua kandung, dan susunan keluarga</p>
               </div>
             </div>
-          )}
 
-          {/* ── TAB 3: RIWAYAT PENDIDIKAN ───────────────────────────────────── */}
-          {activeTab === "pendidikan" && (
-            <div className="space-y-4">
+            <div className="p-3.5 bg-blue-50/60 rounded-xl border border-blue-100 space-y-1.5">
+              <label className="text-xs font-bold text-blue-900 block">Nama Pasangan (Istri / Suami)</label>
+              <input
+                type="text"
+                value={formData.nama_pasangan || ""}
+                onChange={e => setFormData({ ...formData, nama_pasangan: e.target.value })}
+                className="w-full px-3 py-2 text-xs border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                placeholder="Masukkan nama lengkap istri atau suami"
+              />
+              <p className="text-[11px] text-blue-700">Isi nama lengkap pasangan sah pegawai jika sudah menikah.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700">Nama Ayah</label>
+                <input type="text" value={formData.nama_ayah || ""} onChange={e => setFormData({ ...formData, nama_ayah: e.target.value })} className="w-full px-3 py-2 text-xs border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nama Ayah Kandung" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700">Nama Ibu</label>
+                <input type="text" value={formData.nama_ibu || ""} onChange={e => setFormData({ ...formData, nama_ibu: e.target.value })} className="w-full px-3 py-2 text-xs border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nama Ibu Kandung" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700">Jumlah Anak Laki-Laki</label>
+                <input type="number" min={0} value={formData.jumlah_anak_laki ?? ""} onChange={e => setFormData({ ...formData, jumlah_anak_laki: e.target.value !== "" ? parseInt(e.target.value) : undefined })} className="w-full px-3 py-2 text-xs border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Jumlah anak laki-laki" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700">Jumlah Anak Perempuan</label>
+                <input type="number" min={0} value={formData.jumlah_anak_perempuan ?? ""} onChange={e => setFormData({ ...formData, jumlah_anak_perempuan: e.target.value !== "" ? parseInt(e.target.value) : undefined })} className="w-full px-3 py-2 text-xs border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Jumlah anak perempuan" />
+              </div>
+            </div>
+          </div>
+
+          {/* ── SEKSI 3: RIWAYAT PENDIDIKAN ───────────────────────────────────── */}
+          <div className="space-y-4 pt-3 border-t border-slate-200">
+            <div className="flex items-center gap-2 pb-2.5 border-b border-slate-200">
+              <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs">
+                <GraduationCap className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-800">3. Riwayat Pendidikan</h3>
+                <p className="text-[11px] text-slate-500">Pendidikan formal dasar hingga perguruan tinggi</p>
+              </div>
+            </div>
               {/* Bagian 1: Pendidikan Dasar & Menengah */}
               <div>
                 <h4 className="text-xs font-bold text-slate-700 mb-2.5 flex items-center gap-1.5">
@@ -507,77 +487,33 @@ export default function PegawaiFormModal({
                 </div>
               </div>
             </div>
-          )}
 
-          <DialogFooter className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between sm:justify-between w-full">
-            <div className="flex items-center gap-1.5">
-              {activeTab === "keluarga" && (
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("profil")}
-                  className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
-                >
-                  ← Profil
-                </button>
-              )}
-              {activeTab === "pendidikan" && (
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("keluarga")}
-                  className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
-                >
-                  ← Keluarga
-                </button>
-              )}
-              {activeTab === "profil" && (
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("keluarga")}
-                  className="px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50 rounded-lg cursor-pointer"
-                >
-                  Keluarga →
-                </button>
-              )}
-              {activeTab === "keluarga" && (
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("pendidikan")}
-                  className="px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50 rounded-lg cursor-pointer"
-                >
-                  Pendidikan →
-                </button>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={isSaving || isPending}
-                className="px-4 py-2 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
-              >
-                Batal
-              </button>
-              <button 
-                type="submit" 
-                onClick={(e) => {
-                  if (isDisabled) {
-                    e.preventDefault();
-                    if (!isFormValid) {
-                      setActiveTab("profil");
-                      toast.warning("Mohon lengkapi field wajib pada Biodata (NIG, Nama, Jenis Kelamin, Jabatan)");
-                    } else if (hasDuplicateError) {
-                      setActiveTab("profil");
-                      toast.error("Terdapat data duplikat pada NIG atau Nama Pegawai");
-                    }
+          <DialogFooter className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-end gap-2 w-full">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSaving || isPending}
+              className="px-4 py-2 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              Batal
+            </button>
+            <button 
+              type="submit" 
+              onClick={(e) => {
+                if (isDisabled) {
+                  e.preventDefault();
+                  if (!isFormValid) {
+                    toast.warning("Mohon lengkapi field wajib pada Biodata (NIG, Nama, Jenis Kelamin, Jabatan)");
+                  } else if (hasDuplicateError) {
+                    toast.error("Terdapat data duplikat pada NIG atau Nama Pegawai");
                   }
-                }}
-                className={`px-4 py-2 text-xs font-bold text-white rounded-lg transition-colors flex items-center gap-2 cursor-pointer ${isDisabled ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 shadow-sm'}`}
-              >
-                {(isSaving || isPending) && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                {isSaving ? "Menyimpan..." : selectedPegawai ? "Simpan Perubahan" : "Simpan"}
-              </button>
-            </div>
+                }
+              }}
+              className={`px-4 py-2 text-xs font-bold text-white rounded-lg transition-colors flex items-center gap-2 cursor-pointer ${isDisabled ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 shadow-sm'}`}
+            >
+              {(isSaving || isPending) && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              {isSaving ? "Menyimpan..." : selectedPegawai ? "Simpan Perubahan" : "Simpan"}
+            </button>
           </DialogFooter>
         </form>
       </DialogContent>
