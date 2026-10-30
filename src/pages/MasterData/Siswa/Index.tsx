@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { usePermissions } from "../../../hooks/usePermissions";
 import { useDuplicateCheck } from "../../../hooks/useDuplicateCheck";
 import { useRealtimeSync } from "../../../hooks/useRealtimeSync";
@@ -17,8 +18,10 @@ import SiswaPagination from "./components/SiswaPagination";
 import SiswaFormModal from "./components/SiswaFormModal";
 import SiswaDeleteModal from "./components/SiswaDeleteModal";
 import SiswaTemplateModal from "./components/SiswaTemplateModal";
+import { initialWaliEmbedded, type WaliEmbeddedForm } from "./components/SiswaWaliSection";
 import BulkActionBar from "../../../components/custom/BulkActionBar";
 import { restClient } from "../../../lib/api/axios";
+import { createWaliMuridWithAuth } from "../../../lib/api/services/masterService";
 import { toast } from "sonner";
 
 export default function MasterDataSiswa() {
@@ -32,8 +35,12 @@ export default function MasterDataSiswa() {
   const [filterLembaga, setFilterLembaga] = useState("Semua Lembaga");
   const [filterKelas, setFilterKelas] = useState("Semua Kelas");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  const [modeWali, setModeWali] = useState<"pilih" | "baru">("pilih");
+  const [waliFormData, setWaliFormData] = useState<WaliEmbeddedForm>(initialWaliEmbedded);
 
   // Realtime: auto-refresh saat ada perubahan data siswa/kelas/wali dari user lain
   useRealtimeSync([
@@ -258,6 +265,8 @@ export default function MasterDataSiswa() {
 
   const handleOpenAddModal = () => {
     setSelectedSiswa(null);
+    setModeWali("baru");
+    setWaliFormData(initialWaliEmbedded);
     setFormData({
       nis: "",
       nisn: "",
@@ -294,6 +303,31 @@ export default function MasterDataSiswa() {
 
   const handleEdit = (siswa: SiswaUI) => {
     setSelectedSiswa(siswa);
+    setModeWali("pilih");
+    if (siswa.raw.wali_murid) {
+      const wm = siswa.raw.wali_murid;
+      setWaliFormData({
+        status_ayah: (wm.status_ayah as any) || "Hidup",
+        nama_ayah: wm.nama_ayah || "",
+        nik_ayah: wm.nik_ayah || "",
+        no_hp_ayah: wm.no_hp_ayah || "",
+        pekerjaan_ayah: wm.pekerjaan_ayah || "",
+
+        status_ibu: (wm.status_ibu as any) || "Hidup",
+        nama_ibu: wm.nama_ibu || "",
+        nik_ibu: wm.nik_ibu || "",
+        no_hp_ibu: wm.no_hp_ibu || "",
+        pekerjaan_ibu: wm.pekerjaan_ibu || "",
+
+        status: (wm.status as any) || "Hidup",
+        nama_wali: wm.nama_wali || "",
+        nik_wali: wm.nik_wali || "",
+        no_hp_wali: wm.no_hp_wali || "",
+        alamat: wm.alamat || "",
+      });
+    } else {
+      setWaliFormData(initialWaliEmbedded);
+    }
     setFormData({
       nis: siswa.raw.nis || "",
       nisn: siswa.raw.nisn || "",
@@ -351,7 +385,7 @@ export default function MasterDataSiswa() {
 
   const hasDuplicateError = isNisDuplikat || isNisnDuplikat || isNamaDuplikat;
 
-  const handleSimpan = (e: React.FormEvent) => {
+  const handleSimpan = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Clean up empty optional fields
@@ -372,17 +406,69 @@ export default function MasterDataSiswa() {
     if (!payload.provinsi) delete payload.provinsi;
     if (!payload.alamat_sekolah_asal) delete payload.alamat_sekolah_asal;
     if (!payload.kelas_id) delete payload.kelas_id;
-    if (!payload.wali_murid_id) {
-      payload.wali_murid_id = null; // Set to null so PostgREST unsets it
+
+    let finalWaliId: number | null = formData.wali_murid_id ? Number(formData.wali_murid_id) : null;
+
+    if (modeWali === "baru") {
+      const nikWali = waliFormData.nik_wali?.trim();
+      const nikAyah = waliFormData.nik_ayah?.trim();
+      const nikIbu = waliFormData.nik_ibu?.trim();
+      const namaWali = waliFormData.nama_wali?.trim() || waliFormData.nama_ayah?.trim() || waliFormData.nama_ibu?.trim();
+
+      if (namaWali || nikWali || nikAyah || nikIbu) {
+        // Cek apakah NIK ini sudah ada di dataWaliList (deteksi keluarga / saudara kandung)
+        const existing = dataWaliList.find((w: any) =>
+          (nikWali && (w.nik_wali === nikWali || w.nik_ayah === nikWali)) ||
+          (nikAyah && (w.nik_ayah === nikAyah || w.nik_wali === nikAyah)) ||
+          (nikIbu && (w.nik_ibu === nikIbu || w.nik_wali === nikIbu))
+        );
+
+        if (existing) {
+          finalWaliId = existing.wali_id;
+          toast.info(`Santri otomatis ditautkan ke Wali terdaftar: ${getNamaWaliUtama(existing)}`);
+        } else {
+          // Buat record Wali baru + akun login User secara otomatis
+          try {
+            const createdWali = await createWaliMuridWithAuth({
+              ...waliFormData,
+              nama_wali: namaWali || "Wali Santri",
+              nik_wali: nikWali || nikAyah || nikIbu || `WALI${Date.now()}`,
+              no_hp_wali: waliFormData.no_hp_wali || waliFormData.no_hp_ayah || waliFormData.no_hp_ibu || "-",
+              alamat: waliFormData.alamat || payload.alamat || "-",
+              status: waliFormData.status || "Hidup",
+              status_ayah: waliFormData.status_ayah || "Hidup",
+              status_ibu: waliFormData.status_ibu || "Hidup",
+            });
+            const newId = createdWali?.wali_id || (Array.isArray(createdWali) ? createdWali[0]?.wali_id : null);
+            if (newId) {
+              finalWaliId = newId;
+              toast.success("Profil & Akun Wali Murid baru berhasil dibuat!");
+            }
+          } catch (waliErr: any) {
+            console.error("Gagal membuat data wali:", waliErr);
+            toast.error(`Peringatan: Akun wali gagal dibuat otomatis: ${waliErr?.message || "Error"}`);
+          }
+        }
+      }
     }
+
+    payload.wali_murid_id = finalWaliId || null;
 
     if (selectedSiswa) {
       updateMutation.mutate({ id: selectedSiswa.id, payload }, {
-        onSuccess: () => setIsModalOpen(false)
+        onSuccess: () => {
+          setIsModalOpen(false);
+          queryClient.invalidateQueries({ queryKey: ['master-data', 'wali-options'] });
+          queryClient.invalidateQueries({ queryKey: ['master-data', 'wali_murid'] });
+        }
       });
     } else {
       createMutation.mutate(payload, {
-        onSuccess: () => setIsModalOpen(false)
+        onSuccess: () => {
+          setIsModalOpen(false);
+          queryClient.invalidateQueries({ queryKey: ['master-data', 'wali-options'] });
+          queryClient.invalidateQueries({ queryKey: ['master-data', 'wali_murid'] });
+        }
       });
     }
   };
@@ -509,6 +595,10 @@ export default function MasterDataSiswa() {
         hasDuplicateError={hasDuplicateError}
         onSubmit={handleSimpan}
         getNamaWaliUtama={getNamaWaliUtama}
+        modeWali={modeWali}
+        setModeWali={setModeWali}
+        waliFormData={waliFormData}
+        setWaliFormData={setWaliFormData}
       />
 
       <SiswaDeleteModal

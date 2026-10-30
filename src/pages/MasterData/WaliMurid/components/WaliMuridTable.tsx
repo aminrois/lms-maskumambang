@@ -237,7 +237,16 @@ export default function WaliMuridTable({
                           <div className="font-bold text-gray-800 truncate" title={wali.nama_wali}>{wali.nama_wali}</div>
                         </div>
                       </td>
-                    <td className="px-6 py-4 text-gray-700 truncate" title={wali.nik_wali || ""}>{wali.nik_wali || "—"}</td>
+                    <td className="px-6 py-4 text-gray-700 truncate" title={wali.nik_wali || ""}>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono text-xs">{wali.nik_wali || "—"}</span>
+                        {(!wali.nik_wali || wali.nik_wali.length < 16) && !wali.nik_wali?.includes("-") && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800" title="NIK kurang dari 16 digit, perlu dilengkapi">
+                            Perlu Lengkapi
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-6 py-4 text-gray-700 truncate" title={wali.no_hp_wali || ""}>{wali.no_hp_wali || "—"}</td>
                     <td className="px-6 py-4 text-gray-600 truncate" title={wali.nama_ayah || ""}>{wali.nama_ayah || "—"}</td>
                     <td className="px-6 py-4 text-gray-700 truncate" title={wali.nik_ayah || ""}>{wali.nik_ayah || "—"}</td>
@@ -339,8 +348,13 @@ export default function WaliMuridTable({
                     </div>
                   <div className="min-w-0">
                     <h3 className="font-bold text-gray-800 truncate text-base">{wali.nama_wali}</h3>
-                    <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-500">
+                    <div className="flex items-center gap-1.5 mt-0.5 text-xs text-gray-500">
                       <span>NIK: {wali.nik_wali || "—"}</span>
+                      {(!wali.nik_wali || wali.nik_wali.length < 16) && !wali.nik_wali?.includes("-") && (
+                        <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-semibold bg-amber-100 text-amber-800">
+                          Perlu Lengkapi
+                        </span>
+                      )}
                       {wali.no_hp_wali && <span>| HP: {wali.no_hp_wali}</span>}
                     </div>
                   </div>

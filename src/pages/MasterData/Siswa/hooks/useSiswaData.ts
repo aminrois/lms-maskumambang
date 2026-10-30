@@ -190,7 +190,7 @@ export function useSiswaData(paramsInput?: {
     staleTime: 2 * 60 * 1000, // 2 menit
     queryFn: async () => {
       const response = await restClient.get('/wali_murid', {
-        params: { select: 'wali_id,nama_ayah,status_ayah,nama_ibu,status_ibu,nama_wali' }
+        params: { select: 'wali_id,nama_ayah,nik_ayah,status_ayah,nama_ibu,nik_ibu,status_ibu,nama_wali,nik_wali,no_hp_wali,no_hp_ayah,no_hp_ibu,alamat,siswa(siswa_id,nama,nis)' }
       });
       return response.data || [];
     }

@@ -4,6 +4,7 @@ import { FieldError } from "../../../../components/ui/FieldError";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { SiswaUI } from "../hooks/useSiswaData";
+import SiswaWaliSection, { type WaliEmbeddedForm } from "./SiswaWaliSection";
 
 interface SiswaFormModalProps {
   isOpen: boolean;
@@ -20,6 +21,10 @@ interface SiswaFormModalProps {
   hasDuplicateError: boolean;
   onSubmit: (e: React.FormEvent) => void;
   getNamaWaliUtama: (wali: any) => string;
+  modeWali: "pilih" | "baru";
+  setModeWali: (mode: "pilih" | "baru") => void;
+  waliFormData: WaliEmbeddedForm;
+  setWaliFormData: React.Dispatch<React.SetStateAction<WaliEmbeddedForm>>;
 }
 
 export default function SiswaFormModal({
@@ -36,7 +41,11 @@ export default function SiswaFormModal({
   isPending,
   hasDuplicateError,
   onSubmit,
-  getNamaWaliUtama
+  getNamaWaliUtama,
+  modeWali,
+  setModeWali,
+  waliFormData,
+  setWaliFormData,
 }: SiswaFormModalProps) {
   // Wilayah fallback loaders — hanya dieksekusi jika API Wilayah.id gagal
   const loadFallbackProvinces = () =>
@@ -108,7 +117,7 @@ export default function SiswaFormModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-4xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{selectedSiswa ? "Edit Data Siswa" : "Tambah Siswa Baru"}</DialogTitle>
         </DialogHeader>
@@ -315,20 +324,11 @@ export default function SiswaFormModal({
             </div>
           </div>
 
-          {/* Bagian 3: Akademik & Relasi */}
+          {/* Bagian 3: Akademik & Asrama */}
           <div>
-            <h3 className="text-sm font-semibold text-blue-900 border-b pb-2 mb-4 uppercase tracking-wider">Akademik & Relasi</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="space-y-2 lg:col-span-1">
-                <label className="text-sm font-medium">Wali Murid</label>
-                <select value={formData.wali_murid_id || ""} onChange={e => setFormData({ ...formData, wali_murid_id: e.target.value ? parseInt(e.target.value) : null })} className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-                  <option value="">Pilih Wali Murid...</option>
-                  {dataWaliList.map((w: any) => (
-                    <option key={w.wali_id} value={w.wali_id}>{getNamaWaliUtama(w)}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-2 lg:col-span-1">
+            <h3 className="text-sm font-semibold text-blue-900 border-b pb-2 mb-4 uppercase tracking-wider">Informasi Akademik & Asrama</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
                 <label className="text-sm font-medium">Kelas</label>
                 <select value={formData.kelas_id || ""} onChange={e => setFormData({ ...formData, kelas_id: e.target.value ? parseInt(e.target.value) : 0 })} className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                   <option value="">Pilih Kelas...</option>
@@ -337,18 +337,18 @@ export default function SiswaFormModal({
                   ))}
                 </select>
               </div>
-              <div className="space-y-2 lg:col-span-1">
+              <div className="space-y-2">
                 <label className="text-sm font-medium">Status Siswa</label>
                 <select value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value as "Aktif" | "Tidak Aktif" })} className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                   <option value="Aktif">Aktif</option>
                   <option value="Tidak Aktif">Tidak Aktif</option>
                 </select>
               </div>
-              <div className="space-y-2 lg:col-span-1">
+              <div className="space-y-2">
                 <label className="text-sm font-medium">Asrama</label>
                 <select value={formData.keterangan_asrama} onChange={e => setFormData({ ...formData, keterangan_asrama: e.target.value as "Ya" | "Tidak" })} className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="Ya">Ya</option>
-                  <option value="Tidak">Tidak</option>
+                  <option value="Ya">Ya (Mukim)</option>
+                  <option value="Tidak">Tidak (Non-Mukim)</option>
                 </select>
               </div>
             </div>
@@ -374,6 +374,21 @@ export default function SiswaFormModal({
                 <textarea rows={2} value={formData.alamat_sekolah_asal || ""} onChange={e => setFormData({ ...formData, alamat_sekolah_asal: e.target.value })} className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Alamat lengkap sekolah asal" />
               </div>
             </div>
+          </div>
+
+          {/* Bagian 4: Data Orang Tua / Wali Murid */}
+          <div>
+            <SiswaWaliSection
+              modeWali={modeWali}
+              setModeWali={setModeWali}
+              selectedWaliId={formData.wali_murid_id}
+              setSelectedWaliId={(id) => setFormData({ ...formData, wali_murid_id: id })}
+              dataWaliList={dataWaliList}
+              getNamaWaliUtama={getNamaWaliUtama}
+              waliFormData={waliFormData}
+              setWaliFormData={setWaliFormData}
+              alamatSiswa={formData.alamat}
+            />
           </div>
 
           <DialogFooter className="mt-8 pt-4 border-t">

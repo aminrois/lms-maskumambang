@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { Users, Plus, Trash2, Download, Upload, FileSpreadsheet, Loader2 } from "lucide-react";
+import { Users, Plus, Trash2, Download, Upload, FileSpreadsheet, Loader2, Sparkles } from "lucide-react";
 
 interface WaliMuridHeaderProps {
   dataCount: number;
@@ -8,6 +8,7 @@ interface WaliMuridHeaderProps {
   isBulkMode?: boolean;
   onToggleBulkMode?: () => void;
   onOpenAddModal: () => void;
+  onOpenAutoLink?: () => void;
   isImporting?: boolean;
   onTemplateInfo?: () => void;
   onImport?: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -21,6 +22,7 @@ export default function WaliMuridHeader({
   isBulkMode = false,
   onToggleBulkMode,
   onOpenAddModal,
+  onOpenAutoLink,
   isImporting = false,
   onTemplateInfo,
   onImport,
@@ -93,6 +95,17 @@ export default function WaliMuridHeader({
           >
             <Trash2 className="w-4 h-4 shrink-0" />
             <span>{isBulkMode ? "Batal Hapus Banyak" : "Hapus Banyak"}</span>
+          </button>
+        )}
+
+        {onOpenAutoLink && (
+          <button
+            onClick={onOpenAutoLink}
+            title="Rekonsiliasi Santri Belum Tertaut"
+            className="flex items-center justify-center gap-2 px-3.5 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 rounded-lg text-sm font-semibold transition-colors cursor-pointer shrink-0 w-full sm:w-auto"
+          >
+            <Sparkles className="w-4 h-4 text-indigo-600 shrink-0" />
+            <span>Auto-Link Santri</span>
           </button>
         )}
 

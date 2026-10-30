@@ -39,3 +39,7 @@ dokumen api/*
 # Docker volumes & data
 postgres_data/
 uploads/
+backups/
+*.sql
+*.sql.gz
+scripts/

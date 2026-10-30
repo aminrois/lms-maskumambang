@@ -163,8 +163,48 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
       }
     }
 
+    // 3. Jika belum ditemukan, cari berdasarkan NIK Wali, NIK Ayah, atau NIK Ibu dari tabel WaliMurid
     if (!user) {
-      res.status(401).json({ success: false, message: 'NIG/Username tidak ditemukan. Silakan periksa kembali.' });
+      const wali = await prisma.waliMurid.findFirst({
+        where: {
+          OR: [
+            { nik_wali: { equals: cleanIdentifier, mode: 'insensitive' } },
+            { nik_ayah: { equals: cleanIdentifier, mode: 'insensitive' } },
+            { nik_ibu: { equals: cleanIdentifier, mode: 'insensitive' } },
+          ],
+          user_id: { not: null },
+        },
+        include: {
+          user: {
+            include: {
+              user_roles: {
+                include: {
+                  role: true,
+                  lembaga: true,
+                },
+              },
+              pegawai: {
+                include: {
+                  pegawai_lembaga: {
+                    include: {
+                      lembaga: true,
+                    },
+                  },
+                  kelas_wali: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (wali && wali.user) {
+        user = wali.user;
+      }
+    }
+
+    if (!user) {
+      res.status(401).json({ success: false, message: 'NIK/NIG/Username tidak ditemukan. Silakan periksa kembali.' });
       return;
     }
 

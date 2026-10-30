@@ -35,7 +35,7 @@ export default function WaliMuridFormModal({
   const labelClass = "text-sm font-medium text-gray-700 mb-1 block";
 
   const isFormValid = formData.status_ayah === "Hidup"
-    ? !!formData.nik_ayah && !!formData.alamat
+    ? !!(formData.nik_wali || formData.nik_ayah) && !!formData.alamat
     : !!formData.nik_wali && !!formData.nama_wali && !!formData.status && !!formData.no_hp_wali && !!formData.alamat;
 
   const isDisabled = isPending || hasDuplicateError || !isFormValid;
@@ -81,8 +81,22 @@ export default function WaliMuridFormModal({
                 <input type="text" value={formData.nama_ayah || ""} onChange={e => setFormData({ ...formData, nama_ayah: e.target.value })} className={inputClass} placeholder="Nama Lengkap" />
               </div>
               <div>
-                <label className={labelClass}>NIK Ayah</label>
-                <input type="text" value={formData.nik_ayah || ""} onChange={e => setFormData({ ...formData, nik_ayah: e.target.value })} className={`${inputClass} ${formData.status_ayah === 'Hidup' && isNikDuplikat ? 'border-red-400' : ''}`} placeholder="Nomor Induk Kependudukan" />
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-sm font-medium text-gray-700">NIK Ayah</label>
+                  {formData.nik_ayah && (
+                    <span className={`text-[10px] font-medium ${formData.nik_ayah.length === 16 ? 'text-emerald-600 font-semibold' : 'text-amber-600'}`}>
+                      {formData.nik_ayah.length}/16 digit
+                    </span>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  maxLength={16}
+                  value={formData.nik_ayah || ""}
+                  onChange={e => setFormData({ ...formData, nik_ayah: e.target.value.replace(/[^0-9-]/g, "") })}
+                  className={`${inputClass} font-mono ${formData.status_ayah === 'Hidup' && isNikDuplikat ? 'border-red-400' : ''}`}
+                  placeholder="16 digit angka KTP"
+                />
                 {formData.status_ayah === 'Hidup' && isNikDuplikat && <FieldError message="NIK sudah terdaftar" />}
               </div>
               <div>
@@ -126,8 +140,22 @@ export default function WaliMuridFormModal({
                 <input type="text" value={formData.nama_ibu || ""} onChange={e => setFormData({ ...formData, nama_ibu: e.target.value })} className={inputClass} placeholder="Nama Lengkap" />
               </div>
               <div>
-                <label className={labelClass}>NIK Ibu</label>
-                <input type="text" value={formData.nik_ibu || ""} onChange={e => setFormData({ ...formData, nik_ibu: e.target.value })} className={`${inputClass} ${formData.status_ayah !== 'Hidup' && formData.status_ibu === 'Hidup' && isNikDuplikat ? 'border-red-400' : ''}`} placeholder="Nomor Induk Kependudukan" />
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-sm font-medium text-gray-700">NIK Ibu</label>
+                  {formData.nik_ibu && (
+                    <span className={`text-[10px] font-medium ${formData.nik_ibu.length === 16 ? 'text-emerald-600 font-semibold' : 'text-amber-600'}`}>
+                      {formData.nik_ibu.length}/16 digit
+                    </span>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  maxLength={16}
+                  value={formData.nik_ibu || ""}
+                  onChange={e => setFormData({ ...formData, nik_ibu: e.target.value.replace(/[^0-9-]/g, "") })}
+                  className={`${inputClass} font-mono ${formData.status_ayah !== 'Hidup' && formData.status_ibu === 'Hidup' && isNikDuplikat ? 'border-red-400' : ''}`}
+                  placeholder="16 digit angka KTP"
+                />
                 {formData.status_ayah !== 'Hidup' && formData.status_ibu === 'Hidup' && isNikDuplikat && <FieldError message="NIK sudah terdaftar" />}
               </div>
               <div>
@@ -166,65 +194,131 @@ export default function WaliMuridFormModal({
 
           {activeTab === "Wali" && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {formData.status_ayah !== "Hidup" ? (
-                <>
-                  {(formData.status_ibu === "Hidup" || !formData.status_ibu) && (() => {
-                    const isDataIbuTersalin = Boolean(
-                      formData.nama_ibu &&
-                      formData.nama_wali === formData.nama_ibu &&
-                      formData.nik_wali === formData.nik_ibu &&
-                      formData.no_hp_wali === formData.no_hp_ibu
-                    );
+              <div className="sm:col-span-2 flex flex-wrap items-center gap-2">
+                {formData.nama_ayah && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData({
+                        ...formData,
+                        nama_wali: formData.nama_ayah || "",
+                        nik_wali: formData.nik_ayah || "",
+                        no_hp_wali: formData.no_hp_ayah || "",
+                        status: formData.status_ayah || "Hidup",
+                      });
+                      toast.success("Data Ayah disalin ke Wali Utama");
+                    }}
+                    className="px-3 py-1.5 text-xs font-medium rounded transition-colors bg-blue-100 text-blue-700 hover:bg-blue-200"
+                  >
+                    Salin Data Ayah sebagai Wali
+                  </button>
+                )}
+                {formData.nama_ibu && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData({
+                        ...formData,
+                        nama_wali: formData.nama_ibu || "",
+                        nik_wali: formData.nik_ibu || "",
+                        no_hp_wali: formData.no_hp_ibu || "",
+                        status: formData.status_ibu || "Hidup",
+                      });
+                      toast.success("Data Ibu disalin ke Wali Utama");
+                    }}
+                    className="px-3 py-1.5 text-xs font-medium rounded transition-colors bg-purple-100 text-purple-700 hover:bg-purple-200"
+                  >
+                    Salin Data Ibu sebagai Wali
+                  </button>
+                )}
+              </div>
 
-                    return (
-                      <div className="sm:col-span-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (isDataIbuTersalin) {
-                              toast.info("Data ibu sudah tersalin dan sama.");
-                              return;
-                            }
-                            setFormData({ ...formData, nama_wali: formData.nama_ibu || "", nik_wali: formData.nik_ibu || "", no_hp_wali: formData.no_hp_ibu || "", status: "Hidup" })
-                          }}
-                          className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${isDataIbuTersalin ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}
-                        >
-                          Salin Data Ibu sebagai Wali Utama
-                        </button>
-                      </div>
-                    );
-                  })()}
-                  <div>
-                    <label className={labelClass}>Nama Wali Utama <span className="text-red-500">*</span></label>
-                    <input required type="text" value={formData.nama_wali || ""} onChange={e => setFormData({ ...formData, nama_wali: e.target.value })} className={inputClass} placeholder="Nama Lengkap" />
-                  </div>
-                  <div>
-                    <label className={labelClass}>NIK Wali Utama <span className="text-red-500">*</span></label>
-                    <input required type="text" value={formData.nik_wali || ""} onChange={e => setFormData({ ...formData, nik_wali: e.target.value })} className={`${inputClass} ${isNikDuplikat ? 'border-red-400' : ''}`} placeholder="Nomor Induk Kependudukan" />
-                    {isNikDuplikat && <FieldError message="NIK sudah terdaftar" />}
-                  </div>
-                  <div>
-                    <label className={labelClass}>Status Wali Utama <span className="text-red-500">*</span></label>
-                    <select required value={formData.status || "Hidup"} onChange={e => setFormData({ ...formData, status: e.target.value as any })} className={inputClass}>
-                      <option value="Hidup">Hidup</option>
-                      <option value="Wafat">Wafat</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className={labelClass}>No. HP Wali <span className="text-red-500">*</span></label>
-                    <input required type="text" value={formData.no_hp_wali || ""} onChange={e => setFormData({ ...formData, no_hp_wali: e.target.value })} className={inputClass} />
-                  </div>
-                </>
-              ) : (
+              {formData.status_ayah === "Hidup" && (
                 <div className="sm:col-span-2">
-                  <div className="bg-blue-50 text-blue-800 p-4 rounded-lg text-sm border border-blue-100">
-                    Karena status Ayah masih hidup, data pribadi Wali Utama akan otomatis ditautkan ke Ayah. Anda hanya perlu melengkapi alamat di bawah ini.
+                  <div className="bg-blue-50 text-blue-800 p-3 rounded-lg text-xs border border-blue-100">
+                    💡 <strong>Status Ayah Hidup:</strong> NIK dan Nama Wali otomatis menggunakan data Ayah bila dikosongkan. Namun Admin <strong>tetap dapat mengubah NIK dan Nama Wali di bawah ini</strong> jika perwalian santri dipegang orang lain (misal: Paman/Kakek/Wali Asuh).
                   </div>
                 </div>
               )}
+
+              <div>
+                <label className={labelClass}>
+                  Nama Wali Utama {formData.status_ayah !== "Hidup" && <span className="text-red-500">*</span>}
+                </label>
+                <input
+                  required={formData.status_ayah !== "Hidup" && !formData.nama_ayah}
+                  type="text"
+                  value={formData.nama_wali || ""}
+                  onChange={(e) => setFormData({ ...formData, nama_wali: e.target.value })}
+                  className={inputClass}
+                  placeholder={formData.status_ayah === "Hidup" && formData.nama_ayah ? `Default sama dengan Ayah (${formData.nama_ayah})` : "Nama Lengkap Wali"}
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-sm font-medium text-gray-700">
+                    NIK Wali Utama {formData.status_ayah !== "Hidup" && <span className="text-red-500">*</span>}
+                  </label>
+                  {formData.nik_wali && (
+                    <span className={`text-[10px] font-medium ${formData.nik_wali.length === 16 ? 'text-emerald-600 font-semibold' : 'text-amber-600'}`}>
+                      {formData.nik_wali.length}/16 digit
+                    </span>
+                  )}
+                </div>
+                <input
+                  required={formData.status_ayah !== "Hidup" && !formData.nik_ayah}
+                  type="text"
+                  maxLength={16}
+                  value={formData.nik_wali || ""}
+                  onChange={(e) => setFormData({ ...formData, nik_wali: e.target.value.replace(/[^0-9-]/g, "") })}
+                  className={`${inputClass} font-mono ${isNikDuplikat ? "border-red-400" : ""}`}
+                  placeholder={formData.status_ayah === "Hidup" && formData.nik_ayah ? `Default sama dengan Ayah (${formData.nik_ayah})` : "16 digit angka KTP"}
+                />
+                {isNikDuplikat && <FieldError message="NIK sudah terdaftar" />}
+                <p className="text-[11px] text-gray-400 mt-1">NIK ini digunakan sebagai Username akun login portal wali santri. Admin bebas mengubah NIK Wali kapanpun.</p>
+              </div>
+
+              <div>
+                <label className={labelClass}>
+                  Status Wali Utama <span className="text-red-500">*</span>
+                </label>
+                <select
+                  required
+                  value={formData.status || "Hidup"}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                  className={inputClass}
+                >
+                  <option value="Hidup">Hidup</option>
+                  <option value="Wafat">Wafat</option>
+                </select>
+              </div>
+
+              <div>
+                <label className={labelClass}>
+                  No. HP Wali Utama <span className="text-red-500">*</span>
+                </label>
+                <input
+                  required
+                  type="text"
+                  value={formData.no_hp_wali ?? (formData.status_ayah === "Hidup" ? formData.no_hp_ayah ?? "" : "")}
+                  onChange={(e) => setFormData({ ...formData, no_hp_wali: e.target.value })}
+                  className={inputClass}
+                  placeholder="08xxxxxxxxxx"
+                />
+              </div>
+
               <div className="sm:col-span-2">
-                <label className={labelClass}>Alamat Wali Utama <span className="text-red-500">*</span></label>
-                <textarea required value={formData.alamat || ""} onChange={e => setFormData({ ...formData, alamat: e.target.value })} className={`${inputClass} min-h-25`} placeholder="Alamat lengkap" />
+                <label className={labelClass}>
+                  Alamat Wali Utama <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  required
+                  value={formData.alamat || ""}
+                  onChange={(e) => setFormData({ ...formData, alamat: e.target.value })}
+                  className={`${inputClass} min-h-25`}
+                  placeholder="Alamat lengkap tempat tinggal wali"
+                />
               </div>
             </div>
           )}

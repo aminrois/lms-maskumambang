@@ -224,6 +224,37 @@ export const createWaliMurid = async (
   return response.data;
 };
 
+export const createWaliMuridWithAuth = async (payload: any): Promise<any> => {
+  const { createUserAuth, getRoles, createUserRole } = await import("./userService");
+  const username = (payload.nik_wali || payload.nik_ayah || "").trim();
+  const email = username ? `${username}@mlms.local` : `wali_${Date.now()}@mlms.local`;
+
+  let userId: string | null = null;
+  if (username) {
+    try {
+      const createdUser = await createUserAuth({ email, password: "password123", username });
+      userId = createdUser?.user?.id || createdUser?.id || createdUser?.user_id;
+    } catch (err: any) {
+      console.warn("User auth skipped/exists:", err?.message);
+    }
+  }
+
+  if (userId) {
+    try {
+      const roles = await getRoles();
+      const waliRole = roles.find((r: any) => r.nama_role.toLowerCase() === "wali murid");
+      if (waliRole) {
+        await createUserRole({ user_id: userId, role_id: waliRole.role_id, lembaga_id: undefined });
+      }
+    } catch (roleErr) {
+      console.warn("Role assignment skipped:", roleErr);
+    }
+    payload.user_id = userId;
+  }
+
+  return await createWaliMurid(payload);
+};
+
 export const updateWaliMurid = async (
   id: string | number,
   payload: Types.WALI_MURID_UPDATE,

@@ -18,6 +18,7 @@ import WaliMuridDeleteModal from "./components/WaliMuridDeleteModal";
 import WaliMuridResetPasswordModal from "./components/WaliMuridResetPasswordModal";
 import WaliMuridPilihSiswaModal from "./components/WaliMuridPilihSiswaModal";
 import WaliMuridUnlinkSiswaModal from "./components/WaliMuridUnlinkSiswaModal";
+import WaliMuridAutoLinkModal from "./components/WaliMuridAutoLinkModal";
 import BulkActionBar from "../../../components/custom/BulkActionBar";
 import { restClient } from "../../../lib/api/axios";
 
@@ -73,6 +74,7 @@ export default function MasterDataWaliMurid() {
   const [waliToDelete, setWaliToDelete] = useState<WALI_MURID | null>(null);
 
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isAutoLinkOpen, setIsAutoLinkOpen] = useState(false);
 
   // Pilih Siswa States
   const [isPilihSiswaModalOpen, setIsPilihSiswaModalOpen] = useState(false);
@@ -224,6 +226,9 @@ export default function MasterDataWaliMurid() {
   };
 
   const getEffectiveWali = () => {
+    if (formData.nik_wali?.trim()) {
+      return { nama: formData.nama_wali, nik: formData.nik_wali };
+    }
     const isAyahHidup = formData.status_ayah === "Hidup";
     if (isAyahHidup) return { nama: formData.nama_ayah, nik: formData.nik_ayah };
     return { nama: formData.nama_wali, nik: formData.nik_wali };
@@ -248,11 +253,17 @@ export default function MasterDataWaliMurid() {
 
     const isAyahHidup = payload.status_ayah === "Hidup";
     if (isAyahHidup) {
-      payload.nama_wali = payload.nama_ayah || "";
-      payload.nik_wali = payload.nik_ayah || "";
-      payload.no_hp_wali = payload.no_hp_ayah || "";
-      payload.status = payload.status_ayah || "Hidup";
+      // Prioritaskan input manual admin jika ada, fallback ke data Ayah
+      payload.nama_wali = payload.nama_wali?.trim() || payload.nama_ayah || "";
+      payload.nik_wali = payload.nik_wali?.trim() || payload.nik_ayah || "";
+      payload.no_hp_wali = payload.no_hp_wali?.trim() || payload.no_hp_ayah || "";
+      payload.status = payload.status || payload.status_ayah || "Hidup";
     } else {
+      payload.nama_wali = payload.nama_wali?.trim() || payload.nama_ibu || "";
+      payload.nik_wali = payload.nik_wali?.trim() || payload.nik_ibu || "";
+      payload.no_hp_wali = payload.no_hp_wali?.trim() || payload.no_hp_ibu || "";
+      payload.status = payload.status || "Hidup";
+
       if (!payload.nama_wali || !payload.nik_wali || !payload.no_hp_wali) {
         toast.error("Ayah telah wafat. Anda harus mengisi detail Wali Utama pada tab 'Data Wali'.");
         setActiveTab("Wali");
@@ -310,6 +321,7 @@ export default function MasterDataWaliMurid() {
           if (isBulkMode) setSelectedIds([]);
         }}
         onOpenAddModal={handleOpenAddModal}
+        onOpenAutoLink={() => setIsAutoLinkOpen(true)}
         isImporting={isImporting}
         onExport={handleExport}
         onTemplateInfo={handleDownloadTemplate}
@@ -462,6 +474,12 @@ export default function MasterDataWaliMurid() {
             });
           }
         }}
+      />
+
+      <WaliMuridAutoLinkModal
+        isOpen={isAutoLinkOpen}
+        onClose={() => setIsAutoLinkOpen(false)}
+        dataWali={dataWali}
       />
     </div>
   );
