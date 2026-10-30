@@ -176,6 +176,7 @@ const MainLayout: React.FC = () => {
   };
 
   const handleLogout = async () => {
+    setIsLogoutConfirmOpen(false);
     try {
       await authServiceLogout();
     } catch (error) {
@@ -186,6 +187,7 @@ const MainLayout: React.FC = () => {
     }
   };
 
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [passwordForm, setPasswordForm] = useState({ old_password: '', new_password: '' });
   const [showOldPassword, setShowOldPassword] = useState(false);
@@ -390,22 +392,13 @@ const MainLayout: React.FC = () => {
           })}
         </div>
 
-        {/* Actions Area — Profil Pegawai, Ubah Password & Keluar (selalu tampil) */}
+        {/* Actions Area — Ubah Password & Refresh Data */}
         <div className="p-4 mt-auto mb-2 flex flex-col gap-1">
-          {pegawaiData?.pegawai_id && (
-            <Link
-              to={`/master-data/pegawai/${pegawaiData.pegawai_id}`}
-              className="flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-[#2A4080] w-full rounded-lg transition-colors group"
-            >
-              <UserCog className="w-5 h-5 shrink-0 text-[#FACC15] group-hover:scale-110 transition-transform" />
-              {(!isCollapsed || isMobileOpen) && <span className="text-sm font-medium">Profil Pegawai Saya</span>}
-            </Link>
-          )}
-
           <Dialog open={isPasswordModalOpen} onOpenChange={setIsPasswordModalOpen}>
             <DialogTrigger asChild>
               <button
-                className="flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-[#2A4080] w-full rounded-lg transition-colors"
+                className="flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-[#2A4080] w-full rounded-lg transition-colors cursor-pointer"
+                title="Ubah Password"
               >
                 <KeyRound className="w-5 h-5 shrink-0" />
                 {(!isCollapsed || isMobileOpen) && <span className="text-sm font-medium">Ubah Password</span>}
@@ -424,7 +417,7 @@ const MainLayout: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setShowOldPassword(!showOldPassword)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none flex items-center justify-center"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none flex items-center justify-center cursor-pointer"
                       >
                         {showOldPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
@@ -437,7 +430,7 @@ const MainLayout: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setShowNewPassword(!showNewPassword)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none flex items-center justify-center"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none flex items-center justify-center cursor-pointer"
                       >
                         {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
@@ -446,9 +439,9 @@ const MainLayout: React.FC = () => {
                 </div>
                 <DialogFooter className="flex gap-2 sm:justify-between w-full mt-2">
                   <DialogClose asChild>
-                    <Button type="button" variant="outline" className="w-full sm:flex-1 rounded-xl h-11 border-slate-200">Batal</Button>
+                    <Button type="button" variant="outline" className="w-full sm:flex-1 rounded-xl h-11 border-slate-200 cursor-pointer">Batal</Button>
                   </DialogClose>
-                  <Button type="submit" disabled={passwordMutation.isPending} className="w-full sm:flex-1 rounded-xl h-11 bg-[#2A4080] hover:bg-[#1C2D5C] text-white">
+                  <Button type="submit" disabled={passwordMutation.isPending} className="w-full sm:flex-1 rounded-xl h-11 bg-[#2A4080] hover:bg-[#1C2D5C] text-white cursor-pointer">
                     {passwordMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                     Simpan
                   </Button>
@@ -459,18 +452,11 @@ const MainLayout: React.FC = () => {
 
           <button
             onClick={() => queryClient.invalidateQueries()}
-            className="flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-[#2A4080] w-full rounded-lg transition-colors"
+            className="flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-[#2A4080] w-full rounded-lg transition-colors cursor-pointer"
+            title="Refresh Data"
           >
             <RefreshCw className={`w-5 h-5 shrink-0 ${isFetching > 0 ? 'animate-spin' : ''}`} />
             {(!isCollapsed || isMobileOpen) && <span className="text-sm font-medium">Refresh Data</span>}
-          </button>
-
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-3 px-4 py-3 text-rose-400 hover:text-white hover:bg-rose-600/80 w-full rounded-lg transition-colors border border-transparent hover:border-rose-500/50"
-          >
-            <LogOut className="w-5 h-5 shrink-0" />
-            {(!isCollapsed || isMobileOpen) && <span className="text-sm font-medium">Keluar</span>}
           </button>
         </div>
       </aside>
@@ -478,25 +464,26 @@ const MainLayout: React.FC = () => {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-dvh overflow-hidden min-w-0">
         {/* Top Header */}
-        <header className="bg-white flex items-center justify-between px-6 border-b border-gray-200 shrink-0 h-16">
+        <header className="bg-white flex items-center justify-between px-4 sm:px-6 border-b border-gray-200 shrink-0 h-16">
           <div>
             <button
-              className="lg:hidden text-slate-600 p-1 hover:bg-slate-100 rounded-md"
+              className="lg:hidden text-slate-600 p-1.5 hover:bg-slate-100 rounded-md cursor-pointer"
               onClick={() => setIsMobileOpen(true)}
+              aria-label="Buka Menu"
             >
               <Menu className="w-6 h-6" />
             </button>
           </div>
 
-          <div className="flex items-center gap-4 ml-auto">
+          <div className="flex items-center gap-2 sm:gap-3 ml-auto">
             {/* Role and Lembaga Selector */}
             {hasRole && (
-              <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
-                <div className="flex flex-col text-right mr-1">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <div className="hidden sm:flex flex-col text-right mr-0.5">
                   <span className="text-[10px] text-slate-400 font-bold tracking-wider uppercase">ROLE</span>
                 </div>
                 <select
-                  className="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none cursor-pointer hover:bg-slate-100 focus:ring-2 focus:ring-blue-500 shadow-xs"
+                  className="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-2 sm:px-2.5 py-1.5 outline-none cursor-pointer hover:bg-slate-100 focus:ring-2 focus:ring-blue-500 shadow-xs max-w-28 sm:max-w-none"
                   value={userRole || ''}
                   onChange={(e) => handleRoleChange(e.target.value)}
                 >
@@ -514,7 +501,7 @@ const MainLayout: React.FC = () => {
                   if (showLembagaSelector && allowedLembagas.length > 0) {
                     return (
                       <select
-                        className="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none cursor-pointer hover:bg-slate-100 focus:ring-2 focus:ring-blue-500 max-w-44 truncate shadow-xs"
+                        className="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-2 sm:px-2.5 py-1.5 outline-none cursor-pointer hover:bg-slate-100 focus:ring-2 focus:ring-blue-500 max-w-28 sm:max-w-44 truncate shadow-xs"
                         value={userLembaga || ''}
                         onChange={(e) => {
                           const val = e.target.value === '' ? null : Number(e.target.value);
@@ -536,8 +523,94 @@ const MainLayout: React.FC = () => {
                 })()}
               </div>
             )}
+
+            {/* Divider */}
+            <div className="h-6 w-px bg-slate-200 mx-0.5 sm:mx-1 shrink-0" />
+
+            {/* Tombol Profil */}
+            {pegawaiData?.pegawai_id ? (
+              <Link
+                to={`/master-data/pegawai/${pegawaiData.pegawai_id}`}
+                className="flex items-center gap-2 px-2 sm:px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 transition-colors shadow-xs group shrink-0"
+                title={`Profil Pegawai: ${displayName}`}
+              >
+                <div className="w-7 h-7 rounded-full bg-[#1e2f65] text-[#FACC15] font-bold flex items-center justify-center text-xs shrink-0 shadow-xs">
+                  {displayInitial}
+                </div>
+                <div className="hidden md:flex flex-col text-left">
+                  <span className="text-xs font-semibold text-slate-800 max-w-[120px] truncate leading-tight">
+                    {displayName}
+                  </span>
+                  <span className="text-[10px] text-slate-500 leading-tight">
+                    Profil Saya
+                  </span>
+                </div>
+                <UserCog className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#1e2f65] transition-colors shrink-0" />
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsPasswordModalOpen(true)}
+                className="flex items-center gap-2 px-2 sm:px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 transition-colors shadow-xs group shrink-0 cursor-pointer"
+                title={`Akun: ${displayName} (Klik untuk opsi password)`}
+              >
+                <div className="w-7 h-7 rounded-full bg-[#1e2f65] text-[#FACC15] font-bold flex items-center justify-center text-xs shrink-0 shadow-xs">
+                  {displayInitial}
+                </div>
+                <div className="hidden md:flex flex-col text-left">
+                  <span className="text-xs font-semibold text-slate-800 max-w-[120px] truncate leading-tight">
+                    {displayName}
+                  </span>
+                  <span className="text-[10px] text-slate-500 leading-tight">
+                    {userRole || 'Pengguna'}
+                  </span>
+                </div>
+              </button>
+            )}
+
+            {/* Tombol Logout */}
+            <button
+              type="button"
+              onClick={() => setIsLogoutConfirmOpen(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-rose-200 bg-rose-50/70 hover:bg-rose-100 text-rose-600 hover:text-rose-700 font-semibold text-xs transition-colors shadow-xs cursor-pointer shrink-0"
+              title="Keluar dari sistem"
+            >
+              <LogOut className="w-4 h-4 shrink-0" />
+              <span className="hidden sm:inline">Keluar</span>
+            </button>
           </div>
         </header>
+
+        {/* Modal Konfirmasi Logout */}
+        <Dialog open={isLogoutConfirmOpen} onOpenChange={setIsLogoutConfirmOpen}>
+          <DialogContent className="sm:max-w-md p-6 rounded-[24px] border-none shadow-2xl bg-white">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-bold text-slate-800 flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                  <LogOut className="w-5 h-5" />
+                </div>
+                Konfirmasi Keluar
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-slate-600 mt-2 leading-relaxed">
+              Apakah Anda yakin ingin keluar dari sistem? Anda harus login kembali untuk mengakses data.
+            </p>
+            <DialogFooter className="flex gap-2 sm:justify-end w-full mt-5">
+              <DialogClose asChild>
+                <Button type="button" variant="outline" className="rounded-xl h-11 border-slate-200 px-5 cursor-pointer">
+                  Batal
+                </Button>
+              </DialogClose>
+              <Button
+                type="button"
+                onClick={handleLogout}
+                className="rounded-xl h-11 bg-rose-600 hover:bg-rose-700 text-white font-medium px-5 cursor-pointer"
+              >
+                Ya, Keluar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Main View */}
         <main className="flex-1 overflow-y-auto flex flex-col">
